@@ -688,7 +688,7 @@ out.footNote = (waiting
 ? (i > 0 ? '갈아탈 열차를 타면 알아서 다시 따라가요. 안 되면 \'열차 탔어요\'를 눌러 주세요' : '아직 탑승 전이에요. 열차에 타면 \'열차 탔어요\'를 눌러 주세요. 움직임이 잡히면 알아서 시작해요')
 : !live ? (st.demo ? '데모예요. 종료를 누르면 내 위치로 돌아가요' : '시안용 조작이에요. 실제 앱은 열차를 따라 알아서 움직여요')
 : st.heardT && nowT - st.heardT < 25000 ? '안내방송으로 확인했어요: ' + st.heardName
-: st.trainNo && st.trainT && nowT - st.trainT < 60000 ? st.trainNo + '번 열차를 실시간으로 따라가는 중'
+: st.trainNo && st.trainT && nowT - st.trainT < 60000 ? st.trainNo + '번 열차를 실시간으로 따라가는 중 (서울특별시 공공데이터)'
 : fixAge !== null && fixAge < 25 ? '위치로 따라가는 중' + (geo ? ' (오차 약 ' + Math.round(geo.acc) + 'm)' : '')
 : playing ? '위치 신호가 없어서 시간으로 추정 중이에요. 틀리면 다음 역을 눌러 주세요' : '위치 신호가 없어요. 다음 역을 눌러 맞춰 주세요') + tail;
 out.onDemo = function () {
