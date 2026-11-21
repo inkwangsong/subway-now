@@ -18,9 +18,12 @@ module.exports = async (req, res) => {
 
   const api = 'http://swopenapi.seoul.go.kr/api/subway/' + encodeURIComponent(key) +
     '/json/realtimePosition/0/300/' + encodeURIComponent(line);
+  let text = '', status = 0;
   try {
-    const r = await fetch(api);
-    const j = await r.json();
+    const r = await fetch(api, { headers: { 'User-Agent': 'Mozilla/5.0 (subway-now relay)' } });
+    status = r.status;
+    text = await r.text();
+    const j = JSON.parse(text);
     const msg = j.errorMessage || {};
     const rows = (j.realtimePositionList || []).map((x) => ({
       stn: x.statnNm, no: x.trainNo, term: x.statnTnm, st: x.trainSttus, ud: x.updnLine, t: x.recptnDt,
@@ -28,6 +31,8 @@ module.exports = async (req, res) => {
     const err = msg.code && msg.code !== 'INFO-000' ? msg.message : null;
     return res.status(200).json({ rows, err });
   } catch (e) {
-    return res.status(502).json({ err: 'upstream' });
+    // 원인 확인용: 상태 코드와 응답 앞부분만 (인증키는 지움)
+    const peek = String(text || '').split(key).join('***').replace(/\s+/g, ' ').slice(0, 160);
+    return res.status(502).json({ err: 'upstream', status, why: String(e && e.message || e).slice(0, 120), peek });
   }
 };
