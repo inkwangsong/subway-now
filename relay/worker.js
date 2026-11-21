@@ -14,7 +14,7 @@ export default {
     const headers = {
       'Access-Control-Allow-Origin': ALLOW,
       'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'public, max-age=10',
+      'Cache-Control': 'public, max-age=20',
     };
     if (request.method === 'OPTIONS') return new Response(null, { headers });
     const line = new URL(request.url).searchParams.get('line');
@@ -24,7 +24,7 @@ export default {
     const api = 'http://swopenapi.seoul.go.kr/api/subway/' + encodeURIComponent(env.SEOUL_KEY) +
       '/json/realtimePosition/0/300/' + encodeURIComponent(line);
     try {
-      const r = await fetch(api, { cf: { cacheTtl: 10, cacheEverything: true } });
+      const r = await fetch(api, { cf: { cacheTtl: 20, cacheEverything: true } });
       const j = await r.json();
       const msg = j.errorMessage || {};
       const rows = (j.realtimePositionList || []).map((x) => ({

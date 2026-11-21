@@ -160,7 +160,7 @@ else if (want && recOn) recCk = want;
 else if (!want && recOn && recCk !== 'warmup') stopRec();
 };
 
-/* 실시간 열차 위치: 탄 뒤에만 15초마다 지금 노선의 열차 위치를 받아요 */
+/* 실시간 열차 위치: 탄 뒤에만 30초마다 (인증키 하루 1,000회 제한) 지금 노선의 열차 위치를 받아요 */
 var rtBusy = false, rtLast = 0;
 var pollTrains = function () {
 var st = app.state || {}, route = app._route;
@@ -174,7 +174,7 @@ fetch(RT_URL + (RT_URL.indexOf('?') < 0 ? '?' : '&') + 'line=' + encodeURICompon
 .then(function (j) { rtBusy = false; if (j && j.rows) app.applyTrains(j.rows); app.setState({ rtErr: j && j.err || null }); })
 .catch(function () { rtBusy = false; app.setState({ rtErr: 'network' }); });
 };
-setInterval(pollTrains, 15000);
+setInterval(pollTrains, 30000);
 
 var lastVals = null;
 setInterval(function () { if (lastVals) manageListen(lastVals); }, 1000);
@@ -188,7 +188,7 @@ preact.render(h(Fragment, null, kids), stage);
 afterRender(vals);
 lastVals = vals;
 manageListen(vals);
-if (RT_URL && (app.state || {}).boarded && Date.now() - rtLast > 15000) pollTrains();
+if (RT_URL && (app.state || {}).boarded && Date.now() - rtLast > 30000) pollTrains();
 };
 var schedule = function () { if (!queued) { queued = true; (window.requestAnimationFrame || setTimeout)(draw); } };
 DCLogic.onChange = schedule;
