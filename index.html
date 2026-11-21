@@ -1,0 +1,1455 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="지금 어느 역">
+<meta name="theme-color" content="#F7F1E1">
+<title>지금 어느 역</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#F2E9D4;overscroll-behavior:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-text-size-adjust:100%}
+#stage{position:fixed;left:0;top:0;width:390px;transform-origin:0 0}
+#fatal{position:fixed;left:16px;right:16px;bottom:16px;padding:12px 16px;border-radius:14px;background:#2B2118;color:#fff;font:500 13px/1.5 sans-serif;display:none;z-index:9}
+
+body{margin:0}
+a{color:var(--blue)}a:hover{color:var(--title)}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit}
+input::placeholder{color:var(--sub)}
+
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="fatal" role="alert"></div>
+<template id="tpl">
+
+<div style="position: relative; width: 390px; height: {{H}}; overflow: hidden; --ink: {{th.ink}}; --sub: {{th.sub}}; --title: {{th.title}}; --blue: {{th.blue}}; --card: {{th.card}}; --card-line: {{th.card_line}}; --card-shadow: {{th.card_shadow}}; --tile: {{th.tile}}; --row: {{th.row}}; --row-shadow: {{th.row_shadow}}; --field: {{th.field}}; --land: {{th.land}}; --haze0: {{th.haze0}}; --hazeM: {{th.hazeM}}; --hazeT: {{th.hazeT}}; --sun: {{th.sun}}; --river: {{th.river}}; --river-edge: {{th.river_edge}}; --grid: {{th.grid}}; --tint: {{th.tint}}; --lm-filter: {{th.lm_filter}}; background: var(--land); color: var(--ink); font-family: 'IBM Plex Sans KR', sans-serif">
+
+<sc-if value="{{ showMap }}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: {{H}}; overflow: hidden">
+<sc-for list="{{ patches }}" as="g" hint-placeholder-count="3">
+<div style="position: absolute; left: {{g.x}}; top: {{g.y}}; width: {{g.w}}; height: {{g.h}}; transform: translate(-50%, -50%); border-radius: 50%; background: {{g.c}}"></div>
+</sc-for>
+<svg aria-hidden="true" width="390" height="1000" viewBox="0 0 390 1000" style="position: absolute; left: 0; top: 0">
+<path d="{{grid}}" fill="none" stroke-width="1" style="stroke: var(--grid)"></path>
+<polygon points="{{river}}" stroke-width="2.5" stroke-linejoin="round" style="fill: var(--river); stroke: var(--river-edge)"></polygon>
+<path d="{{b0}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#0052A4" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b1}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#00A84D" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b2}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#EF7C1C" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b3}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#00A5DE" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b4}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#996CAC" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b5}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#CD7C2F" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b6}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#747F00" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b7}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#E6186C" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b8}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#BDB092" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b9}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#77C4A3" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b10}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#0090D2" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b11}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#0C8E72" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b12}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#FABE00" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b13}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#D4003B" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b14}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#B0CE18" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b15}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#8FC31F" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b16}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#003DA5" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b17}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#6789CA" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b18}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#9A6292" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b19}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#A17800" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b20}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#FDA600" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b21}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#509F22" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b22}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#7CA8D5" stroke-opacity="0.6" stroke-width="2.4"></path>
+<path d="{{b23}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#ED8B00" stroke-opacity="0.6" stroke-width="2.4"></path>
+</svg>
+<svg aria-hidden="true" width="390" height="1000" viewBox="0 0 390 1000" style="position: absolute; left: 0; top: 0; filter: blur(7px); opacity: 0.95">
+<path d="{{r0.d}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#FFF6DC" stroke-width="18"></path>
+<path d="{{r1.d}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#FFF6DC" stroke-width="18"></path>
+<path d="{{r2.d}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#FFF6DC" stroke-width="18"></path>
+<path d="{{r3.d}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#FFF6DC" stroke-width="18"></path>
+<path d="{{r4.d}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#FFF6DC" stroke-width="18"></path>
+</svg>
+<svg aria-hidden="true" width="390" height="1000" viewBox="0 0 390 1000" style="position: absolute; left: 0; top: 0">
+<path d="{{bd_d0.d}}" fill="{{bd_d0.c}}" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="0.6" stroke-linejoin="round"></path>
+<path d="{{bd_d1.d}}" fill="{{bd_d1.c}}" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="0.6" stroke-linejoin="round"></path>
+<path d="{{bd_d2.d}}" fill="{{bd_d2.c}}" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="0.6" stroke-linejoin="round"></path>
+<path d="{{bd_d3.d}}" fill="{{bd_d3.c}}" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="0.6" stroke-linejoin="round"></path>
+<path d="{{bd_l0.d}}" fill="{{bd_l0.c}}" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="0.6" stroke-linejoin="round"></path>
+<path d="{{bd_l1.d}}" fill="{{bd_l1.c}}" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="0.6" stroke-linejoin="round"></path>
+<path d="{{bd_l2.d}}" fill="{{bd_l2.c}}" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="0.6" stroke-linejoin="round"></path>
+<path d="{{bd_l3.d}}" fill="{{bd_l3.c}}" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="0.6" stroke-linejoin="round"></path>
+<path d="{{bd_t0.d}}" fill="{{bd_t0.c}}" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="0.6" stroke-linejoin="round"></path>
+<path d="{{bd_t1.d}}" fill="{{bd_t1.c}}" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="0.6" stroke-linejoin="round"></path>
+<path d="{{bd_t2.d}}" fill="{{bd_t2.c}}" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="0.6" stroke-linejoin="round"></path>
+<path d="{{bd_t3.d}}" fill="{{bd_t3.c}}" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="0.6" stroke-linejoin="round"></path>
+</svg>
+<sc-for list="{{ trees }}" as="t" hint-placeholder-count="6">
+<div style="position: absolute; left: {{t.x}}; top: {{t.y}}; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center">
+<div style="position: absolute; left: 55%; bottom: {{t.sb}}; width: {{t.sw}}; height: {{t.sh}}; border-radius: 50%; background: rgba(70,48,14,0.3)"></div>
+<div style="position: relative; width: {{t.aw}}; height: {{t.ah}}; background: {{t.aBg}}; clip-path: {{t.aClip}}; -webkit-clip-path: {{t.aClip}}; border-radius: {{t.aRad}}"></div>
+<div style="position: relative; width: {{t.bw}}; height: {{t.bh}}; background: {{t.bBg}}; border-radius: {{t.bRad}}"></div>
+</div>
+</sc-for>
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: {{H}}; background: var(--tint); mix-blend-mode: multiply"></div>
+<sc-for list="{{ lights }}" as="l" hint-placeholder-count="0">
+<div style="position: absolute; left: {{l.x}}; top: {{l.y}}; width: {{l.s}}; height: {{l.s}}; transform: translate(-50%, -50%); border-radius: 50%; background: #FFE08A; box-shadow: 0 0 8px 3px rgba(255,214,120,0.75)"></div>
+</sc-for>
+<svg aria-hidden="true" width="390" height="1000" viewBox="0 0 390 1000" style="position: absolute; left: 0; top: 0">
+<path d="{{pl0.d}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="{{pl0.c}}" stroke-opacity="0.38" stroke-width="7"></path>
+<path d="{{pl1.d}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="{{pl1.c}}" stroke-opacity="0.38" stroke-width="7"></path>
+<path d="{{pl2.d}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="{{pl2.c}}" stroke-opacity="0.38" stroke-width="7"></path>
+<path d="{{r0.d}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="{{r0.c}}" stroke-width="7"></path>
+<path d="{{r1.d}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="{{r1.c}}" stroke-width="7"></path>
+<path d="{{r2.d}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="{{r2.c}}" stroke-width="7"></path>
+<path d="{{r3.d}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="{{r3.c}}" stroke-width="7"></path>
+<path d="{{r4.d}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="{{r4.c}}" stroke-width="7"></path>
+<path d="{{casing}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#FFFFFF" stroke-opacity="0.85" stroke-width="1.8"></path>
+<path d="{{dotsP}}" fill="none" stroke="#2B2118" stroke-opacity="0.4" stroke-width="9" stroke-linecap="round"></path>
+<path d="{{dotsP}}" fill="none" stroke="#FFFFFF" stroke-opacity="0.85" stroke-width="5.5" stroke-linecap="round"></path>
+<path d="{{dots}}" fill="none" stroke="#2B2118" stroke-width="10" stroke-linecap="round"></path>
+<path d="{{dots}}" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"></path>
+</svg>
+<sc-if value="{{ hasHere }}" hint-placeholder-val="{{ true }}">
+<svg aria-hidden="true" width="390" height="1000" viewBox="0 0 390 1000" style="position: absolute; left: 0; top: 0">
+<polygon points="{{tr.shadow}}" fill="#3A2408" fill-opacity="0.28"></polygon>
+<polygon points="{{tr.sideL}}" fill="#BCC4CD" stroke="#FFFFFF" stroke-width="1" stroke-linejoin="round"></polygon>
+<polygon points="{{tr.sideR}}" fill="#C9D0D8" stroke="#FFFFFF" stroke-width="1" stroke-linejoin="round"></polygon>
+<polygon points="{{tr.endF}}" fill="#D3D9DF" stroke="#FFFFFF" stroke-width="1" stroke-linejoin="round"></polygon>
+<polygon points="{{tr.endR}}" fill="#D3D9DF" stroke="#FFFFFF" stroke-width="1" stroke-linejoin="round"></polygon>
+<polygon points="{{tr.top}}" fill="#EEF1F4" stroke="#FFFFFF" stroke-width="1" stroke-linejoin="round"></polygon>
+<polygon points="{{tr.stripeL}}" fill="{{here.c}}" ></polygon>
+<polygon points="{{tr.stripeR}}" fill="{{here.c}}" ></polygon>
+<polygon points="{{tr.winL}}" fill="#22303F" ></polygon>
+<polygon points="{{tr.winR}}" fill="#22303F" ></polygon>
+<polygon points="{{tr.glassF}}" fill="#22303F" ></polygon>
+<polygon points="{{tr.glassR}}" fill="#22303F" ></polygon>
+<polygon points="{{tr.bandF}}" fill="{{here.c}}" ></polygon>
+<polygon points="{{tr.bandR}}" fill="{{here.c}}" ></polygon>
+<polygon points="{{tr.ac1}}" fill="#BAC3CD" ></polygon>
+<polygon points="{{tr.ac2}}" fill="#BAC3CD" ></polygon>
+<polygon points="{{tr.lightA}}" fill="#FFD36B" ></polygon>
+<polygon points="{{tr.lightB}}" fill="#FFD36B" ></polygon>
+</svg>
+</sc-if>
+<sc-for list="{{ stopTags }}" as="s" hint-placeholder-count="3">
+<div style="position: absolute; left: {{s.x}}; top: {{s.y}}; transform: translate(-50%, 0); opacity: {{s.op}}; background: rgba(255,255,255,0.78); border-radius: 7px; padding: 1px 6px; font-size: 11px; font-weight: 600; color: #2B2118; white-space: nowrap">{{s.name}}</div>
+</sc-for>
+<sc-for list="{{ marks }}" as="m" hint-placeholder-count="2">
+<div style="position: absolute; left: {{m.x}}; top: {{m.y}}; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center">
+<div style="background: #FFFFFF; border-radius: 9px; padding: 4px 9px; display: flex; align-items: center; gap: 6px; white-space: nowrap; box-shadow: 0 5px 10px rgba(60,40,10,0.3)">
+<span style="display: {{m.tagShow}}; height: 18px; box-sizing: border-box; padding: 0 7px; border-radius: 9px; background: {{m.tagBg}}; color: {{m.tagFg}}; font-size: 11px; font-weight: 700; align-items: center">{{m.tag}}</span>
+<span style="font-size: 13px; font-weight: 700; color: #2B2118">{{m.name}}</span>
+</div>
+<div style="position: relative; width: 2px; height: {{m.pole}}; background: var(--ink)">
+<div style="display: {{m.flagShow}}; position: absolute; left: 2px; top: 1px; width: 0; height: 0; border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-left: 13px solid #D9482B"></div>
+</div>
+</div>
+</sc-for>
+<div style="position: absolute; left: 0; right: 0; top: 0; height: 250px; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); mask-image: linear-gradient(180deg, #000 0%, #000 45%, rgba(0,0,0,0) 100%); -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 45%, rgba(0,0,0,0) 100%)"></div>
+<div style="position: absolute; left: 0; right: 0; top: 0; height: 260px; background: linear-gradient(180deg, var(--haze0) 0%, var(--hazeM) 34%, var(--hazeT) 100%)"></div>
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 460px; background: var(--sun)"></div>
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: {{H}}; filter: var(--lm-filter)">
+<svg aria-hidden="true" width="390" height="1000" viewBox="0 0 390 1000" style="position: absolute; left: 0; top: 0">
+<path d="{{f0.d}}" fill="{{f0.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f1.d}}" fill="{{f1.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f2.d}}" fill="{{f2.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f3.d}}" fill="{{f3.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f4.d}}" fill="{{f4.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f5.d}}" fill="{{f5.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f6.d}}" fill="{{f6.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f7.d}}" fill="{{f7.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f8.d}}" fill="{{f8.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f9.d}}" fill="{{f9.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f10.d}}" fill="{{f10.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f11.d}}" fill="{{f11.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f12.d}}" fill="{{f12.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f13.d}}" fill="{{f13.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f14.d}}" fill="{{f14.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f15.d}}" fill="{{f15.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f16.d}}" fill="{{f16.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f17.d}}" fill="{{f17.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f18.d}}" fill="{{f18.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f19.d}}" fill="{{f19.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f20.d}}" fill="{{f20.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f21.d}}" fill="{{f21.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f22.d}}" fill="{{f22.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f23.d}}" fill="{{f23.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f24.d}}" fill="{{f24.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f25.d}}" fill="{{f25.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f26.d}}" fill="{{f26.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f27.d}}" fill="{{f27.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f28.d}}" fill="{{f28.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f29.d}}" fill="{{f29.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f30.d}}" fill="{{f30.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f31.d}}" fill="{{f31.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f32.d}}" fill="{{f32.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f33.d}}" fill="{{f33.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f34.d}}" fill="{{f34.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f35.d}}" fill="{{f35.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f36.d}}" fill="{{f36.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f37.d}}" fill="{{f37.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f38.d}}" fill="{{f38.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f39.d}}" fill="{{f39.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f40.d}}" fill="{{f40.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f41.d}}" fill="{{f41.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f42.d}}" fill="{{f42.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f43.d}}" fill="{{f43.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f44.d}}" fill="{{f44.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f45.d}}" fill="{{f45.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f46.d}}" fill="{{f46.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f47.d}}" fill="{{f47.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f48.d}}" fill="{{f48.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f49.d}}" fill="{{f49.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f50.d}}" fill="{{f50.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f51.d}}" fill="{{f51.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f52.d}}" fill="{{f52.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f53.d}}" fill="{{f53.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f54.d}}" fill="{{f54.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f55.d}}" fill="{{f55.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f56.d}}" fill="{{f56.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f57.d}}" fill="{{f57.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f58.d}}" fill="{{f58.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f59.d}}" fill="{{f59.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f60.d}}" fill="{{f60.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f61.d}}" fill="{{f61.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f62.d}}" fill="{{f62.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f63.d}}" fill="{{f63.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f64.d}}" fill="{{f64.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f65.d}}" fill="{{f65.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f66.d}}" fill="{{f66.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f67.d}}" fill="{{f67.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f68.d}}" fill="{{f68.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f69.d}}" fill="{{f69.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f70.d}}" fill="{{f70.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f71.d}}" fill="{{f71.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f72.d}}" fill="{{f72.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f73.d}}" fill="{{f73.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f74.d}}" fill="{{f74.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f75.d}}" fill="{{f75.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f76.d}}" fill="{{f76.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f77.d}}" fill="{{f77.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f78.d}}" fill="{{f78.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f79.d}}" fill="{{f79.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f80.d}}" fill="{{f80.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f81.d}}" fill="{{f81.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f82.d}}" fill="{{f82.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f83.d}}" fill="{{f83.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f84.d}}" fill="{{f84.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f85.d}}" fill="{{f85.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f86.d}}" fill="{{f86.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f87.d}}" fill="{{f87.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f88.d}}" fill="{{f88.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f89.d}}" fill="{{f89.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f90.d}}" fill="{{f90.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f91.d}}" fill="{{f91.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f92.d}}" fill="{{f92.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f93.d}}" fill="{{f93.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f94.d}}" fill="{{f94.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f95.d}}" fill="{{f95.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f96.d}}" fill="{{f96.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f97.d}}" fill="{{f97.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f98.d}}" fill="{{f98.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f99.d}}" fill="{{f99.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f100.d}}" fill="{{f100.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f101.d}}" fill="{{f101.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f102.d}}" fill="{{f102.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f103.d}}" fill="{{f103.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f104.d}}" fill="{{f104.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f105.d}}" fill="{{f105.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f106.d}}" fill="{{f106.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f107.d}}" fill="{{f107.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f108.d}}" fill="{{f108.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f109.d}}" fill="{{f109.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f110.d}}" fill="{{f110.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f111.d}}" fill="{{f111.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f112.d}}" fill="{{f112.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f113.d}}" fill="{{f113.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f114.d}}" fill="{{f114.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f115.d}}" fill="{{f115.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f116.d}}" fill="{{f116.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f117.d}}" fill="{{f117.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f118.d}}" fill="{{f118.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f119.d}}" fill="{{f119.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f120.d}}" fill="{{f120.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f121.d}}" fill="{{f121.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f122.d}}" fill="{{f122.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f123.d}}" fill="{{f123.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f124.d}}" fill="{{f124.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f125.d}}" fill="{{f125.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f126.d}}" fill="{{f126.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f127.d}}" fill="{{f127.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f128.d}}" fill="{{f128.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f129.d}}" fill="{{f129.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f130.d}}" fill="{{f130.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f131.d}}" fill="{{f131.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f132.d}}" fill="{{f132.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f133.d}}" fill="{{f133.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f134.d}}" fill="{{f134.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f135.d}}" fill="{{f135.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f136.d}}" fill="{{f136.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f137.d}}" fill="{{f137.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f138.d}}" fill="{{f138.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f139.d}}" fill="{{f139.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f140.d}}" fill="{{f140.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f141.d}}" fill="{{f141.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f142.d}}" fill="{{f142.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f143.d}}" fill="{{f143.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f144.d}}" fill="{{f144.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f145.d}}" fill="{{f145.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f146.d}}" fill="{{f146.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f147.d}}" fill="{{f147.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f148.d}}" fill="{{f148.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f149.d}}" fill="{{f149.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f150.d}}" fill="{{f150.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f151.d}}" fill="{{f151.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f152.d}}" fill="{{f152.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f153.d}}" fill="{{f153.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f154.d}}" fill="{{f154.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f155.d}}" fill="{{f155.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f156.d}}" fill="{{f156.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f157.d}}" fill="{{f157.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f158.d}}" fill="{{f158.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+<path d="{{f159.d}}" fill="{{f159.c}}" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.5" stroke-linejoin="round"></path>
+</svg>
+</div>
+<sc-for list="{{ lmLights }}" as="l" hint-placeholder-count="0">
+<div style="position: absolute; left: {{l.x}}; top: {{l.y}}; width: {{l.s}}; height: {{l.s}}; transform: translate(-50%, -50%); border-radius: 50%; background: #FFE08A; box-shadow: 0 0 9px 4px rgba(255,214,120,0.8)"></div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isRide }}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; left: 16px; right: 16px; top: 52px; background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 22px; padding: 10px 10px 10px 18px; display: flex; align-items: center; gap: 10px">
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px">
+<div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--blue)">{{headKicker}}</div>
+<div style="font-size: 20px; font-weight: 700; letter-spacing: -0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{headTitle}}</div>
+<div style="font-size: 13px; font-weight: 500; color: var(--sub)">{{headSub}}</div>
+</div>
+<button onClick="{{ onPick }}" style="height: 44px; border-radius: 14px; background: var(--tile); border: 0; color: var(--ink); font-size: 14px; font-weight: 600; padding: 0 14px; flex-shrink: 0">{{pickLabel}}</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ isConfirm }}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 24px; right: 24px; top: 56px; display: flex; flex-direction: column; gap: 2px">
+<div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--blue)">{{pillText}}</div>
+<div style="font-size: 34px; font-weight: 700; letter-spacing: -1.2px; line-height: 1.2; color: var(--title)">{{hello}}</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isConfirm }}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 16px; right: 16px; bottom: 20px; display: flex; flex-direction: column; gap: 10px">
+
+<sc-if value="{{ hasOrigin }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 24px; padding: 14px 14px 14px 20px; display: flex; align-items: center; gap: 12px">
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--sub)">출발</div>
+<div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap">
+<span style="font-size: {{o.size}}; font-weight: 700; letter-spacing: -1px; line-height: 1.15; margin-right: 4px">{{o.name}}</span>
+<span style="display: {{o.b1.show}}; min-width: 22px; height: 22px; box-sizing: border-box; padding: 0 7px; border-radius: 11px; background: {{o.b1.bg}}; color: {{o.b1.fg}}; font-size: 12px; font-weight: 700; align-items: center; justify-content: center">{{o.b1.t}}</span>
+<span style="display: {{o.b2.show}}; min-width: 22px; height: 22px; box-sizing: border-box; padding: 0 7px; border-radius: 11px; background: {{o.b2.bg}}; color: {{o.b2.fg}}; font-size: 12px; font-weight: 700; align-items: center; justify-content: center">{{o.b2.t}}</span>
+<span style="display: {{o.b3.show}}; min-width: 22px; height: 22px; box-sizing: border-box; padding: 0 7px; border-radius: 11px; background: {{o.b3.bg}}; color: {{o.b3.fg}}; font-size: 12px; font-weight: 700; align-items: center; justify-content: center">{{o.b3.t}}</span>
+</div>
+<div style="font-size: 13px; font-weight: 500; color: var(--sub)">{{o.label}}</div>
+</div>
+<button onClick="{{ onPickOrigin }}" style="height: 44px; border-radius: 14px; background: var(--tile); border: 0; color: var(--ink); font-size: 14px; font-weight: 600; padding: 0 14px; flex-shrink: 0">바꾸기</button>
+</div>
+<sc-if value="{{ hasUsual }}" hint-placeholder-val="{{ true }}">
+<button onClick="{{ onUsual }}" style="border-radius: 24px; background: linear-gradient(180deg, #2F5890, #1F3A5F); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 12px 24px rgba(20,36,70,0.45), inset 0 1px 0 rgba(255,255,255,0.4); color: #FFFFFF; text-align: left; padding: 14px 20px; display: flex; align-items: center; gap: 12px">
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px">
+<span style="font-size: 11px; font-weight: 700; letter-spacing: 2px">평소처럼</span>
+<span style="font-size: 24px; font-weight: 700; letter-spacing: -0.5px">{{usualName}}</span>
+<span style="font-size: 13px; font-weight: 500">{{usualSummary}}</span>
+</span>
+<svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="20" y2="12"></line><polyline points="13 5 20 12 13 19"></polyline></svg>
+</button>
+</sc-if>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<button onClick="{{ onPick }}" style="height: 60px; border-radius: 20px; background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: var(--ink); font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 10px; padding: 0 16px">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>
+<span>도착역 검색</span>
+</button>
+<button onClick="{{ onFree }}" style="height: 60px; border-radius: 20px; background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: var(--ink); font-size: 15px; font-weight: 600; padding: 0 12px">지금 역만 보기</button>
+</div>
+<sc-if value="{{ isLive }}" hint-placeholder-val="{{ false }}">
+<button onClick="{{ onDemo }}" style="height: 44px; border: 0; background: transparent; color: var(--ink); font-size: 13px; font-weight: 600; text-decoration: underline">데모로 미리 보기 (신흥 → 고속터미널)</button>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ noOrigin }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 24px; padding: 16px 20px; font-size: 14px; font-weight: 500; line-height: 1.6; color: var(--ink)">탑승을 자동으로 못 잡았어요. 출발역만 골라 주면 바로 따라갈게요.</div>
+<button onClick="{{ onPickOrigin }}" style="height: 60px; border-radius: 20px; background: linear-gradient(180deg, #2F5890, #1F3A5F); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 12px 24px rgba(20,36,70,0.45), inset 0 1px 0 rgba(255,255,255,0.4); color: #FFFFFF; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 12px; padding: 0 20px">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>
+<span>출발역 검색</span>
+</button>
+<sc-if value="{{ isLive }}" hint-placeholder-val="{{ false }}">
+<button onClick="{{ onDemo }}" style="height: 44px; border: 0; background: transparent; color: var(--ink); font-size: 13px; font-weight: 600; text-decoration: underline">데모로 미리 보기 (신흥 → 고속터미널)</button>
+</sc-if>
+<div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--sub); padding: 6px 6px 0">자주 타는 역</div>
+<sc-for list="{{ recents }}" as="p" hint-placeholder-count="2">
+<button onClick="{{ p.pick }}" style="height: 58px; border-radius: 20px; background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: var(--ink); font-size: 18px; font-weight: 700; text-align: left; padding: 0 20px; display: flex; align-items: center; gap: 6px">
+<span style="margin-right: 4px">{{p.name}}</span>
+<span style="display: {{p.b1.show}}; min-width: 22px; height: 22px; box-sizing: border-box; padding: 0 7px; border-radius: 11px; background: {{p.b1.bg}}; color: {{p.b1.fg}}; font-size: 12px; font-weight: 700; align-items: center; justify-content: center">{{p.b1.t}}</span>
+<span style="display: {{p.b2.show}}; min-width: 22px; height: 22px; box-sizing: border-box; padding: 0 7px; border-radius: 11px; background: {{p.b2.bg}}; color: {{p.b2.fg}}; font-size: 12px; font-weight: 700; align-items: center; justify-content: center">{{p.b2.t}}</span>
+<span style="display: {{p.b3.show}}; min-width: 22px; height: 22px; box-sizing: border-box; padding: 0 7px; border-radius: 11px; background: {{p.b3.bg}}; color: {{p.b3.fg}}; font-size: 12px; font-weight: 700; align-items: center; justify-content: center">{{p.b3.t}}</span>
+</button>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isRide }}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; left: 16px; right: 16px; bottom: 20px; display: flex; flex-direction: column; gap: 10px">
+
+<sc-if value="{{ hasBanner }}" hint-placeholder-val="{{ false }}">
+<div style="border-radius: 20px; padding: 11px 18px; display: flex; flex-direction: column; gap: 1px; background: {{bannerBg}}; border: 1px solid {{bannerLine}}; box-shadow: {{bannerGlow}}; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px)">
+<div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: {{bannerSub}}">{{bannerLabel}}</div>
+<div style="font-size: 17px; font-weight: 700; line-height: 1.4; letter-spacing: -0.3px; color: {{bannerFg}}">{{banner}}</div>
+</div>
+</sc-if>
+
+<div style="background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 26px; padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 8px">
+<div style="min-width: 24px; height: 24px; box-sizing: border-box; padding: 0 8px; border-radius: 12px; background: {{c.bg}}; color: {{c.fg}}; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{c.short}}</div>
+<div style="font-size: 13px; font-weight: 500; color: var(--sub)">{{c.label}}</div>
+<div style="margin-left: auto; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--blue)">{{hereTag}}</div>
+</div>
+<div style="font-size: {{nameSize}}; font-weight: 700; line-height: 1.15; letter-spacing: -1.5px; white-space: nowrap; color: var(--title)">{{c.name}}</div>
+<sc-if value="{{ showTiles }}" hint-placeholder-val="{{ true }}">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding-top: 4px">
+<div style="background: var(--tile); border: 0; border-radius: 14px; padding: 8px 12px; display: flex; flex-direction: column; min-width: 0">
+<div style="font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--sub)">이전</div>
+<div style="font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{prev}}</div>
+</div>
+<div style="background: var(--tile); border: 0; border-radius: 14px; padding: 8px 12px; display: flex; flex-direction: column; min-width: 0">
+<div style="font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--blue)">다음</div>
+<div style="font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{next}}</div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ isArrived }}" hint-placeholder-val="{{ false }}">
+<div style="background: var(--tile); border: 0; border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; margin-top: 4px">
+<div style="font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--sub)">이 역 근처</div>
+<div style="font-size: 15px; font-weight: 600">[제휴 매장 이름] · [쿠폰 내용]</div>
+</div>
+</sc-if>
+</div>
+
+<div style="display: flex; gap: 8px">
+<button onClick="{{ onReset }}" style="height: 50px; border-radius: 18px; background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: var(--ink); font-size: 14px; font-weight: 600; padding: 0 14px; flex-shrink: 0">{{resetLabel}}</button>
+<button onClick="{{ onToggle }}" disabled="{{ atEnd }}" style="flex-grow: 1; height: 50px; border-radius: 18px; background: linear-gradient(180deg, #2F5890, #1F3A5F); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 12px 24px rgba(20,36,70,0.45), inset 0 1px 0 rgba(255,255,255,0.4); color: #FFFFFF; font-size: 15px; font-weight: 600; opacity: {{nextOpacity}}">{{playLabel}}</button>
+<button onClick="{{ onNext }}" disabled="{{ atEnd }}" style="height: 50px; border-radius: 18px; background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: var(--ink); font-size: 14px; font-weight: 600; padding: 0 14px; flex-shrink: 0; opacity: {{nextOpacity}}">다음 역</button>
+</div>
+<div style="font-size: 11px; font-weight: 500; color: var(--ink); text-align: center">{{footNote}}</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isPick }}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; padding: 56px 16px 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px">
+<div style="font-size: 30px; font-weight: 700; letter-spacing: -1px; padding: 0 8px; color: var(--title)">{{pickTitle}}</div>
+<div style="display: flex; align-items: center; gap: 8px">
+<button onClick="{{ onBack }}" aria-label="뒤로" style="width: 54px; height: 54px; border-radius: 18px; background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: var(--ink); padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 5 8 12 15 19"></polyline></svg>
+</button>
+<label for="stq" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">역 이름 검색</label>
+<input id="stq" type="search" value="{{ q }}" onChange="{{ onQ }}" placeholder="역 이름" autocomplete="off" style="flex-grow: 1; min-width: 0; height: 54px; box-sizing: border-box; border-radius: 18px; background: var(--field); border: 2px solid var(--blue); box-shadow: var(--row-shadow); color: var(--ink); font-size: 17px; font-weight: 600; padding: 0 18px">
+</div>
+<div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--sub); padding: 6px 8px 0">{{listLabel}}</div>
+<div style="flex-grow: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-bottom: 24px">
+<sc-for list="{{ picks }}" as="p" hint-placeholder-count="5">
+<button onClick="{{ p.pick }}" style="flex-shrink: 0; width: 100%; min-height: 68px; border-radius: 20px; background: var(--row); border: 1px solid var(--card-line); box-shadow: var(--row-shadow); color: var(--ink); text-align: left; padding: 12px 20px; display: flex; flex-direction: column; justify-content: center; gap: 3px">
+<span style="display: flex; align-items: center; gap: 6px">
+<span style="font-size: 18px; font-weight: 700; margin-right: 2px">{{p.name}}</span>
+<span style="display: {{p.b1.show}}; min-width: 22px; height: 22px; box-sizing: border-box; padding: 0 7px; border-radius: 11px; background: {{p.b1.bg}}; color: {{p.b1.fg}}; font-size: 12px; font-weight: 700; align-items: center; justify-content: center">{{p.b1.t}}</span>
+<span style="display: {{p.b2.show}}; min-width: 22px; height: 22px; box-sizing: border-box; padding: 0 7px; border-radius: 11px; background: {{p.b2.bg}}; color: {{p.b2.fg}}; font-size: 12px; font-weight: 700; align-items: center; justify-content: center">{{p.b2.t}}</span>
+<span style="display: {{p.b3.show}}; min-width: 22px; height: 22px; box-sizing: border-box; padding: 0 7px; border-radius: 11px; background: {{p.b3.bg}}; color: {{p.b3.fg}}; font-size: 12px; font-weight: 700; align-items: center; justify-content: center">{{p.b3.t}}</span>
+<span style="font-size: 12px; font-weight: 600; color: var(--sub)">{{p.more}}</span>
+</span>
+<span style="font-size: 13px; font-weight: 500; color: var(--sub)">{{p.note}}</span>
+</button>
+</sc-for>
+<sc-if value="{{ noResult }}" hint-placeholder-val="{{ false }}">
+<div style="padding: 32px 20px; font-size: 15px; font-weight: 500; line-height: 1.6; color: var(--sub); text-align: center">그런 역은 못 찾았어요. 이름을 다시 확인해 주세요.</div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDir }}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; padding: 56px 16px 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px">
+<div style="font-size: 30px; font-weight: 700; letter-spacing: -1px; padding: 0 8px; color: var(--title)">어느 방향 열차예요?</div>
+<div style="font-size: 14px; font-weight: 500; line-height: 1.6; color: var(--sub); padding: 0 8px 4px">{{dirSub}}</div>
+<div style="flex-grow: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-bottom: 24px">
+<sc-for list="{{ dirs }}" as="d" hint-placeholder-count="2">
+<button onClick="{{ d.pick }}" style="flex-shrink: 0; min-height: 64px; border-radius: 20px; background: var(--row); border: 1px solid var(--card-line); box-shadow: var(--row-shadow); color: var(--ink); text-align: left; padding: 0 20px; display: flex; align-items: center; gap: 12px">
+<span style="min-width: 26px; height: 26px; box-sizing: border-box; padding: 0 8px; border-radius: 13px; background: {{d.bg}}; color: {{d.fg}}; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0">{{d.short}}</span>
+<span style="font-size: 18px; font-weight: 600">{{d.label}}</span>
+</button>
+</sc-for>
+</div>
+<button onClick="{{ onBack }}" style="flex-shrink: 0; height: 54px; border-radius: 18px; background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: var(--ink); font-size: 15px; font-weight: 600">뒤로</button>
+</div>
+</sc-if>
+
+</div>
+</template>
+<script>!function(n){"function"==typeof define&&define.amd?define(n):n()}(function(){var n,t,e,i,r,o,f,u,c,a,s,h,l,p,y,d,v,_="http://www.w3.org/2000/svg",w="http://www.w3.org/1999/xhtml",m=null,g=void 0,b={},k=[],x=/acit|ex(?:s|g|n|p|$)|rph|grid|ows|mnc|ntw|ine[ch]|zoo|^ord|itera/i,C=Array.isArray;function M(n,t){for(var e in t)n[e]=t[e];return n}function S(n){n&&n.parentNode&&n.parentNode.removeChild(n)}function $(t,e,i){var r,o,f,u={};for(f in e)"key"==f?r=e[f]:"ref"==f?o=e[f]:u[f]=e[f];if(arguments.length>2&&(u.children=arguments.length>3?n.call(arguments,2):i),"function"==typeof t&&t.defaultProps!=m)for(f in t.defaultProps)u[f]===g&&(u[f]=t.defaultProps[f]);return A(t,u,r,o,m)}function A(n,i,r,o,f){var u={type:n,props:i,key:r,ref:o,__k:m,__:m,__b:0,__e:m,__c:m,constructor:g,__v:f==m?++e:f,__i:-1,__u:0};return f==m&&t.vnode!=m&&t.vnode(u),u}function I(n){return n.children}function P(n,t){this.props=n,this.context=t}function E(n,t){if(t==m)return n.__?E(n.__,n.__i+1):m;for(var e;t<n.__k.length;t++)if((e=n.__k[t])!=m&&e.__e!=m)return e.__e;return"function"==typeof n.type?E(n):m}function F(n){if(n.__P&&n.__d){var e=n.__v,i=e.__e,r=[],o=[],f=M({},e);f.__v=e.__v+1,t.vnode&&t.vnode(f),B(n.__P,f,e,n.__n,n.__P.namespaceURI,32&e.__u?[i]:m,r,i==m?E(e):i,!!(32&e.__u),o),f.__v=e.__v,f.__.__k[f.__i]=f,G(r,f,o),e.__e=e.__=null,f.__e!=i&&H(f)}}function H(n){if((n=n.__)!=m&&n.__c!=m)return n.__e=n.__c.base=m,n.__k.some(function(t){if(t!=m&&t.__e!=m)return n.__e=n.__c.base=t.__e}),H(n)}function L(n){(!n.__d&&(n.__d=!0)&&r.push(n)&&!T.__r++||o!=t.debounceRendering)&&((o=t.debounceRendering)||f)(T)}function T(){try{for(var n,t=1;r.length;)r.length>t&&r.sort(u),n=r.shift(),t=r.length,F(n)}finally{r.length=T.__r=0}}function j(n,t,e,i,r,o,f,u,c,a,s){var h,l,p,y,d,v,_=i&&i.__k||k,w=t.length;for(c=O(e,t,_,c,w),h=0;h<w;h++)(p=e.__k[h])!=m&&(l=-1!=p.__i&&_[p.__i]||b,p.__i=h,v=B(n,p,l,r,o,f,u,c,a,s),y=p.__e,p.ref&&l.ref!=p.ref&&(l.ref&&Q(l.ref,m,p),s.push(p.ref,p.__c||y,p)),d==m&&y!=m&&(d=y),4&p.__u?(c=V(p,c,n),l.__e&&(l.__e=m)):"function"==typeof p.type&&v!==g?c=v:y&&(c=y.nextSibling),p.__u&=-7);return e.__e=d,c}function O(n,t,e,i,r){var o,f,u,c,a,s=e.length,h=s,l=0;for(n.__k=new Array(r),o=0;o<r;o++)(f=t[o])!=m&&"boolean"!=typeof f&&"function"!=typeof f?("string"==typeof f||"number"==typeof f||"bigint"==typeof f||f.constructor==String?f=n.__k[o]=A(m,f,m,m,m):C(f)?f=n.__k[o]=A(I,{children:f},m,m,m):f.constructor===g&&f.__b>0?f=n.__k[o]=A(f.type,f.props,f.key,f.ref?f.ref:m,f.__v):n.__k[o]=f,c=o+l,f.__=n,f.__b=n.__b+1,a=f.__i=z(f,e,c,h),u=m,-1!=a&&(h--,(u=e[a])&&(u.__u|=2)),u==m||u.__v==m?(-1==a&&(r>s?l--:r<s&&l++),"function"!=typeof f.type&&(f.__u|=4)):a!=c&&(a==c-1?l--:a==c+1?l++:(a>c?l--:l++,f.__u|=4))):n.__k[o]=m;if(h)for(o=0;o<s;o++)(u=e[o])!=m&&0==(2&u.__u)&&(u.__e==i&&(i=E(u)),U(u,u));return i}function V(n,t,e){var i,r;if("function"==typeof n.type){for(i=n.__k,r=0;i&&r<i.length;r++)i[r]&&(i[r].__=n,t=V(i[r],t,e));return t}n.__e!=t&&(t&&n.type&&!t.parentNode&&(t=E(n)),t=e.insertBefore(n.__e,t||m));do{t=t&&t.nextSibling}while(t!=m&&8==t.nodeType);return t}function z(n,t,e,i){var r,o,f,u=n.key,c=n.type,a=t[e],s=a!=m&&0==(2&a.__u);if(a===m&&null==u||s&&u==a.key&&c==a.type)return e;if(i>(s?1:0))for(r=e-1,o=e+1;r>=0||o<t.length;)if((a=t[f=r>=0?r--:o++])!=m&&0==(2&a.__u)&&u==a.key&&c==a.type)return f;return-1}function N(n,t,e){"-"==t[0]?n.setProperty(t,e==m?"":e):n[t]=e==m?"":"number"!=typeof e||x.test(t)?e:e+"px"}function R(n,t,e,i,r){var o,f;n:if("style"==t)if("string"==typeof e)n.style.cssText=e;else{if("string"==typeof i&&(n.style.cssText=i=""),i)for(t in i)e&&t in e||N(n.style,t,"");if(e)for(t in e)i&&e[t]==i[t]||N(n.style,t,e[t])}else if("o"==t[0]&&"n"==t[1])o=t!=(t=t.replace(h,"$1")),f=t.toLowerCase(),t=f in n||"onFocusOut"==t||"onFocusIn"==t?f.slice(2):t.slice(2),n.l||(n.l={}),n.l[t+o]=e,e?i?e[s]=i[s]:(e[s]=l,n.addEventListener(t,o?y:p,o)):n.removeEventListener(t,o?y:p,o);else{if(r==_)t=t.replace(/xlink(H|:h)/,"h").replace(/sName$/,"s");else if("width"!=t&&"height"!=t&&"href"!=t&&"list"!=t&&"form"!=t&&"tabIndex"!=t&&"download"!=t&&"rowSpan"!=t&&"colSpan"!=t&&"role"!=t&&"popover"!=t&&t in n)try{n[t]=e==m?"":e;break n}catch(n){}"function"==typeof e||(e==m||!1===e&&"-"!=t[4]?n.removeAttribute(t):n.setAttribute(t,"popover"==t&&1==e?"":e))}}function q(n){return function(e){if(this.l){var i=this.l[e.type+n];if(e[a]==m)e[a]=l++;else if(e[a]<i[s])return;return i(t.event?t.event(e):e)}}}function B(n,e,i,r,o,f,u,c,a,s){var h,l,p,y,d,v,_,w,b,x,$,A,F,H,L,T,O=e.type;if(e.constructor!==g)return m;128&i.__u&&(a=!!(32&i.__u),f=[c=e.__e=i.__e]),(h=t.__b)&&h(e);n:if("function"==typeof O){l=u.length;try{if(b=e.props,x=O.prototype&&O.prototype.render,$=(h=O.contextType)&&r[h.__c],A=h?$?$.props.value:h.__:r,i.__c?w=(p=e.__c=i.__c).__=p.__E:(x?e.__c=p=new O(b,A):(e.__c=p=new P(b,A),p.constructor=O,p.render=W),$&&$.sub(p),p.state||(p.state={}),p.__n=r,y=p.__d=!0,p.__h=[],p._sb=[]),x&&p.__s==m&&(p.__s=p.state),x&&O.getDerivedStateFromProps!=m&&(p.__s==p.state&&(p.__s=M({},p.__s)),M(p.__s,O.getDerivedStateFromProps(b,p.__s))),d=p.props,v=p.state,p.__v=e,y)x&&O.getDerivedStateFromProps==m&&p.componentWillMount!=m&&p.componentWillMount(),x&&p.componentDidMount!=m&&p.__h.push(p.componentDidMount);else{if(x&&O.getDerivedStateFromProps==m&&b!==d&&p.componentWillReceiveProps!=m&&p.componentWillReceiveProps(b,A),e.__v==i.__v||!p.__e&&p.shouldComponentUpdate!=m&&!1===p.shouldComponentUpdate(b,p.__s,A)){e.__v!=i.__v&&(p.props=b,p.state=p.__s,p.__d=!1),e.__e=i.__e,e.__k=i.__k,e.__k.some(function(n){n&&(n.__=e)}),k.push.apply(p.__h,p._sb),p._sb=[],p.__h.length&&u.push(p),c=E(i);break n}p.componentWillUpdate!=m&&p.componentWillUpdate(b,p.__s,A),x&&p.componentDidUpdate!=m&&p.__h.push(function(){p.componentDidUpdate(d,v,_)})}if(p.context=A,p.props=b,p.__P=n,p.__e=!1,F=t.__r,H=0,x)p.state=p.__s,p.__d=!1,F&&F(e),h=p.render(p.props,p.state,p.context),k.push.apply(p.__h,p._sb),p._sb=[];else do{p.__d=!1,F&&F(e),h=p.render(p.props,p.state,p.context),p.state=p.__s}while(p.__d&&++H<25);p.state=p.__s,p.getChildContext!=m&&(r=M(M({},r),p.getChildContext())),x&&!y&&p.getSnapshotBeforeUpdate!=m&&(_=p.getSnapshotBeforeUpdate(d,v)),L=h!=m&&h.type===I&&h.key==m?J(h.props.children):h,c=j(n,C(L)?L:[L],e,i,r,o,f,u,c,a,s),p.base=e.__e,e.__u&=-161,p.__h.length&&u.push(p),w&&(p.__E=p.__=m)}catch(n){if(u.length=l,e.__v=m,a||f!=m){if(n.then){for(e.__u|=a?160:128;c&&8==c.nodeType&&c.nextSibling;)c=c.nextSibling;f!=m&&(f[f.indexOf(c)]=m),e.__e=c}else if(f!=m)for(T=f.length;T--;)S(f[T])}else e.__e=i.__e;e.__k==m&&(e.__k=i.__k||[]),n.then||D(e),t.__e(n,e,i)}}else f==m&&e.__v==i.__v?(e.__k=i.__k,e.__e=i.__e):c=e.__e=K(i.__e,e,i,r,o,f,u,a,s);return(h=t.diffed)&&h(e),128&e.__u?void 0:c}function D(n){n&&(n.__c&&(n.__c.__e=!0),n.__k&&n.__k.some(D))}function G(n,e,i){for(var r=0;r<i.length;r++)Q(i[r],i[++r],i[++r]);t.__c&&t.__c(e,n),n.some(function(e){try{n=e.__h,e.__h=[],n.some(function(n){n.call(e)})}catch(n){t.__e(n,e.__v)}})}function J(n){return"object"!=typeof n||n==m||n.__b>0?n:C(n)?n.map(J):n.constructor!==g?null:M({},n)}function K(e,i,r,o,f,u,c,a,s){var h,l,p,y,d,v,k,x=r.props||b,M=i.props,$=i.type;if("svg"==$?f=_:"math"==$?f="http://www.w3.org/1998/Math/MathML":f||(f=w),u!=m)for(h=0;h<u.length;h++)if((d=u[h])&&"setAttribute"in d==!!$&&($?d.localName==$:3==d.nodeType)){e=d,u[h]=m;break}if(e==m){if($==m)return document.createTextNode(M);e=document.createElementNS(f,$,M.is&&M),a&&(t.__m&&t.__m(i,u),a=!1),u=m}if($==m)x===M||a&&e.data==M||(e.data=M);else{if(u="textarea"==$&&M.defaultValue!=m?m:u&&n.call(e.childNodes),!a&&u!=m)for(x={},h=0;h<e.attributes.length;h++)x[(d=e.attributes[h]).name]=d.value;for(h in x)d=x[h],"dangerouslySetInnerHTML"==h?p=d:"children"==h||h in M||"value"==h&&"defaultValue"in M||"checked"==h&&"defaultChecked"in M||R(e,h,m,d,f);for(h in M)d=M[h],"children"==h?y=d:"dangerouslySetInnerHTML"==h?l=d:"value"==h?v=d:"checked"==h?k=d:a&&"function"!=typeof d||x[h]===d||R(e,h,d,x[h],f);if(l)a||p&&(l.__html==p.__html||l.__html==e.innerHTML)||(e.innerHTML=l.__html),i.__k=[];else if(p&&(e.innerHTML=""),j("template"==i.type?e.content:e,C(y)?y:[y],i,r,o,"foreignObject"==$?w:f,u,c,u?u[0]:r.__k&&E(r,0),a,s),u!=m)for(h=u.length;h--;)S(u[h]);a&&"textarea"!=$||(h="value","progress"==$&&v==m?e.removeAttribute("value"):v!=g&&(v!==e[h]||"progress"==$&&!v||"option"==$&&v!=x[h])&&R(e,h,v,x[h],f),h="checked",k!=g&&k!=e[h]&&R(e,h,k,x[h],f))}return e}function Q(n,e,i){try{if("function"==typeof n){var r="function"==typeof n.__u;r&&n.__u(),r&&e==m||(n.__u=n(e))}else n.current=e}catch(n){t.__e(n,i)}}function U(n,e,i){var r,o;if(t.unmount&&t.unmount(n),(r=n.ref)&&(r.current&&r.current!=n.__e||Q(r,m,e)),(r=n.__c)!=m){if(r.componentWillUnmount)try{r.componentWillUnmount()}catch(n){t.__e(n,e)}r.base=r.__P=r.__n=m}if(r=n.__k)for(o=0;o<r.length;o++)r[o]&&U(r[o],e,i||"function"!=typeof n.type);i||S(n.__e),n.__c=n.__=n.__e=g}function W(n,t,e){return this.constructor(n,e)}function X(e,i,r){var o,f,u,c;i==document&&(i=document.documentElement),t.__&&t.__(e,i),f=(o="function"==typeof r)?m:r&&r.__k||i.__k,u=[],c=[],B(i,e=(!o&&r||i).__k=$(I,m,[e]),f||b,b,i.namespaceURI,!o&&r?[r]:f?m:i.firstChild?n.call(i.childNodes):m,u,!o&&r?r:f?f.__e:i.firstChild,o,c),G(u,e,c),e.props.children=m}n=k.slice,t={__e:function(n,t,e,i){for(var r,o,f;t=t.__;)if((r=t.__c)&&!r.__)try{if((o=r.constructor)&&o.getDerivedStateFromError!=m&&(r.setState(o.getDerivedStateFromError(n)),f=r.__d),r.componentDidCatch!=m&&(r.componentDidCatch(n,i||{}),f=r.__d),f)return r.__E=r}catch(t){n=t}throw n}},e=0,i=function(n){return n!=m&&n.constructor===g},P.prototype.setState=function(n,t){var e;e=this.__s!=m&&this.__s!=this.state?this.__s:this.__s=M({},this.state),"function"==typeof n&&(n=n(M({},e),this.props)),n&&M(e,n),n!=m&&this.__v&&(t&&this._sb.push(t),L(this))},P.prototype.forceUpdate=function(n){this.__v&&(this.__e=!0,n&&this.__h.push(n),L(this))},P.prototype.render=I,r=[],f="function"==typeof Promise?Promise.prototype.then.bind(Promise.resolve()):setTimeout,u=function(n,t){return n.__v.__b-t.__v.__b},T.__r=0,c=Math.random().toString(8),a="__d"+c,s="__a"+c,h=/(PointerCapture)$|Capture$/i,l=0,p=q(!1),y=q(!0),d=0,v={__proto__:null,render:X,hydrate:function n(t,e){X(t,e,n)},createElement:$,h:$,Fragment:I,createRef:function(){return{current:m}},isValidElement:i,Component:P,cloneElement:function(t,e,i){var r,o,f,u,c=M({},t.props);for(f in t.type&&t.type.defaultProps&&(u=t.type.defaultProps),e)"key"==f?r=e[f]:"ref"==f?o=e[f]:c[f]=e[f]===g&&u!=g?u[f]:e[f];return arguments.length>2&&(c.children=arguments.length>3?n.call(arguments,2):i),A(t.type,c,r||t.key,o||t.ref,m)},createContext:function(n){function t(n){var e,i;return this.getChildContext||(e=new Set,(i={})[t.__c]=this,this.getChildContext=function(){return i},this.componentWillUnmount=function(){e=m},this.shouldComponentUpdate=function(n){this.props.value!=n.value&&e.forEach(function(n){n.__e=!0,L(n)})},this.sub=function(n){e.add(n);var t=n.componentWillUnmount;n.componentWillUnmount=function(){e&&e.delete(n),t&&t.call(n)}}),n.children}return t.__c="__cC"+d++,t.__=n,t.Provider=t.__l=(t.Consumer=function(n,t){return n.children(t)}).contextType=t,t},toChildArray:function n(t,e){return e=e||[],t==m||"boolean"==typeof t||(C(t)?t.some(function(t){n(t,e)}):e.push(t)),e},options:t},typeof module<"u"?module.exports=v:self.preact=v});
+</script>
+<script>
+class DCLogic {
+constructor() { this.props = {}; this.state = {}; }
+setState(patch) { this.state = Object.assign({}, this.state, patch); if (DCLogic.onChange) DCLogic.onChange(); }
+forceUpdate() { if (DCLogic.onChange) DCLogic.onChange(); }
+}
+/* 노선 데이터: © OpenStreetMap contributors (ODbL), kimmdr2/metroscope의 network.json에서 역 이름과 순서만 추림 */
+var NET = [{"name":"1호선","short":"1","color":"#0052A4","chains":[{"s":["연천","전곡","청산","소요산","동두천","보산","동두천중앙","지행","덕정","덕계","양주","녹양","가능","의정부","회룡","망월사","도봉산","도봉","방학","창동","녹천","월계","광운대","석계","신이문","외대앞","회기","청량리","제기동","신설동","동묘앞","동대문","종로5가","종로3가","종각","시청","서울역","남영","용산","노량진","대방","신길","영등포","신도림","구로","구일","개봉","오류동","온수","역곡","소사","부천","중동","송내","부개","부평","백운","동암","간석","주안","도화","제물포","도원","동인천","인천"],"p":[1270739,381005,1270714,380253,1270748,379958,1270609,379489,1270546,379284,1270571,379149,1270566,379026,1270558,378932,1270614,378441,1270570,378196,1270448,377750,1270423,377603,1270441,377491,1270459,377388,1270473,377247,1270472,377112,1270460,376905,1270456,376799,1270442,376684,1270473,376541,1270511,376452,1270589,376337,1270612,376248,1270653,376158,1270676,376027,1270642,375970,1270583,375900,1270462,375806,1270359,375783,1270255,375763,1270181,375737,1270122,375720,1270031,375710,1269933,375705,1269842,375702,1269771,375663,1269727,375573,1269713,375415,1269660,375308,1269427,375143,1269275,375135,1269197,375165,1269086,375163,1268918,375093,1268824,375034,1268704,374966,1268604,374944,1268458,374947,1268249,374928,1268129,374857,1267967,374829,1267841,374840,1267652,374867,1267537,374878,1267417,374885,1267246,374896,1267075,374836,1267027,374715,1266943,374649,1266802,374652,1266698,374661,1266587,374669,1266434,374685,1266338,374746,1266171,374775]},{"s":["구로","가산디지털단지","독산","금천구청","석수","관악","안양","명학","금정","군포","당정","의왕","성균관대","화서","수원","세류","병점","세마","오산대","오산","진위","송탄","서정리","평택지제","평택","성환","직산","두정","천안","봉명","쌍용","아산","탕정","배방","온양온천","신창"],"p":[1268824,375034,1268822,374824,1268890,374669,1268946,374547,1269019,374362,1269077,374203,1269223,374022,1269353,373849,1269429,373731,1269483,373550,1269483,373442,1269479,373214,1269698,373003,1269890,372848,1269989,372669,1270132,372450,1270335,372065,1270429,371879,1270628,371702,1270667,371458,1270624,371109,1270542,370763,1270529,370573,1270703,370198,1270847,369913,1271267,369171,1271433,368717,1271486,368350,1271464,368112,1271369,368018,1271222,367942,1271054,367924,1270855,367885,1270537,367781,1270042,367804,1269529,367702]},{"s":["금천구청","광명"],"p":[1268946,374547,1268848,374158]},{"s":["병점","서동탄"],"p":[1270335,372065,1270518,371957]}]},{"name":"2호선","short":"2","color":"#00A84D","chains":[{"s":["시청","을지로입구","을지로3가","을지로4가","동대문역사문화공원","신당","상왕십리","왕십리","한양대","뚝섬","성수","건대입구","구의","강변","잠실나루","잠실","잠실새내","종합운동장","삼성","선릉","역삼","강남","교대","서초","방배","사당","낙성대","서울대입구","봉천","신림","신대방","구로디지털단지","대림","신도림","문래","영등포구청","당산","합정","홍대입구","신촌","이대","아현","충정로"],"p":[1269763,375639,1269826,375659,1269912,375663,1269980,375666,1270081,375658,1270198,375656,1270292,375644,1270371,375612,1270436,375557,1270484,375469,1270551,375450,1270703,375401,1270872,375374,1270942,375360,1271034,375215,1270989,375129,1270846,375116,1270725,375109,1270621,375086,1270489,375045,1270369,375008,1270276,374980,1270146,374940,1270076,374918,1269977,374815,1269802,374767,1269636,374771,1269528,374812,1269420,374824,1269297,374843,1269134,374876,1269007,374856,1268950,374933,1268913,375090,1268949,375184,1268966,375253,1269033,375356,1269147,375500,1269235,375566,1269369,375551,1269458,375567,1269561,375574,1269637,375593],"loop":1,"fw":"내선순환","bw":"외선순환"},{"s":["성수","용답","신답","용두","신설동"],"p":[1270551,375450,1270507,375625,1270467,375702,1270377,375741,1270244,375750]},{"s":["신도림","도림천","양천구청","신정네거리","까치산"],"p":[1268913,375090,1268826,375145,1268659,375123,1268531,375200,1268467,375314]}]},{"name":"3호선","short":"3","color":"#EF7C1C","chains":[{"s":["대화","주엽","정발산","마두","백석","대곡","화정","원당","원흥","삼송","지축","구파발","연신내","불광","녹번","홍제","무악재","독립문","경복궁","안국","종로3가","을지로3가","충무로","동대입구","약수","금호","옥수","압구정","신사","잠원","고속터미널","교대","남부터미널","양재","매봉","도곡","대치","학여울","대청","일원","수서","가락시장","경찰병원","오금"],"p":[1267475,376762,1267612,376702,1267733,376598,1267778,376520,1267880,376431,1268123,376316,1268326,376346,1268424,376524,1268738,376505,1268955,376531,1269126,376484,1269188,376369,1269209,376195,1269305,376099,1269358,376010,1269442,375887,1269504,375823,1269579,375746,1269736,375758,1269862,375769,1269918,375720,1269927,375664,1269936,375620,1270058,375591,1270106,375549,1270159,375480,1270170,375425,1270285,375261,1270196,375161,1270111,375127,1270049,375050,1270139,374929,1270163,374850,1270343,374846,1270470,374871,1270555,374909,1270632,374945,1270699,374965,1270796,374937,1270842,374838,1271020,374875,1271177,374923,1271238,374954,1271283,375022]}]},{"name":"4호선","short":"4","color":"#00A5DE","chains":[{"s":["진접","오남","별내별가람","불암산","상계","노원","창동","쌍문","수유","미아","미아사거리","길음","성신여대입구","한성대입구","혜화","동대문","동대문역사문화공원","충무로","명동","회현","서울역","숙대입구","삼각지","신용산","이촌","동작","총신대입구(이수)","사당","남태령","선바위","경마공원","대공원","과천","정부과천청사","인덕원","평촌","범계","금정","산본","수리산","대야미","반월","상록수","한대앞","중앙","고잔","초지","안산","신길온천","정왕","오이도"],"p":[1272033,377189,1271898,377047,1271154,376675,1270784,376696,1270727,376600,1270624,376561,1270467,376530,1270346,376484,1270257,376380,1270265,376254,1270301,376132,1270244,376024,1270164,375927,1270053,375882,1270019,375821,1270094,375708,1270080,375652,1269926,375611,1269863,375609,1269784,375588,1269724,375526,1269719,375451,1269729,375345,1269678,375292,1269736,375226,1269808,375021,1269822,374870,1269816,374763,1269889,374640,1270031,374507,1270079,374438,1270062,374351,1269968,374330,1269898,374264,1269770,374014,1269639,373943,1269509,373899,1269440,373716,1269344,373586,1269254,373498,1269163,373272,1269032,373117,1268657,373029,1268529,373105,1268375,373161,1268221,373169,1268049,373212,1267880,373274,1267662,373381,1267420,373520,1267387,373628]}]},{"name":"5호선","short":"5","color":"#996CAC","chains":[{"s":["방화","개화산","김포공항","송정","마곡","발산","우장산","화곡","까치산","신정","목동","오목교","양평","영등포구청","영등포시장","신길","여의도","여의나루","마포","공덕","애오개","충정로","서대문","광화문","종로3가","을지로4가","동대문역사문화공원","청구","신금호","행당","왕십리","마장","답십리","장한평","군자","아차산","광나루","천호","강동","길동","굽은다리","명일","고덕","상일동","강일","미사","하남풍산","하남시청","하남검단산"],"p":[1268127,375774,1268082,375729,1268013,375621,1268120,375612,1268247,375602,1268375,375584,1268363,375489,1268404,375417,1268465,375321,1268560,375250,1268645,375261,1268752,375245,1268861,375256,1268964,375240,1269051,375227,1269166,375175,1269248,375219,1269326,375268,1269460,375396,1269508,375436,1269567,375534,1269622,375594,1269667,375658,1269769,375716,1269908,375725,1269981,375669,1270073,375642,1270137,375602,1270203,375544,1270300,375576,1270370,375618,1270429,375661,1270526,375668,1270646,375615,1270795,375571,1270898,375517,1271035,375453,1271234,375386,1271326,375358,1271402,375383,1271430,375456,1271441,375519,1271538,375550,1271638,375564,1271761,375575,1271928,375630,1272043,375528,1272070,375416,1272237,375396]},{"s":["강동","둔촌동","올림픽공원","방이","오금","개롱","거여","마천"],"p":[1271326,375358,1271362,375278,1271309,375162,1271260,375087,1271278,375022,1271348,374980,1271437,374933,1271528,374950]}]},{"name":"6호선","short":"6","color":"#CD7C2F","chains":[{"s":["응암","새절","증산","디지털미디어시티","월드컵경기장","마포구청","망원","합정","상수","광흥창","대흥","공덕","효창공원앞","삼각지","녹사평","이태원","한강진","버티고개","약수","청구","신당","동묘앞","창신","보문","안암","고려대","월곡","상월곡","돌곶이","석계","태릉입구","화랑대","봉화산","신내"],"p":[1269157,375988,1269140,375923,1269099,375841,1269015,375762,1268993,375702,1269034,375635,1269102,375560,1269136,375492,1269229,375478,1269320,375475,1269424,375477,1269516,375437,1269614,375393,1269739,375356,1269865,375348,1269944,375345,1270017,375398,1270066,375483,1270103,375542,1270138,375603,1270162,375664,1270156,375734,1270152,375798,1270193,375853,1270293,375863,1270361,375909,1270414,376020,1270482,376062,1270565,376106,1270658,376149,1270745,376173,1270837,376198,1270911,376174,1271046,376124]},{"s":["응암","역촌","불광","독바위","연신내","구산"],"p":[1269157,375988,1269228,376061,1269292,376107,1269331,376184,1269205,376186,1269171,376110],"loop":1,"fw":"응암순환","one":1}]},{"name":"7호선","short":"7","color":"#747F00","chains":[{"s":["장암","도봉산","수락산","마들","노원","중계","하계","공릉","태릉입구","먹골","중화","상봉","면목","사가정","용마산","중곡","군자","어린이대공원","건대입구","자양","청담","강남구청","학동","논현","반포","고속터미널","내방","총신대입구(이수)","남성","숭실대입구","상도","장승배기","신대방삼거리","보라매","신풍","대림","남구로","가산디지털단지","철산","광명사거리","천왕","온수","까치울","부천종합운동장","춘의","신중동","부천시청","상동","삼산체육관","굴포천","부평구청","산곡","석남"],"p":[1270531,377002,1270463,376902,1270554,376787,1270575,376663,1270604,376553,1270639,376455,1270682,376360,1270730,376256,1270752,376190,1270776,376114,1270795,376016,1270857,375958,1270876,375884,1270884,375807,1270865,375739,1270845,375663,1270796,375572,1270744,375476,1270715,375418,1270671,375322,1270523,375191,1270413,375172,1270308,375139,1270215,375111,1270116,375082,1270053,375038,1269943,374878,1269820,374853,1269719,374844,1269541,374956,1269476,375032,1269392,375050,1269282,374997,1269208,374999,1269089,375001,1268963,374925,1268867,374854,1268839,374807,1268678,374760,1268548,374793,1268389,374863,1268243,374918,1268114,375062,1267973,375054,1267872,375037,1267762,375030,1267632,375048,1267532,375058,1267423,375065,1267313,375070,1267220,375074,1267037,375086,1266754,375062]}]},{"name":"8호선","short":"8","color":"#E6186C","chains":[{"s":["별내","다산","동구릉","구리","장자호수공원","암사역사공원","암사","천호","강동구청","몽촌토성","잠실","석촌","송파","가락시장","문정","장지","복정","남위례","산성","남한산성입구","단대오거리","신흥","수진","모란"],"p":[1271280,376418,1271496,376238,1271381,376102,1271410,376016,1271378,375865,1271365,375569,1271271,375490,1271232,375381,1271206,375307,1271126,375176,1271035,375143,1271071,375053,1271122,374996,1271182,374932,1271225,374858,1271260,374789,1271266,374702,1271398,374625,1271499,374568,1271598,374516,1271568,374451,1271476,374410,1271407,374375,1271303,374340]}]},{"name":"9호선","short":"9","color":"#BDB092","chains":[{"s":["개화","김포공항","공항시장","신방화","마곡나루","양천향교","가양","증미","등촌","염창","신목동","선유도","당산","국회의사당","여의도","샛강","노량진","노들","흑석","동작","구반포","신반포","고속터미널","사평","신논현","언주","선정릉","삼성중앙","봉은사","종합운동장","삼전","석촌고분","석촌","송파나루","한성백제","올림픽공원","둔촌오륜","중앙보훈병원"],"p":[1267969,375783,1268015,375619,1268104,375635,1268162,375676,1268277,375668,1268412,375686,1268551,375612,1268620,375574,1268646,375512,1268754,375471,1268832,375442,1268939,375379,1269016,375341,1269176,375285,1269242,375218,1269284,375173,1269419,375136,1269536,375130,1269640,375084,1269777,375032,1269868,375013,1269964,375036,1270041,375059,1270149,375045,1270245,375046,1270336,375073,1270434,375102,1270531,375131,1270602,375142,1270759,375116,1270872,375046,1270966,375025,1271068,375051,1271127,375113,1271162,375167,1271303,375161,1271384,375199,1271482,375283]}]},{"name":"경의중앙선","short":"경의","color":"#77C4A3","chains":[{"s":["문산","파주","월롱","금촌","금릉","운정","야당","탄현","일산","풍산","백마","곡산","대곡","능곡","행신","강매","한국항공대","수색","디지털미디어시티","가좌","홍대입구","서강대","공덕","효창공원앞","용산","이촌","서빙고","한남","옥수","응봉","왕십리","청량리","회기","중랑","상봉","망우","양원","구리","도농","양정","덕소","도심","팔당","운길산","양수","신원","국수","아신","오빈","양평(경의중앙선)","원덕","용문","지평"],"p":[1267880,378536,1267927,378142,1267923,377955,1267737,377658,1267658,377506,1267667,377246,1267613,377121,1267610,376931,1267699,376821,1267867,376716,1267949,376576,1268022,376452,1268104,376313,1268213,376185,1268342,376123,1268447,376124,1268690,376023,1268963,375801,1269009,375771,1269143,375690,1269272,375573,1269358,375520,1269534,375420,1269636,375384,1269636,375285,1269740,375223,1269892,375196,1270099,375297,1270196,375411,1270349,375506,1270384,375614,1270482,375807,1270584,375899,1270771,375952,1270860,375970,1270932,375997,1271090,376069,1271444,376036,1271612,376088,1271950,376035,1272101,375862,1272236,375794,1272446,375470,1273108,375544,1273299,375456,1273736,375249,1274003,375164,1274443,375137,1274747,375060,1274927,374921,1275477,374687,1275946,374823,1276289,374768]},{"s":["가좌","신촌(경의중앙선)","서울역"],"p":[1269143,375690,1269411,375597,1269712,375573]}]},{"name":"공항철도","short":"공항","color":"#0090D2","chains":[{"s":["서울역","공덕","홍대입구","디지털미디어시티","마곡나루","김포공항","계양","검암","청라국제도시","영종","운서","공항화물청사","인천공항1터미널","인천공항2터미널"],"p":[1269698,375541,1269522,375424,1269264,375576,1268981,375774,1268276,375657,1268016,375618,1267364,375718,1266737,375692,1266247,375565,1265249,375120,1264937,374928,1264776,374589,1264527,374473,1264335,374689]}]},{"name":"경춘선","short":"경춘","color":"#0C8E72","chains":[{"s":["청량리","회기","중랑","상봉","망우","신내","갈매","별내","퇴계원","사릉","금곡","평내호평","천마산","마석","대성리","청평","상천","가평","굴봉산","백양리","강촌","김유정","남춘천","춘천"],"p":[1270480,375808,1270573,375892,1270754,375947,1270851,375969,1270908,375996,1271033,376126,1271147,376339,1271268,376420,1271435,376482,1271769,376511,1272074,376373,1272445,376532,1272850,376592,1273117,376528,1273796,376838,1274266,377355,1274544,377701,1275108,378145,1275571,378319,1275892,378308,1276341,378057,1277144,378184,1277240,378640,1277168,378845]},{"s":["광운대","상봉"],"p":[1270622,376235,1270851,375969]}]},{"name":"수인분당선","short":"수인","color":"#FABE00","chains":[{"s":["청량리","왕십리","서울숲","압구정로데오","강남구청","선정릉","선릉","한티","도곡","구룡","개포동","대모산입구","수서","복정","가천대","태평","모란","야탑","이매","서현","수내","정자","미금","오리","죽전","보정","구성","신갈","기흥","상갈","청명","영통","망포","매탄권선","수원시청","매교","수원","고색","오목천","어천","야목","사리","한대앞","중앙","고잔","초지","안산","신길온천","정왕","오이도","달월","월곶","소래포구","인천논현","호구포","남동인더스파크","원인재","연수","송도","인하대","숭의","신포","인천"],"p":[1270479,375809,1270385,375620,1270447,375436,1270407,375278,1270414,375168,1270437,375107,1270485,375056,1270528,374963,1270554,374906,1270595,374869,1270660,374891,1270728,374914,1271018,374871,1271267,374716,1271267,374487,1271277,374397,1271291,374322,1271287,374113,1271282,373952,1271233,373849,1271142,373784,1271081,373654,1271090,373500,1271089,373406,1271074,373246,1271083,373124,1271057,372990,1271113,372861,1271160,372755,1271089,372618,1270795,372600,1270712,372514,1270570,372456,1270405,372530,1270319,372618,1270157,372655,1270014,372667,1269813,372500,1269645,372438,1269098,372498,1268848,372608,1268570,372902,1268545,373091,1268395,373160,1268239,373168,1268069,373203,1267898,373266,1267681,373371,1267440,373515,1267382,373611,1267449,373793,1267431,373914,1267342,374005,1267236,374009,1267095,374013,1266962,374072,1266872,374128,1266796,374174,1266555,374296,1266501,374476,1266388,374606,1266253,374680,1266174,374759]}]},{"name":"신분당선","short":"신분","color":"#D4003B","chains":[{"s":["신사","논현","신논현","강남","양재","양재시민의숲","청계산입구","판교","정자","미금","동천","수지구청","성복","상현","광교중앙","광교"],"p":[1270196,375157,1270218,375099,1270249,375036,1270279,374971,1270346,374838,1270383,374701,1270545,374483,1271111,373944,1271084,373674,1271089,373500,1271028,373379,1270947,373225,1270802,373135,1270692,372974,1270515,372886,1270448,373019]}]},{"name":"우이신설선","short":"우이","color":"#B0CE18","chains":[{"s":["북한산우이","솔밭공원","4.19민주묘지","가오리","화계","삼양","삼양사거리","솔샘","북한산보국문","정릉","성신여대입구","보문","신설동"],"p":[1270124,376634,1270133,376560,1270137,376494,1270166,376421,1270175,376341,1270182,376270,1270205,376212,1270137,376201,1270083,376120,1270134,376028,1270166,375926,1270195,375851,1270232,375761]}]},{"name":"서해선","short":"서해","color":"#8FC31F","chains":[{"s":["일산","풍산","백마","곡산","대곡","능곡","김포공항","원종","부천종합운동장","소사","소새울","시흥대야","신천","신현","시흥시청","시흥능곡","달미","선부","초지","시우","원시"],"p":[1267698,376820,1267859,376729,1267949,376576,1268022,376452,1268103,376313,1268212,376184,1268045,375605,1268049,375222,1267975,375056,1267952,374824,1267972,374687,1267930,374501,1267869,374393,1267879,374097,1268058,373820,1268088,373702,1268091,373490,1268100,373344,1268080,373198,1267958,373131,1267868,373025]}]},{"name":"경강선","short":"경강","color":"#003DA5","chains":[{"s":["판교","성남","이매","삼동","경기광주","초월","곤지암","신둔도예촌","이천","부발","세종대왕릉","여주"],"p":[1271116,373947,1271187,373947,1271276,373946,1272034,374086,1272533,373989,1272994,373736,1273463,373505,1274052,373157,1274422,372642,1274903,372604,1275706,372936,1276281,372828]}]},{"name":"신림선","short":"신림","color":"#6789CA","chains":[{"s":["샛강","대방","서울지방병무청","보라매","보라매공원","보라매병원","당곡","신림","서원","서울대벤처타운","관악산"],"p":[1269294,375173,1269252,375125,1269228,375059,1269206,375004,1269183,374953,1269243,374930,1269278,374897,1269296,374848,1269331,374782,1269337,374721,1269453,374688]}]},{"name":"GTX-A","short":"A","color":"#9A6292","chains":[{"s":["운정중앙","킨텍스","대곡","연신내","서울역"],"p":[1267284,377161,1267484,376653,1268107,376325,1269205,376190,1269726,375554]},{"s":["수서","성남","구성","동탄"],"p":[1271010,374869,1271203,373944,1271036,372985,1270951,372020]}]},{"name":"김포골드라인","short":"김포","color":"#A17800","chains":[{"s":["양촌","구래","마산","장기","운양","걸포북변","사우","풍무","고촌","김포공항"],"p":[1266148,376417,1266287,376453,1266442,376406,1266691,376440,1266839,376538,1267059,376315,1267197,376202,1267324,376124,1267702,376013,1268019,375624]}]},{"name":"의정부경전철","short":"의정","color":"#FDA600","chains":[{"s":["발곡","회룡","범골","경전철의정부","의정부시청","흥선","의정부중앙","동오","새말","경기도청북부청사","효자","곤제","어룡","송산","탑석"],"p":[1270530,377270,1270477,377248,1270437,377286,1270433,377371,1270349,377391,1270369,377433,1270495,377437,1270568,377451,1270636,377488,1270714,377507,1270771,377539,1270838,377507,1270852,377428,1270872,377374,1270890,377335]}]},{"name":"용인에버라인","short":"용인","color":"#509F22","chains":[{"s":["기흥","강남대","지석","어정","동백","초당","삼가","시청·용인대","명지대","김량장","용인중앙시장","고진","보평","둔전","전대·에버랜드"],"p":[1271170,372754,1271262,372700,1271369,372698,1271440,372750,1271528,372689,1271596,372606,1271684,372420,1271791,372393,1271905,372379,1271989,372372,1272092,372378,1272143,372447,1272185,372591,1272137,372674,1272194,372855]}]},{"name":"인천 1호선","short":"인1","color":"#7CA8D5","chains":[{"s":["검단호수공원","신검단중앙","아라","계양","귤현","박촌","임학","계산","경인교대입구","작전","갈산","부평구청","부평시장","부평","동수","부평삼거리","간석오거리","인천시청","예술회관","인천터미널","문학경기장","선학","신연수","원인재","동춘","동막","캠퍼스타운","테크노파크","지식정보단지","인천대입구","센트럴파크","국제업무지구","송도달빛축제공원"],"p":[1266885,376025,1266985,376027,1267134,375922,1267367,375715,1267422,375674,1267451,375536,1267388,375451,1267279,375433,1267226,375384,1267226,375303,1267216,375167,1267206,375081,1267223,374984,1267238,374900,1267185,374854,1267103,374779,1267080,374673,1267022,374579,1267011,374500,1266998,374419,1266979,374349,1266991,374272,1266939,374180,1266881,374125,1266807,374046,1266740,373983,1266617,373878,1266560,373820,1266455,373780,1266395,373860,1266345,373934,1266305,373998,1266260,374068]}]},{"name":"인천 2호선","short":"인2","color":"#ED8B00","chains":[{"s":["검단오류","왕길","검단사거리","마전","완정","독정","검암","검바위","아시아드경기장","서해구청","가정","가정중앙시장","석남","서부여성회관","인천가좌","가재울","주안국가산단","주안","시민공원","석바위시장","인천시청","석천사거리","모래내시장","만수","남동구청","인천대공원","운연"],"p":[1266275,375951,1266420,375951,1266562,376016,1266667,375981,1266728,375933,1266758,375854,1266754,375690,1266776,375615,1266771,375518,1266769,375442,1266754,375253,1266768,375176,1266764,375080,1266759,375002,1266753,374909,1266837,374842,1266813,374743,1266792,374655,1266804,374585,1266918,374578,1267022,374569,1267104,374568,1267189,374560,1267314,374550,1267362,374482,1267525,374486,1267598,374400]}]}];
+var DETECTED = { n: '신흥', l: 7, ci: 0, toFirst: true };
+var USUAL = { from: '신흥', to: '고속터미널', via: '가락시장' };
+var FAVORITES = ['고속터미널', '잠실', '양재'];
+var RECENT_ORIGINS = ['신흥', '고속터미널'];
+var HOP = 2, XFER = 5;
+var INK = '#2B2118';
+var NAVY = '#1F3A5F', BLUE = '#1F5FA8';
+/* 한강: 다리 위치를 따라 손으로 찍은 대략적인 중심선 (장식용) */
+var RIVER = [[127.279,37.526],[127.235,37.57],[127.2,37.583],[127.165,37.578],[127.137,37.571],[127.1165,37.5445],[127.099,37.528],[127.086,37.5225],[127.075,37.521],[127.062,37.526],[127.04,37.532],[127.021,37.535],[127.0135,37.5275],[126.996,37.5155],[126.981,37.512],[126.958,37.5175],[126.943,37.526],[126.936,37.5335],[126.925,37.539],[126.9,37.543],[126.891,37.552],[126.865,37.571],[126.825,37.588],[126.78,37.61]];
+/* 서울 명소 자리에 세우는 단순한 미니어처 (위치는 실제 좌표 근처, 모양은 장식) */
+var LANDMARKS = [
+{ kind: 'tower', name: '롯데월드타워', at: [127.1026, 37.5126] },
+{ kind: 'needle', name: 'N서울타워', at: [126.9882, 37.5512] },
+{ kind: 'palace', name: '경복궁', at: [126.977, 37.5796] },
+{ kind: 'gate', name: '숭례문', at: [126.9753, 37.56] },
+{ kind: 'gold', name: '63빌딩', at: [126.9403, 37.5198] },
+{ kind: 'dome', name: '국회의사당', at: [126.9141, 37.5319] },
+{ kind: 'blob', name: 'DDP', at: [127.0094, 37.5665] },
+{ kind: 'blob', name: '세빛섬', at: [126.995, 37.5118] },
+{ kind: 'wing', name: '올림픽공원', at: [127.1159, 37.5194] },
+{ kind: 'stadium', name: '잠실종합운동장', at: [127.073, 37.5148] },
+{ kind: 'stadium', name: '월드컵경기장', at: [126.8973, 37.5683] },
+{ kind: 'hat', name: '예술의전당', at: [127.0119, 37.4788] },
+{ kind: 'block', name: '코엑스', at: [127.059, 37.5116] },
+{ kind: 'gate', name: '남한산성', at: [127.181, 37.479] }
+];
+var THEMES = {
+morning: { ink: '#2B2118', sub: '#6B5B49', title: '#1F3A5F', blue: '#1F5FA8',
+card: 'linear-gradient(160deg, rgba(255,255,255,0.84), rgba(255,246,240,0.6))', card_line: 'rgba(255,255,255,0.95)', card_shadow: '0 16px 30px rgba(120,60,40,0.22), inset 0 1px 0 #FFFFFF',
+tile: 'rgba(43,33,24,0.07)', row: 'rgba(255,255,255,0.8)', row_shadow: '0 8px 16px rgba(120,60,40,0.14)', field: 'rgba(255,255,255,0.88)',
+land: 'linear-gradient(180deg, #FBEDE6 0%, #F6E7D8 100%)', haze0: 'rgba(255,226,214,1)', hazeM: 'rgba(255,226,214,0.8)', hazeT: 'rgba(255,226,214,0)',
+sun: 'radial-gradient(ellipse 340px 300px at 92% 2%, rgba(255,178,140,0.75), rgba(255,178,140,0) 70%)',
+river: '#A9D6E8', river_edge: '#E6F5FA', grid: 'rgba(184,150,124,0.36)', tint: '#FFE9DF', lm_filter: 'none', night: false, kicker: '아침' },
+noon: { ink: '#2B2118', sub: '#6B5B49', title: '#1F3A5F', blue: '#1F5FA8',
+card: 'linear-gradient(160deg, rgba(255,255,255,0.82), rgba(255,255,255,0.58))', card_line: 'rgba(255,255,255,0.95)', card_shadow: '0 16px 30px rgba(90,58,20,0.24), inset 0 1px 0 #FFFFFF',
+tile: 'rgba(43,33,24,0.07)', row: 'rgba(255,255,255,0.78)', row_shadow: '0 8px 16px rgba(90,58,20,0.14)', field: 'rgba(255,255,255,0.85)',
+land: 'linear-gradient(180deg, #F7F1E1 0%, #F2E9D4 100%)', haze0: 'rgba(250,246,236,1)', hazeM: 'rgba(250,246,236,0.82)', hazeT: 'rgba(250,246,236,0)',
+sun: 'radial-gradient(ellipse 360px 300px at 8% 4%, rgba(255,236,186,0.6), rgba(255,236,186,0) 70%)',
+river: '#8ECBE2', river_edge: '#DDF2F8', grid: 'rgba(184,162,124,0.38)', tint: '#FFFFFF', lm_filter: 'none', night: false, kicker: '점심' },
+evening: { ink: '#FFFFFF', sub: '#C9D0E0', title: '#FFFFFF', blue: '#9CC4FF',
+card: 'linear-gradient(160deg, rgba(52,60,110,0.8), rgba(22,28,60,0.7))', card_line: 'rgba(255,255,255,0.28)', card_shadow: '0 16px 30px rgba(4,7,22,0.5), inset 0 1px 0 rgba(255,255,255,0.35)',
+tile: 'rgba(255,255,255,0.12)', row: 'rgba(44,52,100,0.82)', row_shadow: '0 8px 16px rgba(4,7,22,0.35)', field: 'rgba(30,36,76,0.9)',
+land: 'linear-gradient(180deg, #F7F1E1 0%, #F2E9D4 100%)', haze0: 'rgba(64,52,104,1)', hazeM: 'rgba(64,52,104,0.8)', hazeT: 'rgba(64,52,104,0)',
+sun: 'radial-gradient(ellipse 420px 240px at 50% 0%, rgba(255,150,96,0.6), rgba(255,150,96,0) 70%)',
+river: '#8ECBE2', river_edge: '#DDF2F8', grid: 'rgba(184,162,124,0.38)', tint: '#4B5596', lm_filter: 'brightness(0.62) saturate(0.85)', night: true, kicker: '저녁' }
+};
+var COS = 0.7934;
+
+function fgFor(hex) {
+var c = function (i) { var v = parseInt(hex.substr(i, 2), 16) / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+var L = 0.2126 * c(1) + 0.7152 * c(3) + 0.0722 * c(5);
+return (1.05 / (L + 0.05)) >= 4.5 ? '#FFFFFF' : INK;
+}
+function buildNet() {
+var adj = {}, linesAt = {}, names = [], pos = {};
+var add = function (a, b, w) { (adj[a] = adj[a] || []).push({ to: b, w: w }); };
+NET.forEach(function (L, li) {
+L.chains.forEach(function (c) {
+var s = c.s, k;
+for (k = 0; k < s.length; k++) {
+if (!linesAt[s[k]]) { linesAt[s[k]] = []; names.push(s[k]); }
+if (linesAt[s[k]].indexOf(li) < 0) linesAt[s[k]].push(li);
+pos[s[k] + '|' + li] = [c.p[k * 2] / 1e4, c.p[k * 2 + 1] / 1e4];
+var nx = k + 1 < s.length ? s[k + 1] : (c.loop ? s[0] : null);
+if (nx) { add(s[k] + '|' + li, nx + '|' + li, HOP); if (!c.one) add(nx + '|' + li, s[k] + '|' + li, HOP); }
+}
+});
+});
+names.forEach(function (n) {
+var ls = linesAt[n];
+ls.forEach(function (a) { ls.forEach(function (b) { if (a !== b) add(n + '|' + a, n + '|' + b, XFER); }); });
+});
+names.sort();
+return { adj: adj, linesAt: linesAt, names: names, pos: pos };
+}
+function dijkstra(G, srcs) {
+var dist = {}, prev = {}, done = {}, open = srcs.slice();
+srcs.forEach(function (s) { dist[s] = 0; });
+while (open.length) {
+var bi = 0, k;
+for (k = 1; k < open.length; k++) if (dist[open[k]] < dist[open[bi]]) bi = k;
+var u = open.splice(bi, 1)[0];
+if (done[u]) continue;
+done[u] = 1;
+(G.adj[u] || []).forEach(function (e) {
+var nd = dist[u] + e.w;
+if (dist[e.to] === undefined || nd < dist[e.to]) { dist[e.to] = nd; prev[e.to] = u; open.push(e.to); }
+});
+}
+return { dist: dist, prev: prev };
+}
+function chainDir(c, forward) {
+var s = c.s;
+if (c.loop) return forward ? (c.fw || '순환') : (c.bw || '순환');
+return (forward ? s[s.length - 1] : s[0]) + ' 방면';
+}
+function dirOf(li, a, b) {
+var cs = NET[li].chains, k;
+for (k = 0; k < cs.length; k++) {
+var s = cs[k].s, ia = s.indexOf(a), ib = s.indexOf(b), n = s.length;
+if (ia < 0 || ib < 0) continue;
+if (ib - ia === 1 || (cs[k].loop && ia === n - 1 && ib === 0)) return chainDir(cs[k], true);
+if (ia - ib === 1 || (cs[k].loop && ib === n - 1 && ia === 0)) return chainDir(cs[k], false);
+}
+return '';
+}
+function withDirs(stops) {
+stops.forEach(function (x, k) {
+var nx = stops[k + 1], pv = stops[k - 1];
+if (nx && nx.l === x.l) x.d = dirOf(x.l, x.n, nx.n);
+else if (pv) x.d = dirOf(x.l, pv.n, x.n) || (pv.l === x.l ? pv.d : '');
+else x.d = '';
+});
+return stops;
+}
+function pathTo(G, D, name) {
+var best = null;
+(G.linesAt[name] || []).forEach(function (li) { var k = name + '|' + li; if (D.dist[k] !== undefined && (best === null || D.dist[k] < D.dist[best])) best = k; });
+if (best === null) return null;
+var nodes = [], u = best;
+while (u) { var p = u.split('|'); nodes.unshift({ n: p[0], l: +p[1] }); u = D.prev[u]; }
+var stops = [];
+nodes.forEach(function (x, k) { if (k > 0 && nodes[k - 1].n === x.n) return; stops.push({ n: x.n, l: x.l }); });
+return withDirs(stops);
+}
+function srcsOf(G, o) {
+if (o.l !== undefined && o.l !== null) return [o.n + '|' + o.l];
+return (G.linesAt[o.n] || []).map(function (li) { return o.n + '|' + li; });
+}
+/* 목적지 없이 탈 때: 고른 호선·방향으로 종점(순환선은 한 바퀴)까지 */
+function freeRoute(o) {
+var c = NET[o.l].chains[o.ci], s = c.s, i = s.indexOf(o.n), part;
+if (c.loop) { var r = s.slice(i).concat(s.slice(0, i)); part = o.toFirst ? [r[0]].concat(r.slice(1).reverse()) : r; }
+else part = o.toFirst ? s.slice(0, i + 1).reverse() : s.slice(i);
+var d = chainDir(c, !o.toFirst);
+return part.map(function (n) { return { n: n, l: o.l, d: d }; });
+}
+function dirOptions(G, name) {
+var out = [];
+(G.linesAt[name] || []).forEach(function (li) {
+NET[li].chains.forEach(function (c, ci) {
+var i = c.s.indexOf(name);
+if (i < 0) return;
+if (c.loop || i < c.s.length - 1) out.push({ n: name, l: li, ci: ci, toFirst: false, label: NET[li].name + ' · ' + chainDir(c, true) });
+if ((c.loop && !c.one) || (!c.loop && i > 0)) out.push({ n: name, l: li, ci: ci, toFirst: true, label: NET[li].name + ' · ' + chainDir(c, false) });
+});
+});
+return out;
+}
+function stats(stops, from) {
+var hops = stops.length - 1 - from, x = 0, k;
+for (k = from; k < stops.length - 1; k++) if (stops[k + 1].l !== stops[k].l) x++;
+return { hops: hops, x: x, min: hops * HOP + x * XFER };
+}
+function summary(st) {
+return (st.x ? '환승 ' + st.x + '번' : '환승 없이') + ' · ' + st.hops + '정거장 · 약 ' + st.min + '분';
+}
+function badge(li) {
+var L = NET[li];
+return { t: L.short, bg: L.color, fg: fgFor(L.color), show: 'inline-flex' };
+}
+var NOBADGE = { t: '', bg: 'transparent', fg: 'transparent', show: 'none' };
+function badges(G, name) {
+var ls = G.linesAt[name] || [];
+return {
+b1: ls[0] !== undefined ? badge(ls[0]) : NOBADGE,
+b2: ls[1] !== undefined ? badge(ls[1]) : NOBADGE,
+b3: ls[2] !== undefined ? badge(ls[2]) : NOBADGE,
+more: ls.length > 3 ? '+' + (ls.length - 3) : ''
+};
+}
+function nameSize(name, big) {
+var len = name.length;
+if (big) return len <= 5 ? '46px' : len <= 7 ? '38px' : len <= 9 ? '30px' : '24px';
+return len <= 5 ? '34px' : len <= 7 ? '30px' : len <= 9 ? '26px' : '22px';
+}
+
+class Component extends DCLogic {
+componentDidMount() { var self = this; this._timer = setInterval(function () { self.tick(); }, 70); }
+componentWillUnmount() { clearInterval(this._timer); }
+/* 자동 주행: 역 사이를 조금씩 나아가고, 역에 닿으면 잠깐 섰다가 다시 출발해요 */
+tick() {
+var st = this.state || {};
+if (st.mode !== 'ride' || st.playing === false) { this._lastT = 0; return; }
+var i = Math.min(st.i || 0, this._last || 0);
+if (i >= (this._last || 0)) return;
+var f;
+if (this.props.live && !st.demo) {
+/* 실제 주행: 역 사이를 평균 110초로 보고 시간으로 추정해요. 위치가 잡히면 그 값이 우선이에요 */
+var now = Date.now(), dt = this._lastT ? (now - this._lastT) / 1000 : 0;
+this._lastT = now;
+this._acc = (this._acc || 0) + dt;
+if (this._acc < 1) return;
+/* 화면이 꺼졌다 켜져도 그동안 흐른 시간만큼 한꺼번에 나아가요 */
+var total = i + (st.f || 0) + this._acc / 110; this._acc = 0;
+var ni = Math.min(this._last, Math.floor(total));
+this.setState({ i: ni, f: ni >= this._last ? 0 : total - ni });
+return;
+} else {
+if (this._dwell > 0) { this._dwell--; return; }
+f = (st.f || 0) + 0.028;
+}
+if (f >= 1) { this._dwell = this._xferNext ? 34 : 18; this.setState({ i: i + 1, f: 0 }); }
+else this.setState({ f: f });
+}
+/* 위치 반영: 경로 위에서 지금 역부터 세 정거장 앞까지만 보고 가장 가까운 지점으로 옮겨요 (뒤로는 안 가요) */
+applyGeo(geo) {
+var st = this.state || {};
+var patch = { geo: geo };
+var route = this._route, G = this._G;
+if (st.mode === 'ride' && this.props.live && !st.demo && route && G && geo && geo.acc < 1500) {
+var i = Math.min(st.i || 0, route.length - 1), best = null;
+for (var k = i; k < Math.min(route.length - 1, i + 3); k++) {
+var a = G.pos[route[k].n + '|' + route[k + 1].l] || G.pos[route[k].n + '|' + route[k].l], b = G.pos[route[k + 1].n + '|' + route[k + 1].l];
+var ax = a[0] * COS, ay = a[1], bx = b[0] * COS, by = b[1], px = geo.lon * COS, py = geo.lat;
+var vx = bx - ax, vy = by - ay, l2 = vx * vx + vy * vy || 1, tt = Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / l2));
+var ex = ax + vx * tt - px, ey = ay + vy * tt - py, dist = Math.sqrt(ex * ex + ey * ey) * 111000;
+if (!best || dist < best.dist) best = { k: k, t: tt, dist: dist };
+}
+if (best && best.dist < Math.max(500, geo.acc * 1.5)) {
+var cur = i + (st.f || 0), nxt = best.k + best.t;
+if (nxt > cur - 0.15) { if (best.t > 0.96) { patch.i = best.k + 1; patch.f = 0; } else { patch.i = best.k; patch.f = best.t; } patch.fixT = Date.now(); }
+}
+}
+this.setState(patch);
+}
+renderVals() {
+var self = this;
+var G = this._G || (this._G = buildNet());
+var st = this.state || {};
+var TM = THEMES[this.props.tod] || THEMES.noon;
+var live = !!this.props.live && !((this.state || {}).demo);
+var VH = this.props.viewH || 844, compact = VH < 780;
+var detected = (this.props.detected === undefined || this.props.detected === null) ? true : !!this.props.detected;
+var mode = st.mode || 'confirm';
+var q = (st.q || '').trim();
+var prevMode = st.from || 'confirm';
+var pickFor = st.pickFor || 'dest';
+var geo = st.geo || null, nearName = null;
+if (live && geo) {
+if (!this._near || this._near.t !== geo.t) {
+var bd0 = 1e9, bn0 = null;
+for (var pk in G.pos) { var pp0 = G.pos[pk], ddx0 = (pp0[0] - geo.lon) * COS, ddy0 = pp0[1] - geo.lat, dd0 = ddx0 * ddx0 + ddy0 * ddy0; if (dd0 < bd0) { bd0 = dd0; bn0 = pk; } }
+this._near = { t: geo.t, name: bn0 ? bn0.split('|')[0] : null, m: Math.sqrt(bd0) * 111000 };
+}
+if (this._near.m < 900) nearName = this._near.name;
+}
+var origin = st.origin || (live ? (nearName ? { n: nearName } : null) : (detected ? DETECTED : null));
+var oLine = origin && origin.l !== undefined ? origin.l : null;
+var dest = st.dest || null;
+var route = st.route || (oLine !== null ? freeRoute(origin) : [{ n: origin ? origin.n : '', l: origin ? G.linesAt[origin.n][0] : 0, d: '' }]);
+var i = Math.min(st.i || 0, route.length - 1);
+var last = route.length - 1;
+var frac = i < last ? Math.max(0, Math.min(0.999, st.f || 0)) : 0;
+this._last = last;
+var c = route[i], p = route[i - 1], n = route[i + 1], nn = route[i + 2];
+var isRide = mode === 'ride';
+var riding = isRide || (mode === 'pick' && prevMode === 'ride');
+var srcs = riding ? [c.n + '|' + c.l] : (origin ? srcsOf(G, origin) : []);
+var skey = srcs.join(',');
+if (!this._D || this._D.key !== skey) { this._D = dijkstra(G, srcs); this._D.key = skey; }
+var D = this._D;
+var here = riding ? c.n : (origin ? origin.n : '');
+var clear = { q: '', from: null, pickFor: null };
+
+var go = function (name) {
+var path = pathTo(G, D, name);
+if (!path) return;
+var head = riding ? route.slice(0, i) : [];
+self.setState(Object.assign({ mode: 'ride', dest: name, route: head.concat(path), i: head.length, f: 0, playing: true }, clear));
+};
+var setOrigin = function (name) {
+self.setState(Object.assign({ mode: 'confirm', origin: { n: name }, dest: null, route: null, i: 0 }, clear));
+};
+
+/* 평소 경로: 익숙한 환승역을 거쳐 가는 길 (출발역이 평소와 같을 때만) */
+var usualPath = null, usualTo = USUAL.to;
+if (live) {
+/* 실제 사용: 이 출발역에서 가장 자주 간 곳을 기록에서 골라요 */
+var hist = this.props.hist || {}, bestN = 0;
+if (origin) for (var hk in hist) { var hp = hk.split('>'); if (hp[0] === origin.n && hist[hk] > bestN && G.linesAt[hp[1]]) { bestN = hist[hk]; usualTo = hp[1]; } }
+if (bestN > 0) usualPath = pathTo(G, D, usualTo);
+} else if (origin && origin.n === USUAL.from) {
+if (!this._usual) {
+var D0 = dijkstra(G, srcsOf(G, { n: USUAL.from })), a = pathTo(G, D0, USUAL.via);
+var tail = a[a.length - 1], b = pathTo(G, dijkstra(G, [tail.n + '|' + tail.l]), USUAL.to);
+this._usual = withDirs(a.concat(b.slice(1)));
+}
+usualPath = this._usual;
+}
+
+/* 검색: 도착역 또는 출발역 */
+var forOrigin = pickFor === 'origin';
+var found = q
+? G.names.filter(function (x) { return (forOrigin || x !== here) && x.indexOf(q) >= 0; })
+: (forOrigin ? RECENT_ORIGINS.slice() : FAVORITES.filter(function (x) { return x !== here; }));
+if (q) found.sort(function (a, b) { return (a.indexOf(q) - b.indexOf(q)) || (a.length - b.length); });
+var total = found.length;
+var picks = mode !== 'pick' ? [] : found.slice(0, 30).map(function (name) {
+var o = badges(G, name), path = forOrigin ? null : pathTo(G, D, name);
+o.name = name;
+o.note = forOrigin
+? (G.linesAt[name] || []).map(function (li) { return NET[li].name; }).join(' · ')
+: (path ? summary(stats(path, 0)) : '이어지는 길이 없어요');
+o.pick = function () { if (forOrigin) setOrigin(name); else go(name); };
+return o;
+});
+var recents = RECENT_ORIGINS.map(function (name) { var o = badges(G, name); o.name = name; o.pick = function () { setOrigin(name); }; return o; });
+
+/* 방향 고르기 (목적지 없이, 출발역을 직접 골랐을 때) */
+var dirs = origin ? dirOptions(G, origin.n).map(function (o) {
+return { short: NET[o.l].short, bg: NET[o.l].color, fg: fgFor(NET[o.l].color), label: o.label,
+pick: function () { self.setState(Object.assign({ mode: 'ride', origin: o, dest: null, route: null, i: 0, f: 0, playing: true }, clear)); } };
+}) : [];
+
+/* 안내 문구 */
+var banner = '', bannerLabel = '안내', strong = false;
+if (dest) {
+var remain = last - i;
+if (i === last) { banner = dest + ' 도착! 내려요'; strong = true; bannerLabel = '도착'; }
+else if (n.l !== c.l) { banner = '지금 내려서 ' + NET[n.l].name + ' ' + n.d + (n.d.indexOf('방면') >= 0 ? '으로' : ' 열차로') + ' 갈아타요'; strong = true; bannerLabel = '환승'; }
+else if (nn && nn.l !== n.l) { banner = '다음 역 ' + n.n + '에서 ' + NET[nn.l].name + ' 갈아타요'; bannerLabel = '곧 환승'; }
+else if (p && p.l !== c.l) { banner = NET[c.l].name + ' ' + c.d + ', 제대로 탔어요'; bannerLabel = '환승 완료'; }
+else if (remain === 2) { banner = '두 정거장 남았어요'; bannerLabel = '곧 도착'; }
+else if (remain === 1) { banner = '다음 역에서 내려요'; strong = true; bannerLabel = '내릴 준비'; }
+} else if (isRide) {
+var others = (G.linesAt[c.n] || []).filter(function (li) { return li !== c.l; });
+if (others.length) { bannerLabel = '갈아탈 수 있어요'; banner = others.map(function (li) { return NET[li].name; }).join(', '); }
+}
+
+/* 디오라마 지도: 실제 역 좌표를 화면 가득 펼친 지면에 놓고 원근 투영해요. 진행 방향이 화면 안쪽을 향해요 */
+var showMap = mode === 'confirm' || isRide;
+var mRoute = isRide ? route : (usualPath || (origin ? [route[0]] : []));
+var mI = isRide ? i : 0;
+var mDest = isRide ? !!dest : !!usualPath;
+var mLast = mRoute.length - 1;
+var ll = function (s) { return G.pos[s.n + '|' + s.l]; };
+var TH = 52 * Math.PI / 180, SIN = Math.sin(TH), COSV = Math.cos(TH), CAM = 620, LIFT = 0;
+var YFAR = 1500;
+var cy = isRide ? (compact ? VH - 352 : VH - 424) : (origin ? VH - 414 : VH - 449);
+this._route = route;
+var mF = isRide ? frac : 0;
+this._xferNext = isRide && mI + 1 < mLast && mRoute[mI + 2].l !== mRoute[mI + 1].l;
+/* 카메라: 역 idx에 있을 때의 진행 방향과 배율을 구하고, 역 사이에서는 앞뒤 값을 부드럽게 섞어요 */
+var camAt = function (idx, apt) {
+var u = [0, 1], tgI = isRide ? Math.min(mLast, idx + 4) : mLast;
+var from = apt, tg = mRoute.length > 1 ? ll(mRoute[tgI]) : null;
+if (tg && tgI === idx && idx > 0) { from = ll(mRoute[idx - 1]); tg = apt; }
+if (tg) { var ddx = (tg[0] - from[0]) * COS, ddy = tg[1] - from[1], dl = Math.sqrt(ddx * ddx + ddy * ddy); if (dl > 1e-6) u = [ddx / dl, ddy / dl]; }
+var dg = function (pt) { var dx = (pt[0] - apt[0]) * COS, dy = pt[1] - apt[1]; return [dx * u[1] - dy * u[0], dx * u[0] + dy * u[1]]; };
+var fw = 0.03, fg = [];
+(isRide ? mRoute.slice(idx, idx + 6) : mRoute).forEach(function (s) { var g = dg(ll(s)); fw = Math.max(fw, g[1]); fg.push(g); });
+if (!mRoute.length) fw = 0.16;
+var dyT = Math.max(110, cy - 205), k0 = (dyT * CAM / (COSV * CAM - dyT * SIN)) / fw;
+for (var it = 0; it < 4; it++) {
+var worst = 0;
+fg.forEach(function (g) { var dp = CAM + g[1] * k0 * SIN; if (dp > 200) worst = Math.max(worst, Math.abs(g[0] * k0 * CAM / dp)); });
+if (worst > 150) k0 *= 150 / worst;
+}
+return { u: u, k: k0 };
+};
+var anchor = [126.99, 37.5], ux = 0, uy = 1, kk;
+if (mRoute.length) {
+var sA = mRoute[mI], sB = mRoute[mI + 1];
+var pA = sB ? (G.pos[sA.n + '|' + sB.l] || ll(sA)) : ll(sA);
+var c0 = camAt(mI, pA);
+if (sB && mF > 0) {
+var pB = ll(sB), c1 = camAt(mI + 1, pB), e = mF * mF * (3 - 2 * mF);
+anchor = [pA[0] + (pB[0] - pA[0]) * mF, pA[1] + (pB[1] - pA[1]) * mF];
+var bx = c0.u[0] + (c1.u[0] - c0.u[0]) * e, by = c0.u[1] + (c1.u[1] - c0.u[1]) * e, bl = Math.sqrt(bx * bx + by * by) || 1;
+ux = bx / bl; uy = by / bl; kk = c0.k + (c1.k - c0.k) * e;
+} else { anchor = pA; ux = c0.u[0]; uy = c0.u[1]; kk = c0.k; }
+} else kk = camAt(0, anchor).k;
+var deg = function (pt) { var dx = (pt[0] - anchor[0]) * COS, dy = pt[1] - anchor[1]; return [dx * uy - dy * ux, dx * ux + dy * uy]; };
+var r1 = function (v) { return Math.round(v * 10) / 10; };
+var S = function (X, Y, h) {
+var depth = CAM + Y * SIN;
+if (depth < 200) return null;
+var s = CAM / depth;
+return [r1(195 + X * s), r1(cy - Y * COSV * s - (h || 0) * SIN * s), s];
+};
+var GR = function (pt) { var g = deg(pt); return [g[0] * kk, g[1] * kk]; };
+var P = function (pt, h) { var g = GR(pt); return S(g[0], g[1], h); };
+var inSlab = function (g, m) {
+if (g[1] > YFAR || g[1] < -520) return false;
+var q = S(g[0], g[1], 0);
+return !!q && q[0] >= -10 + m && q[0] <= 400 - m && q[1] >= 60 && q[1] <= VH + 16;
+};
+var poly = function (pts) { return pts.map(function (q) { return q[0] + ',' + q[1]; }).join(' '); };
+var out = {};
+var grid = '';
+if (showMap) {
+/* 지도 접힌 자국처럼 보이는 눈금: 지도와 함께 움직이도록 세계 좌표에 고정 */
+var step = 160, north = ux === 0, w0 = deg([127, 37.5]);
+var ox = north ? ((-(w0[0] * kk) % step) + step) % step : 0, oy = north ? ((-(w0[1] * kk) % step) + step) % step : 0;
+for (var gx = -960 + ox; gx <= 960; gx += step) { var g1 = S(gx, -320, 0), g2 = S(gx, 2240, 0); grid += 'M' + g1[0] + ' ' + g1[1] + 'L' + g2[0] + ' ' + g2[1]; }
+for (var gy = -320 + oy; gy <= 2240; gy += step) { var g3 = S(-1400, gy, 0), g4 = S(1400, gy, 0); grid += 'M' + g3[0] + ' ' + g3[1] + 'L' + g4[0] + ' ' + g4[1]; }
+}
+out.grid = grid;
+/* 한강 띠 */
+var river = '';
+if (showMap) {
+var HW = 0.0048, L = [], R = [];
+RIVER.forEach(function (pt, k) {
+var a = RIVER[Math.max(0, k - 1)], b = RIVER[Math.min(RIVER.length - 1, k + 1)];
+var tx = (b[0] - a[0]) * COS, ty = b[1] - a[1], tl = Math.sqrt(tx * tx + ty * ty) || 1, nx = -ty / tl, ny = tx / tl;
+var p1 = P([pt[0] + nx * HW / COS, pt[1] + ny * HW], 0), p2 = P([pt[0] - nx * HW / COS, pt[1] - ny * HW], 0);
+if (p1 && p2) { L.push(p1); R.unshift(p2); }
+});
+river = poly(L.concat(R));
+}
+out.river = river;
+NET.forEach(function (Ln, li) {
+var d = '';
+if (showMap) Ln.chains.forEach(function (ch) {
+var pen = false, first = null, prevIn = false, prevXY = null;
+for (var k = 0; k < ch.s.length; k++) {
+var pt = [ch.p[k * 2] / 1e4, ch.p[k * 2 + 1] / 1e4], g = GR(pt), xy = S(g[0], g[1], 0);
+if (!xy) { pen = false; prevXY = null; prevIn = false; continue; }
+var near = Math.abs(g[0]) < 900 && g[1] > -400 && g[1] < 2200;
+if (near || prevIn) {
+if (!pen && prevXY) d += 'M' + prevXY[0] + ' ' + prevXY[1] + 'L' + xy[0] + ' ' + xy[1];
+else d += (pen ? 'L' : 'M') + xy[0] + ' ' + xy[1];
+pen = true;
+} else pen = false;
+if (k === 0) first = near ? xy : null;
+prevXY = xy; prevIn = near;
+}
+if (ch.loop && pen && first) d += 'L' + first[0] + ' ' + first[1];
+});
+out['b' + li] = d;
+});
+var seg = function (a, b, h) {
+/* a→b 구간: b가 탄 호선 기준 좌표로 잇는다 (환승역은 호선마다 좌표가 조금 달라요) */
+var ga = GR(G.pos[a.n + '|' + b.l] || ll(a)), gb = GR(ll(b));
+if (Math.max(Math.abs(ga[0]), Math.abs(gb[0])) > 1200 || Math.min(ga[1], gb[1]) < -500 || Math.max(ga[1], gb[1]) > 2600) return '';
+var A = S(ga[0], ga[1], h), B = S(gb[0], gb[1], h);
+return A && B ? 'M' + A[0] + ' ' + A[1] + 'L' + B[0] + ' ' + B[1] : '';
+};
+var passedLegs = [], casing = '', dots = '', legs = [], routeG = [];
+if (showMap) {
+for (var k = 0; k < mLast; k++) {
+routeG.push([GR(ll(mRoute[k])), GR(ll(mRoute[k + 1]))]);
+var sd = seg(mRoute[k], mRoute[k + 1], LIFT);
+if (k === mI && mF > 0 && sd) {
+/* 달리는 중인 구간: 열차가 지나온 부분은 바로 흐리게, 앞부분만 진하게 */
+var tA = S(GR(G.pos[mRoute[k].n + '|' + mRoute[k + 1].l] || ll(mRoute[k]))[0], GR(G.pos[mRoute[k].n + '|' + mRoute[k + 1].l] || ll(mRoute[k]))[1], LIFT), tM = S(0, 0, LIFT), tB = S(GR(ll(mRoute[k + 1]))[0], GR(ll(mRoute[k + 1]))[1], LIFT);
+if (tA && tM && tB) {
+var behind = 'M' + tA[0] + ' ' + tA[1] + 'L' + tM[0] + ' ' + tM[1], pcM = NET[mRoute[k + 1].l].color;
+if (passedLegs.length && passedLegs[passedLegs.length - 1].c === pcM) passedLegs[passedLegs.length - 1].d += behind; else if (passedLegs.length < 3) passedLegs.push({ d: behind, c: pcM }); else passedLegs[2].d += behind;
+sd = 'M' + tM[0] + ' ' + tM[1] + 'L' + tB[0] + ' ' + tB[1];
+}
+}
+if (k < mI) {
+if (sd) { var pc0 = NET[mRoute[k + 1].l].color; if (passedLegs.length && passedLegs[passedLegs.length - 1].c === pc0) passedLegs[passedLegs.length - 1].d += sd; else if (passedLegs.length < 3) passedLegs.push({ d: sd, c: pc0 }); else passedLegs[2].d += sd; }
+continue;
+}
+if (!sd) continue;
+casing += sd;
+var col = NET[mRoute[k + 1].l].color;
+if (legs.length && legs[legs.length - 1].c === col) legs[legs.length - 1].d += sd;
+else if (legs.length < 5) legs.push({ d: sd, c: col });
+else legs[4].d += sd;
+var gq = GR(ll(mRoute[k + 1]));
+if (inSlab(gq, 4)) {
+var top = S(gq[0], gq[1], LIFT), base = S(gq[0], gq[1], 0);
+dots += 'M' + top[0] + ' ' + top[1] + 'l0.01 0';
+}
+}
+}
+for (var r = 0; r < 5; r++) out['r' + r] = legs[r] || { d: '', c: 'transparent' };
+for (var r2 = 0; r2 < 3; r2++) out['pl' + r2] = passedLegs[r2] || { d: '', c: 'transparent' };
+var marks = [];
+var addMark = function (k, tag, tagBg, tagFg, flag) {
+var s = mRoute[k], g = GR(ll(s));
+if (!inSlab(g, 2)) return;
+var xy = S(g[0], g[1], LIFT);
+if (xy[0] < 20 || xy[0] > 370 || xy[1] < 150 || xy[1] > cy - 4) return;
+marks.push({ x: Math.max(60, Math.min(330, xy[0])) + 'px', y: (xy[1] - 3) + 'px', name: s.n, tag: tag || '', tagShow: tag ? 'inline-flex' : 'none', tagBg: tagBg || 'transparent', tagFg: tagFg || 'transparent', pole: flag ? '26px' : '12px', flagShow: flag ? 'block' : 'none' });
+};
+if (showMap && mRoute.length > 1) {
+for (var m = mI + 1; m <= mLast; m++) {
+var isX = m < mLast && mRoute[m + 1].l !== mRoute[m].l;
+if (m === mLast && mDest) addMark(m, '도착', '#D9482B', '#FFFFFF', true);
+else if (isX) addMark(m, NET[mRoute[m + 1].l].name + ' 환승', NET[mRoute[m + 1].l].color, fgFor(NET[mRoute[m + 1].l].color), false);
+else if (m === mI + 1 && isRide) addMark(m, '다음', '#E3ECF7', NAVY, false);
+}
+}
+/* 미니어처 소품: 나무·건물은 세계 좌표 격자에 고정된 장식이에요 (실제 건물 위치가 아니에요) */
+var props = [];
+for (var fz = 0; fz < 160; fz++) out['f' + fz] = { d: '', c: 'transparent' };
+['d', 'l', 't'].forEach(function (lv) { for (var q = 0; q < 4; q++) out['bd_' + lv + q] = { d: '', c: 'transparent' }; });
+if (showMap) {
+var cell = isRide ? 0.008 : 0.002 * Math.pow(2, Math.round(Math.log(88 / kk / 0.002) / Math.LN2));
+var inv = function (X, Y) { var dx = (uy * X + ux * Y) / kk, dy = (-ux * X + uy * Y) / kk; return [anchor[0] + dx / COS, anchor[1] + dy]; };
+var cs4 = [inv(-250, -330), inv(250, -330), inv(640, YFAR), inv(-640, YFAR)];
+var lo0 = Math.min.apply(null, cs4.map(function (q) { return q[0]; })), lo1 = Math.max.apply(null, cs4.map(function (q) { return q[0]; }));
+var la0 = Math.min.apply(null, cs4.map(function (q) { return q[1]; })), la1 = Math.max.apply(null, cs4.map(function (q) { return q[1]; }));
+var cw = cell / COS;
+var rnd = function (a, b, s) { var v = Math.sin(a * 127.1 + b * 311.7 + s * 74.7) * 43758.5453; return v - Math.floor(v); };
+var segDist = function (g) {
+var best = 1e9;
+routeG.forEach(function (sg) {
+var ax = sg[0][0], ay = sg[0][1], bx = sg[1][0], by = sg[1][1], vx = bx - ax, vy = by - ay, l2 = vx * vx + vy * vy || 1;
+var tt = Math.max(0, Math.min(1, ((g[0] - ax) * vx + (g[1] - ay) * vy) / l2)), ex = ax + vx * tt - g[0], ey = ay + vy * tt - g[1];
+best = Math.min(best, Math.sqrt(ex * ex + ey * ey));
+});
+return best;
+};
+var nearRiver = function (pt) {
+for (var k = 0; k < RIVER.length - 1; k++) {
+var ax = RIVER[k][0] * COS, ay = RIVER[k][1], bx = RIVER[k + 1][0] * COS, by = RIVER[k + 1][1], px = pt[0] * COS, py = pt[1];
+var vx = bx - ax, vy = by - ay, l2 = vx * vx + vy * vy || 1, tt = Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / l2));
+var ex = ax + vx * tt - px, ey = ay + vy * tt - py;
+if (Math.sqrt(ex * ex + ey * ey) < 0.0068) return true;
+}
+return false;
+};
+var GREENS = ['#7DBB42', '#5FA648', '#2F8F5B', '#8CC84B', '#F6B9CE', '#7DBB42', '#F4A9C4'], AWN = ['#F2A65A', '#F5CF5B', '#7DB7E8', '#E98A8A', '#B79AE0'];
+var count = 0, blds = [];
+for (var ix = Math.floor(lo0 / cw); ix <= Math.ceil(lo1 / cw) && count < 170; ix++) {
+for (var iy = Math.floor(la0 / cell); iy <= Math.ceil(la1 / cell) && count < 170; iy++) {
+var pick = rnd(ix, iy, 1);
+if (pick > 0.55) continue;
+var pt = [(ix + 0.2 + 0.6 * rnd(ix, iy, 2)) * cw, (iy + 0.2 + 0.6 * rnd(ix, iy, 3)) * cell];
+var g = GR(pt);
+if (!inSlab(g, 0) || segDist(g) < 34 || nearRiver(pt)) continue;
+var xy = S(g[0], g[1], 0), s = xy[2], v = rnd(ix, iy, 4);
+count++;
+if (pick < 0.2) {
+blds.push({ g: g, w: 20 + 16 * v, d: 18 + 14 * rnd(ix, iy, 9), h: 14 + 34 * rnd(ix, iy, 5), ci: Math.floor(rnd(ix, iy, 6) * 4), xy: xy });
+} else {
+var round = v > 0.4, tw = Math.round((round ? 17 : 14) * (0.8 + 0.5 * rnd(ix, iy, 7)) * s), gc = GREENS[Math.floor(rnd(ix, iy, 8) * GREENS.length)];
+props.push({ z: g[1], sw: Math.round(26 * s) + 'px', sh: Math.round(9 * s) + 'px', sb: '-' + Math.round(3 * s) + 'px', x: xy[0] + 'px', y: xy[1] + 'px', aw: tw + 'px', ah: Math.round(tw * (round ? 1 : 1.5)) + 'px', aBg: 'radial-gradient(circle at 35% 30%, rgba(255,255,255,0.35), rgba(255,255,255,0) 55%), ' + gc,
+aClip: round ? 'none' : 'polygon(50% 0, 100% 100%, 0 100%)', aRad: round ? '50%' : '0',
+bw: Math.max(2, Math.round(tw * 0.2)) + 'px', bh: Math.max(2, Math.round(tw * 0.3)) + 'px', bRad: '0', bBg: '#7A5230' });
+}
+}
+}
+/* 3D 모형: 꼭짓점을 지도와 같은 원근으로 투영해서 보이는 면만, 빛 방향에 따라 밝기를 달리해 그려요 */
+var EYE = [0, -CAM * SIN, CAM * COSV], LD = [-0.52, -0.42, 0.74];
+var EX = [uy, ux], NX = [-ux, uy];
+var shade = function (hex, b) {
+var ch = function (k) { return Math.max(0, Math.min(255, Math.round(parseInt(hex.substr(k, 2), 16) * b))); };
+return 'rgb(' + ch(1) + ',' + ch(3) + ',' + ch(5) + ')';
+};
+var mkObj = function (gx, gy, m, sink) {
+var o = {};
+o.P = function (x, y, z) { return [gx + m * (x * EX[0] + y * NX[0]), gy + m * (x * EX[1] + y * NX[1]), m * z]; };
+o.poly = function (pts, hex, opt) {
+opt = opt || {};
+var a0 = pts[0], a1 = pts[1], a2 = pts[2];
+var e1 = [a1[0] - a0[0], a1[1] - a0[1], a1[2] - a0[2]], e2 = [a2[0] - a0[0], a2[1] - a0[1], a2[2] - a0[2]];
+var n = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]], nl = Math.sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]) || 1;
+n = [n[0] / nl, n[1] / nl, n[2] / nl];
+var cx0 = 0, cy0 = 0, cz0 = 0;
+pts.forEach(function (q) { cx0 += q[0]; cy0 += q[1]; cz0 += q[2]; });
+cx0 /= pts.length; cy0 /= pts.length; cz0 /= pts.length;
+var facing = n[0] * (EYE[0] - cx0) + n[1] * (EYE[1] - cy0) + n[2] * (EYE[2] - cz0);
+if (facing <= 0) { if (!opt.both) return; n = [-n[0], -n[1], -n[2]]; }
+var d = '';
+for (var k = 0; k < pts.length; k++) { var w = S(pts[k][0], pts[k][1], pts[k][2]); if (!w) return; d += (k ? 'L' : 'M') + w[0] + ' ' + w[1]; }
+var lit = Math.max(0, n[0] * LD[0] + n[1] * LD[1] + n[2] * LD[2]);
+sink(d + 'Z', opt.flat ? hex : shade(hex, 0.6 + 0.46 * lit), n, lit);
+};
+o.fr = function (nSides, cx, cy, rx0, ry0, rx1, ry1, z0, z1, phase, side, top) {
+var bot = [], tp = [], k;
+for (k = 0; k < nSides; k++) { var a = (phase + k * 360 / nSides) * Math.PI / 180; bot.push(o.P(cx + rx0 * Math.cos(a), cy + ry0 * Math.sin(a), z0)); tp.push(o.P(cx + rx1 * Math.cos(a), cy + ry1 * Math.sin(a), z1)); }
+for (k = 0; k < nSides; k++) { var k2 = (k + 1) % nSides; o.poly([bot[k], bot[k2], tp[k2], tp[k]], side); }
+if (top) o.poly(tp, top);
+};
+o.box = function (cx, cy, w, d, z0, z1, side, top) { o.fr(4, cx, cy, w * 0.7071, d * 0.7071, w * 0.7071, d * 0.7071, z0, z1, 45, side, top); };
+o.roof = function (cx, cy, w0, d0, w1, d1, z0, z1, side, top) { o.fr(4, cx, cy, w0 * 0.7071, d0 * 0.7071, w1 * 0.7071, d1 * 0.7071, z0, z1, 45, side, top); };
+o.shadow = function (rx, ry) { var pts = [], k; for (k = 0; k < 12; k++) { var a = k * 30 * Math.PI / 180; pts.push(o.P(rx * 0.35 + rx * 1.25 * Math.cos(a), -ry * 0.35 + ry * 1.25 * Math.sin(a), 0)); } o.poly(pts, 'rgba(58,36,8,0.2)', { flat: true }); };
+return o;
+};
+var MODELS = {
+tower: function (o) { o.shadow(18, 18); o.fr(4, 0, 0, 16, 16, 12.5, 12.5, 0, 50, 45, '#8FBDE6'); o.fr(4, 0, 0, 12.5, 12.5, 9, 9, 50, 96, 45, '#9CC6EC'); o.fr(4, 0, 0, 9, 9, 4.2, 4.2, 96, 128, 45, '#ABD0F0'); o.fr(4, 0, 0, 4.2, 4.2, 0.6, 0.6, 128, 142, 45, '#DCEBF7', '#FFFFFF'); },
+needle: function (o) { o.shadow(34, 34); o.fr(10, 0, 0, 36, 36, 22, 22, 0, 14, 0, '#5FA648'); o.fr(10, 0, 0, 22, 22, 7, 7, 14, 23, 0, '#6DB455', '#7DBB42'); o.fr(8, 0, 0, 3.4, 3.4, 2.6, 2.6, 23, 70, 0, '#EDEBE6'); o.fr(8, 0, 0, 3.6, 3.6, 9.5, 9.5, 70, 76, 0, '#DAD7D0'); o.fr(8, 0, 0, 9.5, 9.5, 9.5, 9.5, 76, 82, 0, '#F7F5F0'); o.fr(8, 0, 0, 9.5, 9.5, 3.6, 3.6, 82, 86, 0, '#E4E1DA', '#F7F5F0'); o.fr(4, 0, 0, 2.1, 2.1, 1.2, 1.2, 86, 104, 45, '#D9482B'); o.fr(4, 0, 0, 1.2, 1.2, 0.4, 0.4, 104, 122, 45, '#F7F5F0', '#FFFFFF'); },
+palace: function (o) { o.shadow(40, 28); o.box(0, 0, 76, 50, 0, 5, '#D9D2C3', '#E9E3D6'); o.box(0, 0, 54, 30, 5, 18, '#B5443A'); o.roof(0, 0, 70, 46, 44, 22, 18, 27, '#4A5561', '#5B6672'); o.box(0, 0, 36, 18, 27, 34, '#B5443A'); o.roof(0, 0, 54, 34, 10, 3, 34, 47, '#4A5561', '#6A7682'); },
+gate: function (o) { o.shadow(28, 18); o.box(0, 0, 48, 26, 0, 14, '#C9C2B4', '#DAD4C8'); o.poly([o.P(-6, -13.1, 0), o.P(6, -13.1, 0), o.P(6, -13.1, 10), o.P(-6, -13.1, 10)], '#3A2B1F', { flat: true }); o.box(0, 0, 34, 15, 14, 21, '#B5443A'); o.roof(0, 0, 48, 27, 8, 3, 21, 32, '#4A5561', '#6A7682'); },
+gold: function (o) { o.shadow(16, 12); o.fr(4, 0, 0, 16, 10.5, 11.5, 7.5, 0, 98, 45, '#E3B95E', '#F8E4AE'); },
+dome: function (o) { o.shadow(38, 22); o.box(0, 0, 66, 34, 0, 14, '#F1EDE4'); o.box(0, 0, 70, 38, 14, 17, '#FFFFFF', '#FFFFFF'); o.fr(10, 0, 0, 12, 12, 12, 12, 17, 22, 0, '#DAD5CA'); o.fr(10, 0, 0, 12, 12, 9, 9, 22, 28, 0, '#8FB3A8'); o.fr(10, 0, 0, 9, 9, 4, 4, 28, 32, 0, '#9DBFB4', '#A9C9BE'); },
+blob: function (o) { o.shadow(34, 20); o.fr(12, 0, 0, 36, 21, 32, 18, 0, 7, 0, '#D3D9E0'); o.fr(12, 0, 0, 32, 18, 15, 8, 7, 13, 0, '#E6EAEE', '#F6F8FA'); },
+wing: function (o) { o.shadow(30, 12); o.box(-10, 0, 8, 8, 0, 22, '#EDE7DA', '#F6F2E8'); o.box(10, 0, 8, 8, 0, 22, '#EDE7DA', '#F6F2E8'); o.poly([o.P(-38, -8, 36), o.P(-1, -8, 22), o.P(-1, 8, 22), o.P(-38, 8, 36)], '#E8743B', { both: true }); o.poly([o.P(1, -8, 22), o.P(38, -8, 36), o.P(38, 8, 36), o.P(1, 8, 22)], '#3E7FB8', { both: true }); },
+stadium: function (o) { o.shadow(40, 28); o.fr(14, 0, 0, 37, 27, 41, 30, 0, 12, 0, '#C9D1DA', '#EEF1F4'); var f = [], k; for (k = 0; k < 14; k++) { var a = k * 360 / 14 * Math.PI / 180; f.push(o.P(22 * Math.cos(a), 14 * Math.sin(a), 12.2)); } o.poly(f, '#69B35A', { flat: true }); },
+hat: function (o) { o.shadow(32, 24); o.box(0, 0, 58, 40, 0, 10, '#D8CBB0', '#E4D9C2'); o.fr(12, 0, 0, 24, 24, 21, 21, 10, 13, 0, '#BFAF8E'); o.fr(12, 0, 0, 21, 21, 6, 6, 13, 22, 0, '#CDBE9F', '#DDD0B4'); },
+block: function (o) { o.shadow(34, 20); o.box(0, 0, 60, 34, 0, 18, '#7FAAD3', '#E9EEF3'); o.box(-8, 0, 30, 20, 18, 28, '#93B9DD', '#F4F7FA'); }
+};
+var lmFaces = [], lmLightPts = [];
+var lmList = [];
+LANDMARKS.forEach(function (lm) {
+var g = GR(lm.at);
+if (g[1] > 6000 || g[1] < -300) return;
+var xy = S(g[0], g[1], 0);
+if (!xy || xy[0] < -20 || xy[0] > 410 || xy[1] < 152 || xy[1] > VH + 36) return;
+lmList.push({ lm: lm, g: g, xy: xy });
+});
+lmList.sort(function (a, b) { return b.g[1] - a.g[1]; });
+lmList.forEach(function (it) {
+var m = Math.max(1.45, 0.5 / it.xy[2]);
+if (lmFaces.length > 150) return;
+var o = mkObj(it.g[0], it.g[1], m, function (d, c) { lmFaces.push({ d: d, c: c }); });
+MODELS[it.lm.kind](o);
+var tip = S(it.g[0], it.g[1], m * ({ tower: 110, needle: 80, gold: 80 }[it.lm.kind] || 16));
+if (tip) lmLightPts.push({ x: tip[0] + 'px', y: tip[1] + 'px', s: '5px' });
+});
+/* 같은 색이 이어지는 면은 한 칸에 묶어 그려요 */
+var slots = [];
+lmFaces.forEach(function (f) { var lastS = slots[slots.length - 1]; if (lastS && lastS.c === f.c) lastS.d += f.d; else slots.push({ d: f.d, c: f.c }); });
+for (var fs = 0; fs < 160; fs++) out['f' + fs] = slots[fs] || { d: '', c: 'transparent' };
+/* 일반 건물: 색·밝기별로 묶어서 옆면 먼저, 지붕 나중에 */
+var BCOL = ['#EDE8DE', '#F3E3C6', '#DCE8F2', '#F2D9D2'], bq = {};
+['d', 'l', 't'].forEach(function (lv) { for (var q = 0; q < 4; q++) bq[lv + q] = ''; });
+var bLights = [];
+blds.sort(function (a, b) { return b.g[1] - a.g[1]; });
+blds.forEach(function (bd) {
+var o = mkObj(bd.g[0], bd.g[1], 1, function (d, c, n, lit) { bq[(n[2] > 0.9 ? 't' : (lit > 0.18 ? 'l' : 'd')) + bd.ci] += d; });
+o.box(0, 0, bd.w, bd.d, 0, bd.h, BCOL[bd.ci], '#FFFFFF');
+var mid = S(bd.g[0], bd.g[1], bd.h * 0.5);
+if (mid && bLights.length < 50) bLights.push({ x: mid[0] + 'px', y: mid[1] + 'px', s: '3px' });
+});
+var bShade = { d: 0.72, l: 0.92, t: 1.06 };
+['d', 'l', 't'].forEach(function (lv) { for (var q = 0; q < 4; q++) out['bd_' + lv + q] = { d: bq[lv + q], c: lv === 't' ? '#FFFFFF' : shade(BCOL[q], bShade[lv]) }; });
+props.sort(function (a, b) { return b.z - a.z; });
+}
+var patches = [];
+if (showMap) {
+var pc = cell * 4, pcw = pc / COS, PCOL = ['#DDE9C3', '#E4EDCB', '#D5E6BE'];
+for (var jx = Math.floor(lo0 / pcw) - 1; jx <= Math.ceil(lo1 / pcw) + 1; jx++) for (var jy = Math.floor(la0 / pc) - 1; jy <= Math.ceil(la1 / pc) + 1; jy++) {
+if (rnd(jx, jy, 11) > 0.45 || patches.length >= 26) continue;
+var pp = [(jx + rnd(jx, jy, 12)) * pcw, (jy + rnd(jx, jy, 13)) * pc];
+if (nearRiver(pp)) continue;
+var pg = GR(pp);
+if (pg[1] > YFAR || pg[1] < -500) continue;
+var pq = S(pg[0], pg[1], 0);
+if (!pq || pq[0] < -120 || pq[0] > 510) continue;
+var pr = (90 + 120 * rnd(jx, jy, 14)) * pq[2];
+patches.push({ x: pq[0] + 'px', y: pq[1] + 'px', w: Math.round(pr * 2) + 'px', h: Math.round(pr * 2 * COSV * (0.6 + 0.5 * rnd(jx, jy, 15))) + 'px', c: PCOL[Math.floor(rnd(jx, jy, 16) * 3)] });
+}
+}
+out.patches = patches;
+out.trees = props;
+out.lmLights = showMap && TM.night ? lmLightPts : [];
+out.lights = showMap && TM.night ? bLights : [];
+out.lmLabels = [];  /* 명소는 그림만 보여주고 이름표는 달지 않아요 */
+out.th = TM;
+var stopTags = [], dotsP = '';
+if (showMap && mRoute.length > 1) {
+var taken = marks.map(function (mk) { return mk.name; }), placed = [];
+for (var sk = 0; sk <= mLast; sk++) {
+var sg = GR(ll(mRoute[sk]));
+if (!inSlab(sg, 0)) continue;
+var sq = S(sg[0], sg[1], LIFT);
+if (sk <= mI) dotsP += 'M' + sq[0] + ' ' + sq[1] + 'l0.01 0';
+if (taken.indexOf(mRoute[sk].n) >= 0 || sq[0] < 30 || sq[0] > 360 || sq[1] < 160 || sq[1] > VH - 44) continue;
+if (sk === mI && !mF) continue;
+var clash = placed.some(function (q) { return Math.abs(q[1] - sq[1]) < 15 && Math.abs(q[0] - sq[0]) < 64; });
+if (clash) continue;
+placed.push(sq);
+stopTags.push({ x: sq[0] + 'px', y: (sq[1] + 8) + 'px', name: mRoute[sk].n, op: sk <= mI ? 0.5 : 0.85 });
+}
+}
+out.stopTags = stopTags; out.dotsP = dotsP;
+var hereGr = mRoute.length ? S(0, 0, 0) : null, hereO = mRoute.length ? S(0, 0, LIFT) : null;
+
+var cs = dest ? stats(route, i) : null;
+var ob = origin ? (oLine !== null ? { b1: badge(oLine), b2: NOBADGE, b3: NOBADGE } : badges(G, origin.n)) : { b1: NOBADGE, b2: NOBADGE, b3: NOBADGE };
+out.isConfirm = mode === 'confirm';
+out.isPick = mode === 'pick';
+out.isDir = mode === 'dir';
+out.isRide = isRide;
+out.showMap = showMap;
+out.casing = casing; out.dots = dots; out.marks = marks;
+out.hasHere = showMap && !!hereGr && !!hereO;
+/* 행선판은 내 목적지가 아니라 지금 탄 열차의 종착역(방면)을 보여줘요 */
+var signStop = isRide ? c : (mRoute.length ? mRoute[0] : null);
+var signName = signStop && signStop.d ? signStop.d.replace(' 방면', '') : (oLine !== null && origin ? chainDir(NET[oLine].chains[origin.ci], !origin.toFirst).replace(' 방면', '') : '');
+out.signText = signName.length > 6 ? signName.slice(0, 6) : signName;
+/* 3D 전동차: 선로 방향으로 놓인 상자를 같은 원근으로 투영해서 보이는 면만 그려요 */
+var tr = { shadow: '', top: '', sideL: '', sideR: '', endF: '', endR: '', stripeL: '', stripeR: '', winL: '', winR: '', glassF: '', glassR: '', bandF: '', bandR: '', ac1: '', ac2: '', lightA: '', lightB: '' };
+if (hereO) {
+var fx = 0, fy = 1;
+if (mRoute.length > 1) {
+var fromS = mI < mLast ? mRoute[mI] : mRoute[mI - 1], toS = mI < mLast ? mRoute[mI + 1] : mRoute[mI];
+var ga2 = GR(G.pos[fromS.n + '|' + toS.l] || ll(fromS)), gb2 = GR(ll(toS)), fl = Math.sqrt(Math.pow(gb2[0] - ga2[0], 2) + Math.pow(gb2[1] - ga2[1], 2));
+if (fl > 1e-6) { fx = (gb2[0] - ga2[0]) / fl; fy = (gb2[1] - ga2[1]) / fl; }
+}
+var rx = fy, ry = -fx, TL = 74, TW = 24, THh = 26, Z0 = 3;
+var pt3 = function (a, b, z) { return [rx * a * TW / 2 + fx * b * TL / 2, ry * a * TW / 2 + fy * b * TL / 2, z]; };
+var pj = function (q) { var w = S(q[0], q[1], q[2]); return w ? w[0] + ',' + w[1] : ''; };
+var quad = function (o, e1, e2, u0, u1, v0, v1) {
+var at = function (u, v) { return [o[0] + e1[0] * u + e2[0] * v, o[1] + e1[1] * u + e2[1] * v, o[2] + e1[2] * u + e2[2] * v]; };
+return [at(u0, v0), at(u1, v0), at(u1, v1), at(u0, v1)].map(pj).join(' ');
+};
+var sub = function (a, b) { return [b[0] - a[0], b[1] - a[1], b[2] - a[2]]; };
+var eye = [0, -CAM * SIN, CAM * COSV];
+var vis = function (n, ctr) { return n[0] * (eye[0] - ctr[0]) + n[1] * (eye[1] - ctr[1]) + n[2] * (eye[2] - ctr[2]) > 0; };
+var H1 = Z0 + THh;
+tr.shadow = [pt3(-1.25, -1.05, 0), pt3(1.25, -1.05, 0), pt3(1.25, 1.05, 0), pt3(-1.25, 1.05, 0)].map(function (q) { return pj([q[0] + 6, q[1] - 5, 0]); }).join(' ');
+var topO = pt3(-1, -1, H1), topE1 = sub(topO, pt3(1, -1, H1)), topE2 = sub(topO, pt3(-1, 1, H1));
+tr.top = quad(topO, topE1, topE2, 0, 1, 0, 1);
+tr.ac1 = quad(topO, topE1, topE2, 0.25, 0.75, 0.16, 0.4);
+tr.ac2 = quad(topO, topE1, topE2, 0.25, 0.75, 0.6, 0.84);
+var up = [0, 0, THh];
+var side = function (sgn, kFace, kStripe, kWin) {
+if (!vis([rx * sgn, ry * sgn, 0], [rx * sgn * TW / 2, ry * sgn * TW / 2, Z0 + THh / 2])) return;
+var o = pt3(sgn, -1, Z0), e1 = sub(o, pt3(sgn, 1, Z0));
+tr[kFace] = quad(o, e1, up, 0, 1, 0, 1);
+tr[kStripe] = quad(o, e1, up, 0, 1, 0.16, 0.34);
+tr[kWin] = quad(o, e1, up, 0.07, 0.93, 0.48, 0.82);
+};
+side(1, 'sideR', 'stripeR', 'winR'); side(-1, 'sideL', 'stripeL', 'winL');
+var end = function (sgn, kFace, kGlass, kBand) {
+if (!vis([fx * sgn, fy * sgn, 0], [fx * sgn * TL / 2, fy * sgn * TL / 2, Z0 + THh / 2])) return false;
+var o = pt3(-1, sgn, Z0), e1 = sub(o, pt3(1, sgn, Z0));
+tr[kFace] = quad(o, e1, up, 0, 1, 0, 1);
+tr[kGlass] = quad(o, e1, up, 0.12, 0.88, 0.46, 0.86);
+tr[kBand] = quad(o, e1, up, 0, 1, 0.16, 0.34);
+tr.lightA = quad(o, e1, up, 0.1, 0.26, 0.02, 0.13);
+tr.lightB = quad(o, e1, up, 0.74, 0.9, 0.02, 0.13);
+return true;
+};
+end(1, 'endF', 'glassF', 'bandF'); end(-1, 'endR', 'glassR', 'bandR');
+}
+out.tr = tr;
+out.here = hereGr && hereO ? { x: hereGr[0] + 'px', gy: hereGr[1] + 'px', oy: hereO[1] + 'px', c: NET[mRoute[mI].l].color } : { x: '0px', gy: '0px', oy: '0px', c: 'transparent' };
+out.hasOrigin = !!origin;
+out.noOrigin = !origin;
+out.pillText = live ? (st.origin ? '출발역을 골랐어요' : (origin ? '지금 가장 가까운 역' : (st.geoErr ? '위치를 못 잡았어요' : '내 위치 확인 중'))) : (!origin ? '출발역을 못 찾았어요' : (st.origin ? '출발역을 골랐어요' : '방금 탑승을 감지했어요'));
+out.H = VH + 'px';
+out.isLive = !!this.props.live && !st.demo && mode === 'confirm';
+out.showTiles = !(dest && i === last) && !compact;
+out.hello = !origin ? '어디서 타요?' : '어디까지 가요?';
+out.o = origin ? {
+name: origin.n, size: nameSize(origin.n, false), b1: ob.b1, b2: ob.b2, b3: ob.b3,
+label: oLine !== null ? NET[oLine].name + ' · ' + chainDir(NET[oLine].chains[origin.ci], !origin.toFirst)
+: (G.linesAt[origin.n] || []).map(function (li) { return NET[li].name; }).join(' · ')
+} : { name: '', size: '38px', b1: NOBADGE, b2: NOBADGE, b3: NOBADGE, label: '' };
+out.hasUsual = !!usualPath;
+out.usualName = usualTo;
+out.usualSummary = usualPath ? summary(stats(usualPath, 0)) : '';
+out.recents = recents;
+out.pickTitle = forOrigin ? '어디서 타요?' : '어디까지 가요?';
+out.dirs = dirs;
+out.dirSub = origin ? origin.n + (origin.n.slice(-1) === '역' ? '' : '역') + '에서 탄 열차를 골라 주세요' : '';
+out.c = { name: c.n, short: NET[c.l].short, bg: NET[c.l].color, fg: fgFor(NET[c.l].color), label: NET[c.l].name + (c.d ? ' · ' + c.d : '') };
+out.nameSize = nameSize(c.n, true);
+out.prev = p ? p.n : '출발역';
+out.next = n ? n.n : (dest ? '도착' : '종착역');
+out.headKicker = (dest ? '가는 중' : '둘러보는 중') + ' · ' + TM.kicker;
+var playing = st.playing !== false;
+out.hereTag = frac > 0 ? '달리는 중' : (i >= last ? '도착' : '정차 중');
+out.playLabel = i >= last ? '도착했어요' : (live ? (playing ? '시간 추정 끄기' : '시간으로 추정하기') : (playing ? '잠깐 멈추기' : '자동으로 달리기'));
+out.resetLabel = live ? '종료' : '처음부터';
+var fixAge = st.fixT ? Math.round((Date.now() - st.fixT) / 1000) : null;
+out.footNote = live
+? (fixAge !== null && fixAge < 25 ? '위치로 따라가는 중' + (geo ? ' (오차 약 ' + Math.round(geo.acc) + 'm)' : '') : (playing ? '위치 신호가 없어서 시간으로 추정 중이에요. 틀리면 다음 역을 눌러 주세요' : '위치 신호가 없어요. 다음 역을 눌러 맞춰 주세요'))
+: (st.demo ? '데모예요. 종료를 누르면 내 위치로 돌아가요' : '시안용 조작이에요. 실제 앱은 열차를 따라 알아서 움직여요');
+out.onDemo = function () {
+var D0 = dijkstra(G, srcsOf(G, { n: USUAL.from })), a = pathTo(G, D0, USUAL.via), tail = a[a.length - 1], b = pathTo(G, dijkstra(G, [tail.n + '|' + tail.l]), USUAL.to);
+self.setState(Object.assign({ demo: true, mode: 'ride', origin: DETECTED, dest: USUAL.to, route: withDirs(a.concat(b.slice(1))), i: 0, f: 0, playing: true }, clear));
+};
+out.onToggle = function () { self.setState({ playing: !playing }); };
+out.headTitle = dest ? dest : '목적지 없이';
+out.headSub = dest ? (i === last ? '다 왔어요' : summary(cs)) : '지금 역만 보여줘요';
+out.pickLabel = dest ? '바꾸기' : '도착역 정하기';
+out.hasBanner = !!banner;
+out.banner = banner;
+out.bannerLabel = bannerLabel;
+out.bannerBg = strong ? '#F6B545' : (TM.night ? 'rgba(40,48,92,0.82)' : 'rgba(255,255,255,0.72)');
+out.bannerLine = strong ? '#FFE3A6' : TM.card_line;
+out.bannerFg = strong ? '#2B2118' : TM.ink;
+out.bannerGlow = (strong ? '0 0 22px rgba(246,181,69,0.75), ' : '') + '0 14px 26px rgba(90,58,20,0.25), inset 0 1px 0 rgba(255,255,255,0.8)';
+out.bannerSub = strong ? '#2B2118' : TM.blue;
+out.isArrived = !!dest && i === last;
+out.notArrived = !(dest && i === last);
+out.atEnd = i >= last;
+out.nextOpacity = i >= last ? 0.4 : 1;
+out.picks = picks;
+out.q = st.q || '';
+out.listLabel = q ? '검색 결과 ' + total + '개' + (total > 30 ? ' · 30개만 보여줘요' : '') : (forOrigin ? '자주 타는 역' : '자주 가는 역');
+out.noResult = mode === 'pick' && total === 0;
+out.onQ = function (e) { self.setState({ q: e.target.value }); };
+out.onBack = function () { self.setState(Object.assign({ mode: prevMode === 'pick' || prevMode === 'dir' ? 'confirm' : prevMode }, clear)); };
+out.onUsual = function () { if (usualPath) self.setState(Object.assign({ mode: 'ride', dest: usualTo, route: usualPath, i: 0, f: 0, playing: true }, clear)); };
+out.onFree = function () {
+if (oLine !== null) self.setState(Object.assign({ mode: 'ride', dest: null, route: null, i: 0, f: 0, playing: true }, clear));
+else self.setState({ mode: 'dir', from: 'confirm' });
+};
+out.onPick = function () { self.setState({ mode: 'pick', from: mode, pickFor: 'dest', q: '' }); };
+out.onPickOrigin = function () { self.setState({ mode: 'pick', from: 'confirm', pickFor: 'origin', q: '' }); };
+out.onNext = function () { self._dwell = 0; self.setState({ i: Math.min(i + 1, last), f: 0, playing: false }); };
+out.onReset = function () { self.setState(Object.assign({ mode: 'confirm', origin: null, dest: null, route: null, i: 0, f: 0, demo: false, fixT: null }, clear)); };
+return out;
+}
+}
+
+</script>
+<script>
+/* 화면 그리기: 시안과 같은 템플릿({{값}}, sc-if, sc-for)을 읽어서 화면으로 바꿔요 */
+(function () {
+'use strict';
+var h = preact.h, Fragment = preact.Fragment;
+var stage = document.getElementById('stage'), fatal = document.getElementById('fatal');
+var showFatal = function (msg) { fatal.textContent = msg; fatal.style.display = 'block'; };
+window.addEventListener('error', function (e) { showFatal('문제가 생겼어요: ' + (e.message || e)); });
+
+var WHOLE = /^\s*\{\{\s*([^}]+?)\s*\}\}\s*$/, PART = /\{\{\s*([^}]+?)\s*\}\}/g;
+var lookup = function (scope, path) {
+if (path === 'true') return true;
+if (path === 'false') return false;
+var parts = path.split('.'), v = scope;
+for (var k = 0; k < parts.length; k++) { if (v === null || v === undefined) return undefined; v = v[parts[k]]; }
+return v;
+};
+var compileValue = function (raw) {
+var m = WHOLE.exec(raw);
+if (m) return { path: m[1] };
+if (raw.indexOf('{{') < 0) return { text: raw };
+return { tpl: raw };
+};
+var evalValue = function (cv, scope) {
+if (cv.path !== undefined) return lookup(scope, cv.path);
+if (cv.text !== undefined) return cv.text;
+return cv.tpl.replace(PART, function (_, p) { var v = lookup(scope, p); return v === null || v === undefined ? '' : v; });
+};
+var EVENT = { onclick: 'onClick', onchange: 'onInput' };
+var compile = function (node) {
+if (node.nodeType === 3) { var tx = node.nodeValue; return tx.trim() ? { text: compileValue(tx) } : null; }
+if (node.nodeType !== 1) return null;
+var tag = node.localName, out = { tag: tag, attrs: [], kids: [] };
+for (var a = 0; a < node.attributes.length; a++) {
+var at = node.attributes[a];
+if (at.name.indexOf('hint-') === 0) continue;
+out.attrs.push({ name: EVENT[at.name] || at.name, v: compileValue(at.value) });
+}
+for (var c = node.firstChild; c; c = c.nextSibling) { var k = compile(c); if (k) out.kids.push(k); }
+return out;
+};
+var attrOf = function (n, name) { for (var k = 0; k < n.attrs.length; k++) if (n.attrs[k].name === name) return n.attrs[k].v; return null; };
+var renderKids = function (n, scope) { var arr = []; for (var k = 0; k < n.kids.length; k++) { var r = render(n.kids[k], scope); if (r !== null) arr.push(r); } return arr; };
+var render = function (n, scope) {
+if (n.text) return evalValue(n.text, scope);
+if (n.tag === 'sc-if') return evalValue(attrOf(n, 'value'), scope) ? h(Fragment, null, renderKids(n, scope)) : null;
+if (n.tag === 'sc-for') {
+var list = evalValue(attrOf(n, 'list'), scope) || [], as = attrOf(n, 'as').text, items = [];
+for (var k = 0; k < list.length; k++) { var sc = Object.create(scope); sc[as] = list[k]; sc.$index = k; items.push(h(Fragment, null, renderKids(n, sc))); }
+return h(Fragment, null, items);
+}
+var props = {};
+for (var a = 0; a < n.attrs.length; a++) props[n.attrs[a].name] = evalValue(n.attrs[a].v, scope);
+return h(n.tag, props, renderKids(n, scope));
+};
+var tplNodes = [];
+for (var c0 = document.getElementById('tpl').content.firstChild; c0; c0 = c0.nextSibling) { var cc = compile(c0); if (cc) tplNodes.push(cc); }
+
+var app = new Component();
+var HIST_KEY = 'subway-now:hist';
+var readHist = function () { try { return JSON.parse(localStorage.getItem(HIST_KEY) || '{}') || {}; } catch (e) { return {}; } };
+var todNow = function () { var hr = new Date().getHours(); return hr >= 5 && hr < 10 ? 'morning' : (hr >= 10 && hr < 17 ? 'noon' : 'evening'); };
+app.props = { live: true, tod: todNow(), hist: readHist(), viewH: 844 };
+setInterval(function () { var t = todNow(); if (t !== app.props.tod) { app.props.tod = t; schedule(); } }, 60000);
+
+var layout = function () {
+var w = Math.min(window.innerWidth, 480), scale = w / 390;
+app.props.viewH = Math.max(560, Math.round(window.innerHeight / scale));
+stage.style.transform = 'scale(' + scale + ')';
+stage.style.left = Math.round((window.innerWidth - w) / 2) + 'px';
+schedule();
+};
+
+/* 알림: 환승·하차 안내가 새로 뜨면 소리와 진동으로 알려요 */
+var audio = null;
+var unlockAudio = function () { try { if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === 'suspended') audio.resume(); } catch (e) {} };
+document.addEventListener('pointerdown', unlockAudio, { passive: true });
+var beep = function (times) {
+if (!audio) return;
+try {
+for (var k = 0; k < times; k++) {
+var o = audio.createOscillator(), g = audio.createGain(), t0 = audio.currentTime + k * 0.32;
+o.type = 'sine'; o.frequency.value = k % 2 ? 1175 : 880;
+g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.35, t0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.26);
+o.connect(g); g.connect(audio.destination); o.start(t0); o.stop(t0 + 0.28);
+}
+} catch (e) {}
+};
+var ALERT = { '곧 환승': 2, '환승': 4, '곧 도착': 2, '내릴 준비': 4, '도착': 4 };
+var lastAlert = '', wasArrived = false, wake = null;
+var keepAwake = function (on) {
+try {
+if (on && !wake && navigator.wakeLock) navigator.wakeLock.request('screen').then(function (w) { wake = w; w.addEventListener('release', function () { wake = null; }); }).catch(function () {});
+if (!on && wake) { wake.release(); wake = null; }
+} catch (e) {}
+};
+var afterRender = function (vals) {
+var st = app.state || {}, riding = st.mode === 'ride';
+keepAwake(riding);
+var key = riding ? vals.bannerLabel + '|' + vals.banner : '';
+if (key !== lastAlert) {
+lastAlert = key;
+var n = riding && vals.banner ? ALERT[vals.bannerLabel] : 0;
+if (n) { beep(n); try { if (navigator.vibrate) navigator.vibrate(n > 2 ? [300, 120, 300, 120, 300] : [200, 100, 200]); } catch (e) {} }
+}
+if (vals.isArrived && !wasArrived && !st.demo && st.route && st.dest) {
+var hist = readHist(), hk = st.route[0].n + '>' + st.dest;
+hist[hk] = (hist[hk] || 0) + 1;
+try { localStorage.setItem(HIST_KEY, JSON.stringify(hist)); } catch (e) {}
+app.props.hist = hist;
+}
+wasArrived = !!vals.isArrived;
+};
+
+var queued = false;
+var draw = function () {
+queued = false;
+var vals = app.renderVals();
+var kids = [];
+for (var k = 0; k < tplNodes.length; k++) { var r = render(tplNodes[k], vals); if (r !== null) kids.push(r); }
+preact.render(h(Fragment, null, kids), stage);
+afterRender(vals);
+};
+var schedule = function () { if (!queued) { queued = true; (window.requestAnimationFrame || setTimeout)(draw); } };
+DCLogic.onChange = schedule;
+
+/* 내 위치 */
+var startGeo = function () {
+if (!navigator.geolocation) { app.setState({ geoErr: 'none' }); return; }
+navigator.geolocation.watchPosition(function (pos) {
+app.applyGeo({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy || 9999, t: pos.timestamp || Date.now() });
+}, function (err) { app.setState({ geoErr: err && err.code ? err.code : 'err' }); }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+};
+document.addEventListener('visibilitychange', function () { if (!document.hidden) { app.tick(); schedule(); } });
+window.addEventListener('resize', layout);
+window.addEventListener('orientationchange', layout);
+layout();
+app.componentDidMount();
+startGeo();
+window.__app = app;
+})();
+
+</script>
+</body>
+</html>
