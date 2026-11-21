@@ -17,6 +17,11 @@ this._acc = (this._acc || 0) + dt;
 if (this._acc < 1) return;
 /* 화면이 꺼졌다 켜져도 그동안 흐른 시간만큼 한꺼번에 나아가요 */
 var total = i + (st.f || 0) + this._acc / 110; this._acc = 0;
+/* 탄 열차를 실시간으로 따라가는 중이면, 다음 도착 소식이 올 때까지 역 직전에서 기다려요 */
+if (st.trainNo && st.trainT && now - st.trainT < 60000) total = Math.min(total, i + 0.92);
+/* 환승역에 닿으면 멈추고 다시 탑승을 기다려요 (갈아탈 열차를 타면 다시 출발) */
+var tx = xferAfter(this._route, i);
+if (tx >= 0 && total >= tx) { this.setState({ i: tx, f: 0, boarded: false, trainNo: null, trainMiss: 0 }); return; }
 var ni = Math.min(this._last, Math.floor(total));
 this.setState({ i: ni, f: ni >= this._last ? 0 : total - ni });
 return;
@@ -44,11 +49,78 @@ if (!best || dist < best.dist) best = { k: k, t: tt, dist: dist };
 }
 if (best && best.dist < Math.max(500, geo.acc * 1.5)) {
 var cur = i + (st.f || 0), nxt = best.k + best.t;
-if (!st.boarded && (nxt > 0.35 || (geo.speed && geo.speed > 5))) { patch.boarded = true; patch.playing = true; }
+if (!st.boarded && (nxt > i + 0.35 || (geo.speed && geo.speed > 5))) { patch.boarded = true; patch.playing = true; }
 if ((st.boarded || patch.boarded) && nxt > cur - 0.15) { if (best.t > 0.96) { patch.i = best.k + 1; patch.f = 0; } else { patch.i = best.k; patch.f = best.t; } patch.fixT = Date.now(); }
+var txG = xferAfter(route, i);
+if (patch.i !== undefined && txG >= 0 && patch.i + (patch.f || 0) >= txG && (st.boarded || patch.boarded)) { patch.i = txG; patch.f = 0; patch.boarded = false; patch.trainNo = null; }
 }
 }
 this.setState(patch);
+}
+/* 안내방송 반영: "이번 역은 문정" → 문정으로 가는 중(곧 도착), "다음 역은 가락시장" → 방금 문정을 떠남 */
+applyHeard(text, ck) {
+var st = this.state || {}, route = this._route;
+if (!route || st.mode !== 'ride' || !text) return;
+var T = String(text).replace(/\s+/g, ''), last = route.length - 1, i = Math.min(st.i || 0, last), best = null;
+for (var k = Math.max(1, i); k <= Math.min(last, i + 4); k++) {
+var nm = stnNorm(route[k].n);
+if (nm.length < 2) continue;
+var pos = T.lastIndexOf(nm);
+if (pos < 0) continue;
+var kind = T.slice(Math.max(0, pos - 6), pos).indexOf('다음') >= 0 ? 'next' : 'this';
+var score = (kind === 'this' ? 100 : 50) + nm.length;
+if (!best || score > best.score) best = { k: k, kind: kind, score: score };
+}
+if (!best) return;
+var ni = best.k - 1, nf = best.kind === 'this' ? Math.max(0.85, ni === i ? (st.f || 0) : 0) : 0.1;
+if (ni + nf < i + (st.f || 0) - 1.2) return;
+var patch = { i: ni, f: nf, boarded: true, playing: true, heardName: route[best.k].n, heardT: Date.now() };
+if (ck) { patch.ckDone = Object.assign({}, st.ckDone || {}); patch.ckDone[ck] = 'heard'; }
+this._acc = 0; this._lastT = 0;
+this.setState(patch);
+}
+/* 실시간 열차 위치 반영: 내가 탄 열차를 한 번 찾으면 그 열차 번호로 계속 따라가요 */
+applyTrains(rows) {
+var st = this.state || {}, route = this._route;
+if (!route || st.mode !== 'ride' || !st.boarded || !rows) return;
+var last = route.length - 1, i = Math.min(st.i || 0, last);
+if (i >= last) return;
+var L = route[i + 1].l, lo = i, hi = i + 1;
+while (lo > 0 && route[lo].l === L) lo--;
+while (hi < last && route[hi + 1].l === L) hi++;
+var idxOf = function (name) { var nn = stnNorm(name); for (var k = lo; k <= hi; k++) if (stnNorm(route[k].n) === nn) return k; return -1; };
+/* 열차 상태: 0 진입, 1 도착, 2 출발, 3 전역 출발 */
+var posOf = function (r) { var k = idxOf(r.stn); if (k < 0) return null; var s = String(r.st); return s === '0' ? k - 0.2 : s === '1' ? k : s === '2' ? k + 0.05 : k - 0.8; };
+var dirOk = function (r) {
+var cs = NET[L].chains;
+for (var c = 0; c < cs.length; c++) {
+var s = cs[c].s, a = s.indexOf(route[i].n), b = s.indexOf(route[i + 1].n), tq = -1, sq = -1;
+if (a < 0 || b < 0) continue;
+for (var q = 0; q < s.length; q++) { if (stnNorm(s[q]) === stnNorm(r.term)) tq = q; if (stnNorm(s[q]) === stnNorm(r.stn)) sq = q; }
+if (cs[c].loop || tq < 0 || sq < 0) return true;
+return (b - a) * (tq - sq) > 0;
+}
+return true;
+};
+var cur = i + (st.f || 0), patch = null;
+if (st.trainNo) {
+var mine = null;
+rows.forEach(function (r) { if (String(r.no) === String(st.trainNo)) mine = r; });
+var mp = mine ? posOf(mine) : null;
+if (mp === null) { patch = { trainMiss: (st.trainMiss || 0) + 1 }; if (patch.trainMiss >= 4) patch.trainNo = null; }
+else if (mp >= cur - 0.3) patch = { trainT: Date.now(), trainMiss: 0, i: Math.max(0, Math.floor(mp)), f: mp - Math.floor(mp) };
+else patch = { trainT: Date.now(), trainMiss: 0 };
+} else {
+var best = null;
+rows.forEach(function (r) { var p = posOf(r); if (p === null || !dirOk(r)) return; var d = Math.abs(p - cur); if (d <= 0.75 && (!best || d < best.d)) best = { r: r, p: p, d: d }; });
+if (best) patch = { trainNo: String(best.r.no), trainT: Date.now(), trainMiss: 0, i: Math.max(0, Math.floor(Math.max(best.p, cur - 0.1))), f: Math.max(best.p, cur - 0.1) - Math.floor(Math.max(best.p, cur - 0.1)) };
+}
+if (patch) {
+if (patch.i !== undefined && patch.i >= last) { patch.i = last; patch.f = 0; }
+var txT = xferAfter(route, i);
+if (patch.i !== undefined && txT >= 0 && patch.i + (patch.f || 0) >= txT) { patch.i = txT; patch.f = 0; patch.boarded = false; patch.trainNo = null; }
+this._acc = 0; this.setState(patch);
+}
 }
 renderVals() {
 var self = this;
@@ -93,7 +165,7 @@ var go = function (name) {
 var path = pathTo(G, D, name);
 if (!path) return;
 var head = riding ? route.slice(0, i) : [];
-self.setState(Object.assign({ mode: 'ride', dest: name, route: head.concat(path), i: head.length, f: 0, playing: true, boarded: riding ? !!st.boarded : false }, clear));
+self.setState(Object.assign({ mode: 'ride', dest: name, route: head.concat(path), i: head.length, f: 0, playing: true, boarded: riding ? !!st.boarded : false, ckDone: {}, trainNo: null }, clear));
 };
 var setOrigin = function (name) {
 self.setState(Object.assign({ mode: 'confirm', origin: { n: name }, dest: null, route: null, i: 0 }, clear));
@@ -141,7 +213,7 @@ pick: function () { self.setState(Object.assign({ mode: 'ride', origin: o, dest:
 
 /* 안내 문구 */
 var banner = '', bannerLabel = '안내', strong = false;
-if (live && isRide && !st.boarded) { banner = c.n + '역에서 ' + NET[c.l].name + ' ' + (c.d || '') + ' 열차를 타세요'; bannerLabel = '탑승 대기'; }
+if (live && isRide && !st.boarded && i < last) { var nb = route[i + 1]; banner = c.n + '역에서 ' + NET[nb.l].name + ' ' + (nb.d || '') + ' 열차를 타세요'; bannerLabel = i > 0 ? '환승' : '탑승 대기'; strong = i > 0; }
 else if (dest) {
 var remain = last - i;
 if (i === last) { banner = dest + ' 도착! 내려요'; strong = true; bannerLabel = '도착'; }
@@ -584,15 +656,34 @@ out.next = n ? n.n : (dest ? '도착' : '종착역');
 out.headKicker = (dest ? '가는 중' : '둘러보는 중') + ' · ' + TM.kicker;
 var playing = st.playing !== false;
 var waiting = live && isRide && !st.boarded;
+/* 안내방송 듣기: 탑승 직후 첫 구간, 환승 후 첫 구간, 내리기 전 구간에만 잠깐 들어요 */
+var ckDone = st.ckDone || {}, listenCk = '', listenMax = 0;
+if (live && isRide && st.listenOn && i < last) {
+var isLegStart = i === 0 || route[i + 1].l !== route[i].l;
+if (isLegStart && (st.boarded || i > 0) && !ckDone['leg' + i]) { listenCk = 'leg' + i; listenMax = i > 0 ? 300 : 150; }
+else if (i === last - 1 && st.boarded && !ckDone.dest) { listenCk = 'dest'; listenMax = 150; }
+}
+out.listenCk = listenCk; out.listenMax = listenMax;
+out.isLiveRide = live && isRide;
+out.listenBg = st.listenOn ? '#1F3A5F' : 'var(--tile)';
+out.listenFg = st.listenOn ? '#FFFFFF' : 'var(--ink)';
+out.listenAria = st.listenOn ? '안내방송 듣기 끄기' : '안내방송 듣기 켜기';
+out.listenDot = st.listening ? 'block' : 'none';
+out.onListen = function () {
+if (st.listenOn && st.listenErr && listenCk && st.listenErr !== 'unsupported') { self.setState({ listenErr: null }); if (self.props.onListenRetry) self.props.onListenRetry(listenCk); return; }
+var on = !st.listenOn; self.setState({ listenOn: on }); if (self.props.onListenToggle) self.props.onListenToggle(on); };
 out.hereTag = waiting ? '탑승 전' : (frac > 0 ? '달리는 중' : (i >= last ? '도착' : '정차 중'));
 out.playLabel = i >= last ? '도착했어요' : waiting ? '열차 탔어요' : (live ? (playing ? '시간 추정 끄기' : '시간으로 추정하기') : (playing ? '잠깐 멈추기' : '자동으로 달리기'));
 out.resetLabel = live ? '종료' : '처음부터';
 var fixAge = st.fixT ? Math.round((Date.now() - st.fixT) / 1000) : null;
-out.footNote = waiting
-? '아직 탑승 전이에요. 열차에 타면 \'열차 탔어요\'를 눌러 주세요. 움직임이 잡히면 알아서 시작해요'
-: live
-? (fixAge !== null && fixAge < 25 ? '위치로 따라가는 중' + (geo ? ' (오차 약 ' + Math.round(geo.acc) + 'm)' : '') : (playing ? '위치 신호가 없어서 시간으로 추정 중이에요. 틀리면 다음 역을 눌러 주세요' : '위치 신호가 없어요. 다음 역을 눌러 맞춰 주세요'))
-: (st.demo ? '데모예요. 종료를 누르면 내 위치로 돌아가요' : '시안용 조작이에요. 실제 앱은 열차를 따라 알아서 움직여요');
+var nowT = Date.now(), tail = st.listening ? ' · 안내방송 듣는 중' : (listenCk && st.listenErr === 'unsupported' ? ' · 이 브라우저는 음성인식을 못 써요' : (listenCk && st.listenErr ? ' · 마이크 버튼을 눌러 방송 듣기를 다시 켜 주세요' : ''));
+out.footNote = (waiting
+? (i > 0 ? '갈아탈 열차를 타면 알아서 다시 따라가요. 안 되면 \'열차 탔어요\'를 눌러 주세요' : '아직 탑승 전이에요. 열차에 타면 \'열차 탔어요\'를 눌러 주세요. 움직임이 잡히면 알아서 시작해요')
+: !live ? (st.demo ? '데모예요. 종료를 누르면 내 위치로 돌아가요' : '시안용 조작이에요. 실제 앱은 열차를 따라 알아서 움직여요')
+: st.heardT && nowT - st.heardT < 25000 ? '안내방송으로 확인했어요: ' + st.heardName
+: st.trainNo && st.trainT && nowT - st.trainT < 60000 ? st.trainNo + '번 열차를 실시간으로 따라가는 중'
+: fixAge !== null && fixAge < 25 ? '위치로 따라가는 중' + (geo ? ' (오차 약 ' + Math.round(geo.acc) + 'm)' : '')
+: playing ? '위치 신호가 없어서 시간으로 추정 중이에요. 틀리면 다음 역을 눌러 주세요' : '위치 신호가 없어요. 다음 역을 눌러 맞춰 주세요') + tail;
 out.onDemo = function () {
 var D0 = dijkstra(G, srcsOf(G, { n: USUAL.from })), a = pathTo(G, D0, USUAL.via), tail = a[a.length - 1], b = pathTo(G, dijkstra(G, [tail.n + '|' + tail.l]), USUAL.to);
 self.setState(Object.assign({ demo: true, mode: 'ride', origin: DETECTED, dest: USUAL.to, route: withDirs(a.concat(b.slice(1))), i: 0, f: 0, playing: true }, clear));
@@ -619,15 +710,15 @@ out.listLabel = q ? '검색 결과 ' + total + '개' + (total > 30 ? ' · 30개�
 out.noResult = mode === 'pick' && total === 0;
 out.onQ = function (e) { self.setState({ q: e.target.value }); };
 out.onBack = function () { self.setState(Object.assign({ mode: prevMode === 'pick' || prevMode === 'dir' ? 'confirm' : prevMode }, clear)); };
-out.onUsual = function () { if (usualPath) self.setState(Object.assign({ mode: 'ride', dest: usualTo, route: usualPath, i: 0, f: 0, playing: true, boarded: false }, clear)); };
+out.onUsual = function () { if (usualPath) self.setState(Object.assign({ mode: 'ride', dest: usualTo, route: usualPath, i: 0, f: 0, playing: true, boarded: false, ckDone: {}, trainNo: null }, clear)); };
 out.onFree = function () {
 if (oLine !== null) self.setState(Object.assign({ mode: 'ride', dest: null, route: null, i: 0, f: 0, playing: true }, clear));
 else self.setState({ mode: 'dir', from: 'confirm' });
 };
 out.onPick = function () { self.setState({ mode: 'pick', from: mode, pickFor: 'dest', q: '' }); };
 out.onPickOrigin = function () { self.setState({ mode: 'pick', from: 'confirm', pickFor: 'origin', q: '' }); };
-out.onNext = function () { self._dwell = 0; self.setState({ i: Math.min(i + 1, last), f: 0, playing: false }); };
-out.onReset = function () { self.setState(Object.assign({ mode: 'confirm', origin: null, dest: null, route: null, i: 0, f: 0, demo: false, fixT: null, boarded: false }, clear)); };
+out.onNext = function () { self._dwell = 0; var tx2 = live ? xferAfter(route, i) : -1; self.setState({ i: Math.min(i + 1, last), f: 0, playing: live ? true : false, boarded: live ? !(tx2 === i + 1) : st.boarded, trainNo: null }); };
+out.onReset = function () { self.setState(Object.assign({ mode: 'confirm', origin: null, dest: null, route: null, i: 0, f: 0, demo: false, fixT: null, boarded: false, ckDone: {}, trainNo: null, heardT: null }, clear)); };
 return out;
 }
 }

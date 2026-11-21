@@ -312,6 +312,12 @@ input::placeholder{{color:{SUB}}}
 <div style="font-size: 20px; font-weight: 700; letter-spacing: -0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{headTitle}}}}</div>
 <div style="font-size: 13px; font-weight: 500; color: {SUB}">{{{{headSub}}}}</div>
 </div>
+<sc-if value="{{{{ isLiveRide }}}}" hint-placeholder-val="{{{{ false }}}}">
+<button onClick="{{{{ onListen }}}}" aria-label="{{{{listenAria}}}}" style="position: relative; width: 44px; height: 44px; border: 0; border-radius: 14px; background: {{{{listenBg}}}}; color: {{{{listenFg}}}}; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><line x1="12" y1="18" x2="12" y2="21"></line></svg>
+<span style="display: {{{{listenDot}}}}; position: absolute; right: 7px; top: 7px; width: 8px; height: 8px; border-radius: 4px; background: #E8453C; box-shadow: 0 0 0 2px #FFFFFF"></span>
+</button>
+</sc-if>
 <button onClick="{{{{ onPick }}}}" style="height: 44px; border-radius: 14px; {TILE}; color: {INK}; font-size: 14px; font-weight: 600; padding: 0 14px; flex-shrink: 0">{{{{pickLabel}}}}</button>
 </div>
 </sc-if>

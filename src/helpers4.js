@@ -176,4 +176,11 @@ var len = name.length;
 if (big) return len <= 5 ? '46px' : len <= 7 ? '38px' : len <= 9 ? '30px' : '24px';
 return len <= 5 ? '34px' : len <= 7 ? '30px' : len <= 9 ? '26px' : '22px';
 }
-
+/* 역 이름 비교용: 괄호·'역'·띄어쓰기를 뺀 이름 */
+function stnNorm(s) { return String(s || '').replace(/\(.*?\)/g, '').replace(/\s+/g, '').replace(/역$/, ''); }
+/* i 다음에 처음 나오는 환승역 위치 (없으면 -1) */
+function xferAfter(route, i) {
+if (!route) return -1;
+for (var k = i + 1; k < route.length - 1; k++) if (route[k + 1].l !== route[k].l) return k;
+return -1;
+}

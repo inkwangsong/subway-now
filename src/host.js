@@ -60,6 +60,11 @@ var HIST_KEY = 'subway-now:hist';
 var readHist = function () { try { return JSON.parse(localStorage.getItem(HIST_KEY) || '{}') || {}; } catch (e) { return {}; } };
 var todNow = function () { var hr = new Date().getHours(); return hr >= 5 && hr < 10 ? 'morning' : (hr >= 10 && hr < 17 ? 'noon' : 'evening'); };
 app.props = { live: true, tod: todNow(), hist: readHist(), viewH: 844 };
+var LISTEN_KEY = 'subway-now:listen', RT_KEY = 'subway-now:rt';
+try { if (localStorage.getItem(LISTEN_KEY) === '1') app.state = Object.assign({}, app.state, { listenOn: true }); } catch (e) {}
+/* 실시간 열차 위치 중계 주소: 주소 끝에 ?rt=https://... 를 붙여 한 번 열면 저장돼요 */
+var RT_URL = (window.SUBWAY_RT_URL || '');
+try { var qrt = new URLSearchParams(location.search).get('rt'); if (qrt) localStorage.setItem(RT_KEY, qrt); RT_URL = localStorage.getItem(RT_KEY) || RT_URL; } catch (e) {}
 setInterval(function () { var t = todNow(); if (t !== app.props.tod) { app.props.tod = t; schedule(); } }, 60000);
 
 var layout = function () {
@@ -116,6 +121,63 @@ try { if (navigator.vibrate) navigator.vibrate([250, 120, 250]); } catch (e) {}
 } else if (vals.nearFar) lastNear = '';
 };
 
+/* 안내방송 듣기: 기기 음성인식으로 잠깐씩만 듣고, 들은 말에서 역 이름만 찾아요. 녹음은 저장하지 않아요 */
+var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+var rec = null, recOn = false, recCk = '', recEndT = 0, ckStart = {};
+var stopRec = function () { if (rec) { try { rec.stop(); } catch (e) {} } };
+var startRec = function (ck) {
+if (!SR) { app.setState({ listenErr: 'unsupported' }); return; }
+try {
+rec = new SR(); rec.lang = 'ko-KR'; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 3;
+recCk = ck;
+rec.onresult = function (e) {
+var txt = '';
+for (var k = e.resultIndex; k < e.results.length; k++) for (var a = 0; a < e.results[k].length; a++) txt += ' ' + e.results[k][a].transcript;
+app.applyHeard(txt, recCk);
+};
+rec.onerror = function (e) { app.setState({ listenErr: e && e.error || 'error' }); };
+rec.onend = function () { recOn = false; rec = null; recEndT = Date.now(); app.setState({ listening: false }); };
+rec.start(); recOn = true; if (!ckStart[ck]) ckStart[ck] = Date.now();
+app.setState({ listening: true, listenErr: null });
+} catch (e) { recOn = false; rec = null; recEndT = Date.now(); app.setState({ listenErr: 'start' }); }
+};
+app.props.onListenToggle = function (on) {
+try { localStorage.setItem(LISTEN_KEY, on ? '1' : '0'); } catch (e) {}
+unlockAudio();
+/* 켤 때 버튼을 누른 그 순간 한 번 시작해야 마이크 권한을 물을 수 있어요 */
+if (on && SR && !recOn) { startRec('warmup'); setTimeout(function () { if (recCk === 'warmup') stopRec(); }, 1500); }
+if (!on) stopRec();
+};
+app.props.onListenRetry = function (ck) { unlockAudio(); if (!recOn) startRec(ck); };
+var manageListen = function (vals) {
+var want = vals.listenCk, st = app.state || {};
+if (want && ckStart[want] && Date.now() - ckStart[want] > vals.listenMax * 1000) {
+var done = Object.assign({}, st.ckDone || {}); done[want] = 'timeout';
+stopRec(); app.setState({ ckDone: done }); return;
+}
+if (want && !recOn && Date.now() - recEndT > 1200 && st.listenErr !== 'not-allowed') startRec(want);
+else if (want && recOn) recCk = want;
+else if (!want && recOn && recCk !== 'warmup') stopRec();
+};
+
+/* 실시간 열차 위치: 탄 뒤에만 15초마다 지금 노선의 열차 위치를 받아요 */
+var rtBusy = false, rtLast = 0;
+var pollTrains = function () {
+var st = app.state || {}, route = app._route;
+if (!RT_URL || rtBusy || st.mode !== 'ride' || st.demo || !st.boarded || !route || document.hidden) return;
+var i = Math.min(st.i || 0, route.length - 1);
+if (i >= route.length - 1) return;
+var line = NET[route[i + 1].l].name;
+rtBusy = true; rtLast = Date.now();
+fetch(RT_URL + (RT_URL.indexOf('?') < 0 ? '?' : '&') + 'line=' + encodeURIComponent(line), { cache: 'no-store' })
+.then(function (r) { return r.json(); })
+.then(function (j) { rtBusy = false; if (j && j.rows) app.applyTrains(j.rows); app.setState({ rtErr: j && j.err || null }); })
+.catch(function () { rtBusy = false; app.setState({ rtErr: 'network' }); });
+};
+setInterval(pollTrains, 15000);
+
+var lastVals = null;
+setInterval(function () { if (lastVals) manageListen(lastVals); }, 1000);
 var queued = false;
 var draw = function () {
 queued = false;
@@ -124,6 +186,9 @@ var kids = [];
 for (var k = 0; k < tplNodes.length; k++) { var r = render(tplNodes[k], vals); if (r !== null) kids.push(r); }
 preact.render(h(Fragment, null, kids), stage);
 afterRender(vals);
+lastVals = vals;
+manageListen(vals);
+if (RT_URL && (app.state || {}).boarded && Date.now() - rtLast > 15000) pollTrains();
 };
 var schedule = function () { if (!queued) { queued = true; (window.requestAnimationFrame || setTimeout)(draw); } };
 DCLogic.onChange = schedule;
