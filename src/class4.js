@@ -9,6 +9,7 @@ var i = Math.min(st.i || 0, this._last || 0);
 if (i >= (this._last || 0)) return;
 var f;
 if (this.props.live && !st.demo) {
+if (!st.boarded) { this._lastT = 0; return; }
 /* 실제 주행: 역 사이를 평균 110초로 보고 시간으로 추정해요. 위치가 잡히면 그 값이 우선이에요 */
 var now = Date.now(), dt = this._lastT ? (now - this._lastT) / 1000 : 0;
 this._lastT = now;
@@ -32,6 +33,7 @@ var st = this.state || {};
 var patch = { geo: geo };
 var route = this._route, G = this._G;
 if (st.mode === 'ride' && this.props.live && !st.demo && route && G && geo && geo.acc < 1500) {
+if (!st.boarded && geo.speed && geo.speed > 5) { patch.boarded = true; patch.playing = true; }
 var i = Math.min(st.i || 0, route.length - 1), best = null;
 for (var k = i; k < Math.min(route.length - 1, i + 3); k++) {
 var a = G.pos[route[k].n + '|' + route[k + 1].l] || G.pos[route[k].n + '|' + route[k].l], b = G.pos[route[k + 1].n + '|' + route[k + 1].l];
@@ -42,7 +44,8 @@ if (!best || dist < best.dist) best = { k: k, t: tt, dist: dist };
 }
 if (best && best.dist < Math.max(500, geo.acc * 1.5)) {
 var cur = i + (st.f || 0), nxt = best.k + best.t;
-if (nxt > cur - 0.15) { if (best.t > 0.96) { patch.i = best.k + 1; patch.f = 0; } else { patch.i = best.k; patch.f = best.t; } patch.fixT = Date.now(); }
+if (!st.boarded && (nxt > 0.35 || (geo.speed && geo.speed > 5))) { patch.boarded = true; patch.playing = true; }
+if ((st.boarded || patch.boarded) && nxt > cur - 0.15) { if (best.t > 0.96) { patch.i = best.k + 1; patch.f = 0; } else { patch.i = best.k; patch.f = best.t; } patch.fixT = Date.now(); }
 }
 }
 this.setState(patch);
@@ -90,7 +93,7 @@ var go = function (name) {
 var path = pathTo(G, D, name);
 if (!path) return;
 var head = riding ? route.slice(0, i) : [];
-self.setState(Object.assign({ mode: 'ride', dest: name, route: head.concat(path), i: head.length, f: 0, playing: true }, clear));
+self.setState(Object.assign({ mode: 'ride', dest: name, route: head.concat(path), i: head.length, f: 0, playing: true, boarded: riding ? !!st.boarded : false }, clear));
 };
 var setOrigin = function (name) {
 self.setState(Object.assign({ mode: 'confirm', origin: { n: name }, dest: null, route: null, i: 0 }, clear));
@@ -138,7 +141,8 @@ pick: function () { self.setState(Object.assign({ mode: 'ride', origin: o, dest:
 
 /* 안내 문구 */
 var banner = '', bannerLabel = '안내', strong = false;
-if (dest) {
+if (live && isRide && !st.boarded) { banner = c.n + '역에서 ' + NET[c.l].name + ' ' + (c.d || '') + ' 열차를 타세요'; bannerLabel = '탑승 대기'; }
+else if (dest) {
 var remain = last - i;
 if (i === last) { banner = dest + ' 도착! 내려요'; strong = true; bannerLabel = '도착'; }
 else if (n.l !== c.l) { banner = '지금 내려서 ' + NET[n.l].name + ' ' + n.d + (n.d.indexOf('방면') >= 0 ? '으로' : ' 열차로') + ' 갈아타요'; strong = true; bannerLabel = '환승'; }
@@ -573,18 +577,21 @@ out.prev = p ? p.n : '출발역';
 out.next = n ? n.n : (dest ? '도착' : '종착역');
 out.headKicker = (dest ? '가는 중' : '둘러보는 중') + ' · ' + TM.kicker;
 var playing = st.playing !== false;
-out.hereTag = frac > 0 ? '달리는 중' : (i >= last ? '도착' : '정차 중');
-out.playLabel = i >= last ? '도착했어요' : (live ? (playing ? '시간 추정 끄기' : '시간으로 추정하기') : (playing ? '잠깐 멈추기' : '자동으로 달리기'));
+var waiting = live && isRide && !st.boarded;
+out.hereTag = waiting ? '탑승 전' : (frac > 0 ? '달리는 중' : (i >= last ? '도착' : '정차 중'));
+out.playLabel = i >= last ? '도착했어요' : waiting ? '열차 탔어요' : (live ? (playing ? '시간 추정 끄기' : '시간으로 추정하기') : (playing ? '잠깐 멈추기' : '자동으로 달리기'));
 out.resetLabel = live ? '종료' : '처음부터';
 var fixAge = st.fixT ? Math.round((Date.now() - st.fixT) / 1000) : null;
-out.footNote = live
+out.footNote = waiting
+? '아직 탑승 전이에요. 열차에 타면 \'열차 탔어요\'를 눌러 주세요. 움직임이 잡히면 알아서 시작해요'
+: live
 ? (fixAge !== null && fixAge < 25 ? '위치로 따라가는 중' + (geo ? ' (오차 약 ' + Math.round(geo.acc) + 'm)' : '') : (playing ? '위치 신호가 없어서 시간으로 추정 중이에요. 틀리면 다음 역을 눌러 주세요' : '위치 신호가 없어요. 다음 역을 눌러 맞춰 주세요'))
 : (st.demo ? '데모예요. 종료를 누르면 내 위치로 돌아가요' : '시안용 조작이에요. 실제 앱은 열차를 따라 알아서 움직여요');
 out.onDemo = function () {
 var D0 = dijkstra(G, srcsOf(G, { n: USUAL.from })), a = pathTo(G, D0, USUAL.via), tail = a[a.length - 1], b = pathTo(G, dijkstra(G, [tail.n + '|' + tail.l]), USUAL.to);
 self.setState(Object.assign({ demo: true, mode: 'ride', origin: DETECTED, dest: USUAL.to, route: withDirs(a.concat(b.slice(1))), i: 0, f: 0, playing: true }, clear));
 };
-out.onToggle = function () { self.setState({ playing: !playing }); };
+out.onToggle = function () { if (waiting) { self._lastT = 0; self.setState({ boarded: true, playing: true }); } else self.setState({ playing: !playing }); };
 out.headTitle = dest ? dest : '목적지 없이';
 out.headSub = dest ? (i === last ? '다 왔어요' : summary(cs)) : '지금 역만 보여줘요';
 out.pickLabel = dest ? '바꾸기' : '도착역 정하기';
@@ -606,7 +613,7 @@ out.listLabel = q ? '검색 결과 ' + total + '개' + (total > 30 ? ' · 30개�
 out.noResult = mode === 'pick' && total === 0;
 out.onQ = function (e) { self.setState({ q: e.target.value }); };
 out.onBack = function () { self.setState(Object.assign({ mode: prevMode === 'pick' || prevMode === 'dir' ? 'confirm' : prevMode }, clear)); };
-out.onUsual = function () { if (usualPath) self.setState(Object.assign({ mode: 'ride', dest: usualTo, route: usualPath, i: 0, f: 0, playing: true }, clear)); };
+out.onUsual = function () { if (usualPath) self.setState(Object.assign({ mode: 'ride', dest: usualTo, route: usualPath, i: 0, f: 0, playing: true, boarded: false }, clear)); };
 out.onFree = function () {
 if (oLine !== null) self.setState(Object.assign({ mode: 'ride', dest: null, route: null, i: 0, f: 0, playing: true }, clear));
 else self.setState({ mode: 'dir', from: 'confirm' });
@@ -614,7 +621,7 @@ else self.setState({ mode: 'dir', from: 'confirm' });
 out.onPick = function () { self.setState({ mode: 'pick', from: mode, pickFor: 'dest', q: '' }); };
 out.onPickOrigin = function () { self.setState({ mode: 'pick', from: 'confirm', pickFor: 'origin', q: '' }); };
 out.onNext = function () { self._dwell = 0; self.setState({ i: Math.min(i + 1, last), f: 0, playing: false }); };
-out.onReset = function () { self.setState(Object.assign({ mode: 'confirm', origin: null, dest: null, route: null, i: 0, f: 0, demo: false, fixT: null }, clear)); };
+out.onReset = function () { self.setState(Object.assign({ mode: 'confirm', origin: null, dest: null, route: null, i: 0, f: 0, demo: false, fixT: null, boarded: false }, clear)); };
 return out;
 }
 }

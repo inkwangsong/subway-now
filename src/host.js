@@ -127,7 +127,7 @@ DCLogic.onChange = schedule;
 var startGeo = function () {
 if (!navigator.geolocation) { app.setState({ geoErr: 'none' }); return; }
 navigator.geolocation.watchPosition(function (pos) {
-app.applyGeo({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy || 9999, t: pos.timestamp || Date.now() });
+app.applyGeo({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy || 9999, speed: pos.coords.speed, t: pos.timestamp || Date.now() });
 }, function (err) { app.setState({ geoErr: err && err.code ? err.code : 'err' }); }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
 };
 document.addEventListener('visibilitychange', function () { if (!document.hidden) { app.tick(); schedule(); } });

@@ -1,5 +1,6 @@
 import re, json
-B='/home/claude/subway/build/'
+import os
+B=os.path.dirname(os.path.abspath(__file__))+'/'
 m=open(B+'markup4.html',encoding='utf-8').read()
 body=m[m.index('<x-dc>')+6:m.index('</x-dc>')]
 helmet=body[body.index('<helmet>'):body.index('</helmet>')+9]
@@ -7,8 +8,8 @@ body=body.replace(helmet,'')
 css=re.search(r'<style>(.*?)</style>',helmet,re.S).group(1)
 font=re.search(r'<link[^>]+>',helmet).group(0)
 logic=(open(B+'helpers4.js',encoding='utf-8').read()+open(B+'class4.js',encoding='utf-8').read()).replace('__NET__',open(B+'net3.json',encoding='utf-8').read())
-preact=open('node_modules/preact/dist/preact.min.umd.js',encoding='utf-8').read().split('//# sourceMappingURL')[0]
-host=open('host.js',encoding='utf-8').read()
+preact=open('/home/claude/subway-web/node_modules/preact/dist/preact.min.umd.js',encoding='utf-8').read().split('//# sourceMappingURL')[0]
+host=open(B+'host.js',encoding='utf-8').read()
 assert '</script' not in logic and '</script' not in host and '</template' not in body
 html=f'''<!doctype html>
 <html lang="ko">
@@ -50,5 +51,5 @@ forceUpdate() {{ if (DCLogic.onChange) DCLogic.onChange(); }}
 </body>
 </html>
 '''
-open('site/index.html','w',encoding='utf-8').write(html)
+open(B+'../index.html','w',encoding='utf-8').write(html)
 print(len(html.encode()))
