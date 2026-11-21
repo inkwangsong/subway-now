@@ -13,7 +13,8 @@ module.exports = async (req, res) => {
 
   const line = String((req.query && req.query.line) || '');
   if (!line || line.length > 20) return res.status(400).json({ err: 'line' });
-  const key = process.env.SEOUL_KEY;
+  // 붙여 넣을 때 섞인 공백·줄바꿈·따옴표는 지워요
+  const key = String(process.env.SEOUL_KEY || '').replace(/[\s"']/g, '');
   if (!key) return res.status(500).json({ err: 'SEOUL_KEY 미설정' });
 
   const api = 'http://swopenapi.seoul.go.kr/api/subway/' + encodeURIComponent(key) +
