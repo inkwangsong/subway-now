@@ -16,9 +16,13 @@ module.exports = async (req, res) => {
   // 붙여 넣을 때 섞인 공백·줄바꿈·따옴표는 지워요
   const key = String(process.env.SEOUL_KEY || '').replace(/[\s"']/g, '');
   if (!key) return res.status(500).json({ err: 'SEOUL_KEY 미설정' });
+  // 진단용: ?probe=sample 이면 서울시 샘플키로 1호선을 불러서 중계 경로 자체가 되는지 확인해요
+  const probe = req.query && req.query.probe === 'sample';
+  const useKey = probe ? 'sample' : key;
+  const useLine = probe ? '1호선' : line;
 
-  const api = 'http://swopenapi.seoul.go.kr/api/subway/' + encodeURIComponent(key) +
-    '/json/realtimePosition/0/300/' + encodeURIComponent(line);
+  const api = 'http://swopenapi.seoul.go.kr/api/subway/' + encodeURIComponent(useKey) +
+    '/json/realtimePosition/' + (probe ? '0/5/' : '0/300/') + encodeURIComponent(useLine);
   let text = '', status = 0;
   try {
     const r = await fetch(api, { headers: { 'User-Agent': 'Mozilla/5.0 (subway-now relay)' } });
@@ -34,6 +38,6 @@ module.exports = async (req, res) => {
   } catch (e) {
     // 원인 확인용: 상태 코드와 응답 앞부분만 (인증키는 지움)
     const peek = String(text || '').split(key).join('***').replace(/\s+/g, ' ').slice(0, 160);
-    return res.status(502).json({ err: 'upstream', status, why: String(e && e.message || e).slice(0, 120), peek });
+    return res.status(502).json({ err: 'upstream', status, keyLen: key.length, why: String(e && e.message || e).slice(0, 120), peek });
   }
 };
