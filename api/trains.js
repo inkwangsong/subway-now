@@ -15,7 +15,8 @@ module.exports = async (req, res) => {
   if (!line || line.length > 20) return res.status(400).json({ err: 'line' });
   // 붙여 넣을 때 섞인 공백·줄바꿈·따옴표는 지워요
   const raw = String(process.env.SEOUL_KEY || '');
-  const key = raw.replace(/[^0-9A-Za-z]/g, '');
+  // 복사할 때 날짜 같은 다른 글자가 섞여도 가장 긴 영문·숫자 덩어리만 키로 써요
+  const key = raw.split(/[^0-9A-Za-z]+/).reduce((a, b) => (b.length > a.length ? b : a), '');
   if (!key) return res.status(500).json({ err: 'SEOUL_KEY 미설정' });
   // 진단용: ?probe=sample 이면 서울시 샘플키로 1호선을 불러서 중계 경로 자체가 되는지 확인해요
   const probe = req.query && req.query.probe === 'sample';
@@ -39,6 +40,7 @@ module.exports = async (req, res) => {
       // 오류가 다른 모양으로 올 때 (예: 인증키 문제): 코드와 메시지만 전해요
       const top = j.RESULT || j;
       err = String((top.CODE || top.code || '') + ' ' + (top.MESSAGE || top.message || '')).trim() || text.split(key).join('***').slice(0, 160);
+      if (/INFO-100/.test(err)) err += ' [키 길이 ' + key.length + '자, 저장된 값 ' + raw.length + '자, 덩어리 ' + raw.split(/[^0-9A-Za-z]+/).filter(Boolean).length + '개]';
     }
     return res.status(200).json({ rows, err });
   } catch (e) {
