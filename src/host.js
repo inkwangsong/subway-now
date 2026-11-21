@@ -86,7 +86,7 @@ o.connect(g); g.connect(audio.destination); o.start(t0); o.stop(t0 + 0.28);
 } catch (e) {}
 };
 var ALERT = { '곧 환승': 2, '환승': 4, '곧 도착': 2, '내릴 준비': 4, '도착': 4 };
-var lastAlert = '', wasArrived = false, wake = null;
+var lastAlert = '', wasArrived = false, wake = null, lastNear = '';
 var keepAwake = function (on) {
 try {
 if (on && !wake && navigator.wakeLock) navigator.wakeLock.request('screen').then(function (w) { wake = w; w.addEventListener('release', function () { wake = null; }); }).catch(function () {});
@@ -95,7 +95,7 @@ if (!on && wake) { wake.release(); wake = null; }
 };
 var afterRender = function (vals) {
 var st = app.state || {}, riding = st.mode === 'ride';
-keepAwake(riding);
+keepAwake(riding || st.mode === 'confirm' || !st.mode);
 var key = riding ? vals.bannerLabel + '|' + vals.banner : '';
 if (key !== lastAlert) {
 lastAlert = key;
@@ -109,6 +109,11 @@ try { localStorage.setItem(HIST_KEY, JSON.stringify(hist)); } catch (e) {}
 app.props.hist = hist;
 }
 wasArrived = !!vals.isArrived;
+if (vals.nearStation && vals.nearStation !== lastNear) {
+lastNear = vals.nearStation;
+beep(3);
+try { if (navigator.vibrate) navigator.vibrate([250, 120, 250]); } catch (e) {}
+} else if (vals.nearFar) lastNear = '';
 };
 
 var queued = false;

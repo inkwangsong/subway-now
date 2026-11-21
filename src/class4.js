@@ -556,6 +556,12 @@ out.hasOrigin = !!origin;
 out.noOrigin = !origin;
 out.pillText = live ? (st.origin ? '출발역을 골랐어요' : (origin ? '지금 가장 가까운 역' : (st.geoErr ? '위치를 못 잡았어요' : '내 위치 확인 중'))) : (!origin ? '출발역을 못 찾았어요' : (st.origin ? '출발역을 골랐어요' : '방금 탑승을 감지했어요'));
 out.H = VH + 'px';
+/* 역 근처 알림: 앱이 켜져 있을 때, 탑승 전 화면에서 역 150m 안으로 들어오면 알려요 (멀어지면 다시 준비) */
+var nm = live && geo && this._near && geo.acc < 200 ? this._near : null;
+var nearOn = !!(nm && nm.m < 150 && mode === 'confirm');
+out.nearStation = nearOn ? nm.name : '';
+out.nearFar = !nm || nm.m > 300;
+if (live && mode === 'confirm' && !st.origin && nm) out.pillText = nearOn ? nm.name + '역 도착! 탈 준비하세요' : '가장 가까운 역 · 약 ' + (nm.m < 1000 ? Math.round(nm.m / 10) * 10 + 'm' : (nm.m / 1000).toFixed(1) + 'km');
 out.isLive = !!this.props.live && !st.demo && mode === 'confirm';
 out.showTiles = !(dest && i === last) && !compact;
 out.hello = !origin ? '어디서 타요?' : '어디까지 가요?';
