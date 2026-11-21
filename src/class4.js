@@ -90,7 +90,14 @@ while (lo > 0 && route[lo].l === L) lo--;
 while (hi < last && route[hi + 1].l === L) hi++;
 var idxOf = function (name) { var nn = stnNorm(name); for (var k = lo; k <= hi; k++) if (stnNorm(route[k].n) === nn) return k; return -1; };
 /* 열차 상태: 0 진입, 1 도착, 2 출발, 3 전역 출발 */
-var posOf = function (r) { var k = idxOf(r.stn); if (k < 0) return null; var s = String(r.st); return s === '0' ? k - 0.2 : s === '1' ? k : s === '2' ? k + 0.05 : k - 0.8; };
+var posOf = function (r) {
+var k = idxOf(r.stn); if (k < 0) return null;
+var s = String(r.st), p = s === '0' ? k - 0.2 : s === '1' ? k : s === '2' ? k + 0.05 : k - 0.8;
+/* 정보 생성 시각과 지금의 차이만큼 열차가 더 갔다고 보정해요 (다음 역은 넘지 않게) */
+var lag = r.t ? (Date.now() - new Date(String(r.t).replace(' ', 'T') + '+09:00').getTime()) / 1000 : 0;
+if (lag > 5 && lag < 600) p = Math.min(Math.floor(p + 1) - 0.08, p + lag / 110);
+return p;
+};
 var dirOk = function (r) {
 var cs = NET[L].chains;
 for (var c = 0; c < cs.length; c++) {
