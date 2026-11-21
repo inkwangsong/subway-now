@@ -34,7 +34,12 @@ module.exports = async (req, res) => {
     const rows = (j.realtimePositionList || []).map((x) => ({
       stn: x.statnNm, no: x.trainNo, term: x.statnTnm, st: x.trainSttus, ud: x.updnLine, t: x.recptnDt,
     }));
-    const err = msg.code && msg.code !== 'INFO-000' ? msg.message : null;
+    let err = msg.code && msg.code !== 'INFO-000' ? (msg.code + ' ' + msg.message) : null;
+    if (!j.realtimePositionList && !err) {
+      // 오류가 다른 모양으로 올 때 (예: 인증키 문제): 코드와 메시지만 전해요
+      const top = j.RESULT || j;
+      err = String((top.CODE || top.code || '') + ' ' + (top.MESSAGE || top.message || '')).trim() || text.split(key).join('***').slice(0, 160);
+    }
     return res.status(200).json({ rows, err });
   } catch (e) {
     // 원인 확인용: 상태 코드와 응답 앞부분만 (인증키는 지움)
