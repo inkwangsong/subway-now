@@ -340,6 +340,10 @@ input::placeholder{{color:{SUB}}}
 </div>
 </sc-if>
 
+<sc-if value="{{{{ hasDiag }}}}" hint-placeholder-val="{{{{ false }}}}">
+<div style="position: absolute; left: 12px; right: 12px; top: 8px; z-index: 5; font-size: 10px; font-weight: 600; line-height: 1.35; color: {INK}; background: rgba(255,255,255,0.72); border-radius: 8px; padding: 4px 8px">{{{{diag}}}}</div>
+</sc-if>
+
 <sc-if value="{{{{ isConfirm }}}}" hint-placeholder-val="{{{{ false }}}}">
 <div style="position: absolute; left: 20px; right: 20px; top: 52px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px">
 <div style="display: flex; align-items: center; gap: 8px; max-width: 100%">

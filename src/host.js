@@ -60,6 +60,7 @@ var HIST_KEY = 'subway-now:hist';
 var readHist = function () { try { return JSON.parse(localStorage.getItem(HIST_KEY) || '{}') || {}; } catch (e) { return {}; } };
 var todNow = function () { var hr = new Date().getHours(); return hr >= 5 && hr < 10 ? 'morning' : (hr >= 10 && hr < 17 ? 'noon' : 'evening'); };
 app.props = { live: true, tod: todNow(), hist: readHist(), viewH: 844 };
+app.props.srOk = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 /* 별표한 역: 처음엔 서현·서초로 시작해요 */
 var FAV_KEY = 'subway-now:favs';
 var readFavs = function () { try { var v = localStorage.getItem(FAV_KEY); return v === null ? ['서현', '서초'] : (JSON.parse(v) || []); } catch (e) { return ['서현', '서초']; } };
@@ -147,11 +148,12 @@ recCk = ck;
 rec.onresult = function (e) {
 var txt = '';
 for (var k = e.resultIndex; k < e.results.length; k++) for (var a = 0; a < e.results[k].length; a++) txt += ' ' + e.results[k][a].transcript;
+app.setState({ rawHeard: String((e.results[e.results.length - 1][0] || {}).transcript || '').trim().slice(-28), rawT: Date.now() });
 app.applyHeard(txt, recCk);
 };
-rec.onerror = function (e) { app.setState({ listenErr: e && e.error || 'error' }); };
+rec.onerror = function (e) { app.setState({ listenErr: e && e.error || 'error', lastErr: e && e.error || 'error' }); };
 rec.onend = function () { recOn = false; rec = null; recEndT = Date.now(); app.setState({ listening: false }); };
-rec.start(); recOn = true; if (!ckStart[ck]) ckStart[ck] = Date.now();
+rec.start(); recOn = true; app.setState({ recStarts: ((app.state || {}).recStarts || 0) + 1 }); if (!ckStart[ck]) ckStart[ck] = Date.now();
 app.setState({ listening: true, listenErr: null });
 } catch (e) { recOn = false; rec = null; recEndT = Date.now(); app.setState({ listenErr: 'start' }); }
 };
@@ -214,7 +216,7 @@ var line = NET[route[i + 1].l].name;
 rtBusy = true; rtLast = Date.now();
 fetch(RT_URL + (RT_URL.indexOf('?') < 0 ? '?' : '&') + 'line=' + encodeURIComponent(line), { cache: 'no-store' })
 .then(function (r) { return r.json(); })
-.then(function (j) { rtBusy = false; if (j && j.rows) app.applyTrains(j.rows); app.setState({ rtErr: j && j.err || null }); })
+.then(function (j) { rtBusy = false; if (j && j.rows) app.applyTrains(j.rows); app.setState({ rtErr: j && j.err || null, rtOkT: j && j.rows ? Date.now() : (app.state || {}).rtOkT }); })
 .catch(function () { rtBusy = false; app.setState({ rtErr: 'network' }); });
 };
 setInterval(pollTrains, 30000);
@@ -234,12 +236,13 @@ var left = lines.length;
 lines.forEach(function (li) {
 fetch(RT_URL + (RT_URL.indexOf('?') < 0 ? '?' : '&') + 'line=' + encodeURIComponent(NET[li].name), { cache: 'no-store' })
 .then(function (r) { return r.json(); })
-.then(function (j) { if (j && j.rows) app.applyHomeTrains(li, j.rows); })
+.then(function (j) { app.setState({ rtOkT: j && j.rows ? Date.now() : (app.state || {}).rtOkT, rtErr: j && j.err || null }); if (j && j.rows) app.applyHomeTrains(li, j.rows); })
 .catch(function () {})
 .then(function () { if (--left === 0) homeBusy = false; });
 });
 };
 setInterval(pollHome, 30000);
+app.props.rtUrl = RT_URL;
 setTimeout(pollHome, 4000);
 
 var lastVals = null;

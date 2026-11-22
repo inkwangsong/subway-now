@@ -356,6 +356,10 @@ input::placeholder{color:var(--sub)}
 </div>
 </sc-if>
 
+<sc-if value="{{ hasDiag }}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 12px; right: 12px; top: 8px; z-index: 5; font-size: 10px; font-weight: 600; line-height: 1.35; color: var(--ink); background: rgba(255,255,255,0.72); border-radius: 8px; padding: 4px 8px">{{diag}}</div>
+</sc-if>
+
 <sc-if value="{{ isConfirm }}" hint-placeholder-val="{{ false }}">
 <div style="position: absolute; left: 20px; right: 20px; top: 52px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px">
 <div style="display: flex; align-items: center; gap: 8px; max-width: 100%">
@@ -1603,6 +1607,13 @@ if (mN > 0 && mFresh && !nearOn) out.pillText = '같이 움직이는 열차 확�
 out.progShow = locBusy || (mN > 0 && mFresh) ? 'block' : 'none';
 out.progIndet = locBusy ? 'block' : 'none'; out.progDet = locBusy ? 'none' : 'block';
 out.progW = Math.round(mN / 3 * 100) + '%';
+/* 현장 테스트용 진단 줄: 마이크·위치·실시간 연결 상태를 한 줄로 보여줘요 */
+var nowD = Date.now(), ago = function (t) { return t ? Math.round((nowD - t) / 1000) + '초 전' : '없음'; };
+out.diag = live ? ['마이크 ' + (this.props.srOk ? (st.listening ? '듣는 중' : (st.listenOn ? '대기' : '꺼짐')) + ' ' + (st.recStarts || 0) + '회' + (st.lastErr ? ' 오류:' + st.lastErr : '') : '미지원'),
+'들린 말 ' + (st.rawHeard ? '"' + st.rawHeard + '" ' + ago(st.rawT) : '없음'),
+'위치 ' + (geo ? '오차 ' + Math.round(geo.acc) + 'm ' + ago(geo.t) : (st.geoErr ? '오류:' + st.geoErr : '없음')),
+'실시간 ' + (this.props.rtUrl ? (st.rtErr ? '오류:' + String(st.rtErr).slice(0, 20) : '응답 ' + ago(st.rtOkT)) : '연결 안 됨')].join(' · ') : '';
+out.hasDiag = !!out.diag;
 out.onRefresh = function () { try { window.location.reload(); } catch (e) {} };
 out.locSpin = locBusy ? 'inline-block' : 'none'; out.locPin = locBusy ? 'none' : 'block'; out.locDots = locBusy ? 'sn-dots' : '';
 var hl = !!st.homeListening;
@@ -1773,6 +1784,7 @@ var HIST_KEY = 'subway-now:hist';
 var readHist = function () { try { return JSON.parse(localStorage.getItem(HIST_KEY) || '{}') || {}; } catch (e) { return {}; } };
 var todNow = function () { var hr = new Date().getHours(); return hr >= 5 && hr < 10 ? 'morning' : (hr >= 10 && hr < 17 ? 'noon' : 'evening'); };
 app.props = { live: true, tod: todNow(), hist: readHist(), viewH: 844 };
+app.props.srOk = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 /* 별표한 역: 처음엔 서현·서초로 시작해요 */
 var FAV_KEY = 'subway-now:favs';
 var readFavs = function () { try { var v = localStorage.getItem(FAV_KEY); return v === null ? ['서현', '서초'] : (JSON.parse(v) || []); } catch (e) { return ['서현', '서초']; } };
@@ -1860,11 +1872,12 @@ recCk = ck;
 rec.onresult = function (e) {
 var txt = '';
 for (var k = e.resultIndex; k < e.results.length; k++) for (var a = 0; a < e.results[k].length; a++) txt += ' ' + e.results[k][a].transcript;
+app.setState({ rawHeard: String((e.results[e.results.length - 1][0] || {}).transcript || '').trim().slice(-28), rawT: Date.now() });
 app.applyHeard(txt, recCk);
 };
-rec.onerror = function (e) { app.setState({ listenErr: e && e.error || 'error' }); };
+rec.onerror = function (e) { app.setState({ listenErr: e && e.error || 'error', lastErr: e && e.error || 'error' }); };
 rec.onend = function () { recOn = false; rec = null; recEndT = Date.now(); app.setState({ listening: false }); };
-rec.start(); recOn = true; if (!ckStart[ck]) ckStart[ck] = Date.now();
+rec.start(); recOn = true; app.setState({ recStarts: ((app.state || {}).recStarts || 0) + 1 }); if (!ckStart[ck]) ckStart[ck] = Date.now();
 app.setState({ listening: true, listenErr: null });
 } catch (e) { recOn = false; rec = null; recEndT = Date.now(); app.setState({ listenErr: 'start' }); }
 };
@@ -1927,7 +1940,7 @@ var line = NET[route[i + 1].l].name;
 rtBusy = true; rtLast = Date.now();
 fetch(RT_URL + (RT_URL.indexOf('?') < 0 ? '?' : '&') + 'line=' + encodeURIComponent(line), { cache: 'no-store' })
 .then(function (r) { return r.json(); })
-.then(function (j) { rtBusy = false; if (j && j.rows) app.applyTrains(j.rows); app.setState({ rtErr: j && j.err || null }); })
+.then(function (j) { rtBusy = false; if (j && j.rows) app.applyTrains(j.rows); app.setState({ rtErr: j && j.err || null, rtOkT: j && j.rows ? Date.now() : (app.state || {}).rtOkT }); })
 .catch(function () { rtBusy = false; app.setState({ rtErr: 'network' }); });
 };
 setInterval(pollTrains, 30000);
@@ -1947,12 +1960,13 @@ var left = lines.length;
 lines.forEach(function (li) {
 fetch(RT_URL + (RT_URL.indexOf('?') < 0 ? '?' : '&') + 'line=' + encodeURIComponent(NET[li].name), { cache: 'no-store' })
 .then(function (r) { return r.json(); })
-.then(function (j) { if (j && j.rows) app.applyHomeTrains(li, j.rows); })
+.then(function (j) { app.setState({ rtOkT: j && j.rows ? Date.now() : (app.state || {}).rtOkT, rtErr: j && j.err || null }); if (j && j.rows) app.applyHomeTrains(li, j.rows); })
 .catch(function () {})
 .then(function () { if (--left === 0) homeBusy = false; });
 });
 };
 setInterval(pollHome, 30000);
+app.props.rtUrl = RT_URL;
 setTimeout(pollHome, 4000);
 
 var lastVals = null;

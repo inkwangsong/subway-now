@@ -832,6 +832,13 @@ if (mN > 0 && mFresh && !nearOn) out.pillText = '같이 움직이는 열차 확�
 out.progShow = locBusy || (mN > 0 && mFresh) ? 'block' : 'none';
 out.progIndet = locBusy ? 'block' : 'none'; out.progDet = locBusy ? 'none' : 'block';
 out.progW = Math.round(mN / 3 * 100) + '%';
+/* 현장 테스트용 진단 줄: 마이크·위치·실시간 연결 상태를 한 줄로 보여줘요 */
+var nowD = Date.now(), ago = function (t) { return t ? Math.round((nowD - t) / 1000) + '초 전' : '없음'; };
+out.diag = live ? ['마이크 ' + (this.props.srOk ? (st.listening ? '듣는 중' : (st.listenOn ? '대기' : '꺼짐')) + ' ' + (st.recStarts || 0) + '회' + (st.lastErr ? ' 오류:' + st.lastErr : '') : '미지원'),
+'들린 말 ' + (st.rawHeard ? '"' + st.rawHeard + '" ' + ago(st.rawT) : '없음'),
+'위치 ' + (geo ? '오차 ' + Math.round(geo.acc) + 'm ' + ago(geo.t) : (st.geoErr ? '오류:' + st.geoErr : '없음')),
+'실시간 ' + (this.props.rtUrl ? (st.rtErr ? '오류:' + String(st.rtErr).slice(0, 20) : '응답 ' + ago(st.rtOkT)) : '연결 안 됨')].join(' · ') : '';
+out.hasDiag = !!out.diag;
 out.onRefresh = function () { try { window.location.reload(); } catch (e) {} };
 out.locSpin = locBusy ? 'inline-block' : 'none'; out.locPin = locBusy ? 'none' : 'block'; out.locDots = locBusy ? 'sn-dots' : '';
 var hl = !!st.homeListening;
