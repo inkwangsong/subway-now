@@ -77,6 +77,8 @@ try { if (localStorage.getItem(LISTEN_KEY) === '1') app.state = Object.assign({}
 var RT_URL = (window.SUBWAY_RT_URL || '');
 try { var qrt = new URLSearchParams(location.search).get('rt'); if (qrt) localStorage.setItem(RT_KEY, qrt); RT_URL = localStorage.getItem(RT_KEY) || RT_URL; } catch (e) {}
 setInterval(function () { var t = todNow(); if (t !== app.props.tod) { app.props.tod = t; schedule(); } }, 60000);
+/* 위치 신호가 끊겨도 '몇 분 전' 표시가 흐르도록 가끔 다시 그려요 */
+setInterval(function () { schedule(); }, 15000);
 
 var layout = function () {
 var w = Math.min(window.innerWidth, 480), scale = w / 390;

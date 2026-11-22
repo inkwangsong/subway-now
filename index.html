@@ -822,23 +822,24 @@ return best;
 detectRide(geo) {
 var now = Date.now();
 if (this._autoOff && now - this._autoOff < 300000) return null;
-if (!(geo.acc < 300)) return null;
+/* 지하에선 와이파이·기지국으로 잡힌 대략적인 위치(오차 1km 미만)도 써요. 대신 더 많이 움직여야 인정해요 */
+if (!(geo.acc < 1000)) return null;
 var G = this._G || (this._G = buildNet());
 var on = this.segOn(G, geo.lat, geo.lon);
-if (!on || on.d > Math.max(200, geo.acc)) { this._trail = []; return null; }
+if (!on || on.d > Math.max(200, geo.acc * 0.8)) return null;
 var tr = (this._trail || []).filter(function (p) { return now - p.t < 300000 && p.li === on.li && p.ci === on.ci; });
-tr.push({ t: now, lat: geo.lat, lon: geo.lon, li: on.li, ci: on.ci, s: on.s });
+tr.push({ t: now, lat: geo.lat, lon: geo.lon, li: on.li, ci: on.ci, s: on.s, acc: geo.acc });
 this._trail = tr;
 /* 최근 2분 반 안에서, 지금보다 반 정거장 이상 떨어져 있던 가장 최근 위치와 비교해요
    (승강장에서 기다린 시간은 빠지도록) */
 var first = null;
-for (var w = tr.length - 2; w >= 0; w--) { if (now - tr[w].t > 150000) break; if (Math.abs(on.s - tr[w].s) >= 0.5) { first = tr[w]; break; } }
+for (var w = tr.length - 2; w >= 0; w--) { if (now - tr[w].t > 240000) break; var need = Math.max(geo.acc, tr[w].acc || 0) > 300 ? 0.9 : 0.5; if (Math.abs(on.s - tr[w].s) >= need) { first = tr[w]; break; } }
 if (!first) return null;
 var ds = on.s - first.s, sec = (now - first.t) / 1000;
 if (sec < 15) return null;
 var meters = Math.sqrt(Math.pow((geo.lon - first.lon) * COS, 2) + Math.pow(geo.lat - first.lat, 2)) * 111000;
 /* 걷기보다 훨씬 빠르게(초속 5m 이상), 400m 넘게 움직였을 때만 탄 걸로 봐요 */
-if (meters < 400 || meters / sec < 5) return null;
+if (meters < (Math.max(geo.acc, first.acc || 0) > 300 ? 700 : 400) || meters / sec < 5) return null;
 var c = NET[on.li].chains[on.ci], fwd = ds > 0, k0 = fwd ? Math.floor(on.s) : Math.ceil(on.s);
 k0 = Math.max(0, Math.min(c.s.length - 1, k0));
 var o = { n: c.s[k0], l: on.li, ci: on.ci, toFirst: !fwd };
@@ -1451,7 +1452,12 @@ out.nearStation = nearOn ? nm.name : '';
 out.nearFar = !nm || nm.m > 300;
 /* 현재 위치 칩: 출발역을 직접 골라도 내 위치는 따로 계속 보여줘요 */
 var distTxt = nm ? (nm.m < 1000 ? Math.round(nm.m / 10) * 10 + 'm' : (nm.m / 1000).toFixed(1) + 'km') : '';
-if (live) out.pillText = nearOn ? '지금 ' + nm.name + '역 · 탈 준비하세요' : nm ? '현재 위치 · ' + nm.name + '역에서 ' + distTxt : (st.geoErr ? '위치를 못 잡았어요' : '현재 위치 확인 중');
+var nmAny = live && geo && this._near ? this._near : null, ageS = geo && geo.t ? Math.round((Date.now() - geo.t) / 1000) : 0;
+if (live) out.pillText = nearOn ? '지금 ' + nm.name + '역 · 탈 준비하세요'
+: nm ? '현재 위치 · ' + nm.name + '역에서 ' + distTxt
+: nmAny && ageS < 90 ? '대략 ' + nmAny.name + '역 부근 · 오차 ' + (geo.acc < 1000 ? Math.round(geo.acc / 10) * 10 + 'm' : (geo.acc / 1000).toFixed(1) + 'km')
+: nmAny ? '위치 신호 약함 · ' + Math.max(1, Math.round(ageS / 60)) + '분 전 ' + nmAny.name + '역 부근'
+: (st.geoErr ? '위치를 못 잡았어요' : '현재 위치 확인 중');
 out.locFg = nearOn ? 'var(--blue)' : 'var(--ink)';
 out.isLive = !!this.props.live && !st.demo && mode === 'confirm';
 out.showTiles = !(dest && i === last) && !compact;
@@ -1631,6 +1637,8 @@ try { if (localStorage.getItem(LISTEN_KEY) === '1') app.state = Object.assign({}
 var RT_URL = (window.SUBWAY_RT_URL || '');
 try { var qrt = new URLSearchParams(location.search).get('rt'); if (qrt) localStorage.setItem(RT_KEY, qrt); RT_URL = localStorage.getItem(RT_KEY) || RT_URL; } catch (e) {}
 setInterval(function () { var t = todNow(); if (t !== app.props.tod) { app.props.tod = t; schedule(); } }, 60000);
+/* 위치 신호가 끊겨도 '몇 분 전' 표시가 흐르도록 가끔 다시 그려요 */
+setInterval(function () { schedule(); }, 15000);
 
 var layout = function () {
 var w = Math.min(window.innerWidth, 480), scale = w / 390;
