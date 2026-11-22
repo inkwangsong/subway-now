@@ -997,7 +997,10 @@ var bucket = Math.floor(Date.now() / 300000);
 if (!ckDone['live' + bucket]) { listenCk = 'live' + bucket; listenMax = 120; }
 }
 }
+/* 안내방송 듣기는 뺐어요 (현장에서 한 번도 역을 맞추지 못함) */
+listenCk = ''; listenMax = 0;
 out.listenCk = listenCk; out.listenMax = listenMax;
+out.showMic = false;
 out.isLiveRide = live && isRide;
 out.listenBg = st.listenOn ? '#1F3A5F' : 'var(--tile)';
 out.listenFg = st.listenOn ? '#FFFFFF' : 'var(--ink)';
@@ -1020,7 +1023,7 @@ var hideToggle = (live && !waiting && i < last) || (!!st.demo && i < last);
 out.toggleDisp = hideToggle ? 'none' : 'flex';
 out.nextGrow = hideToggle ? 1 : 0;
 var fixAge = st.fixT ? Math.round((Date.now() - st.fixT) / 1000) : null;
-var nowT = Date.now(), tail = st.listening ? ' · 안내방송 듣는 중' : (listenCk && st.listenErr === 'unsupported' ? ' · 이 브라우저는 음성인식을 못 써요' : (listenCk && st.listenErr ? ' · 마이크 버튼을 눌러 방송 듣기를 다시 켜 주세요' : ''));
+var nowT = Date.now(), tail = '';
 out.footNote = (waiting
 ? (i > 0 ? '갈아탈 열차를 타면 알아서 다시 따라가요. 안 되면 \'열차 탔어요\'를 눌러 주세요' : '아직 탑승 전이에요. 열차에 타면 \'열차 탔어요\'를 눌러 주세요. 움직임이 잡히면 알아서 시작해요')
 : !live ? (st.demo ? '데모예요. 종료를 누르면 내 위치로 돌아가요' : '시안용 조작이에요. 실제 앱은 열차를 따라 알아서 움직여요')

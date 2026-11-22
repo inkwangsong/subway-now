@@ -336,7 +336,7 @@ input::placeholder{color:var(--sub)}
 <div style="font-size: 20px; font-weight: 700; letter-spacing: -0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{headTitle}}</div>
 <div style="font-size: 13px; font-weight: 500; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{headSub}}</div>
 </div>
-<sc-if value="{{ isLiveRide }}" hint-placeholder-val="{{ false }}">
+<sc-if value="{{ showMic }}" hint-placeholder-val="{{ false }}">
 <button onClick="{{ onListen }}" aria-label="{{listenAria}}" style="position: relative; width: 44px; height: 44px; border: 0; border-radius: 14px; background: {{listenBg}}; color: {{listenFg}}; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
 <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><line x1="12" y1="18" x2="12" y2="21"></line></svg>
 <span style="display: {{listenDot}}; position: absolute; right: 7px; top: 7px; width: 8px; height: 8px; border-radius: 4px; background: #E8453C; box-shadow: 0 0 0 2px #FFFFFF"></span>
@@ -1793,7 +1793,10 @@ var bucket = Math.floor(Date.now() / 300000);
 if (!ckDone['live' + bucket]) { listenCk = 'live' + bucket; listenMax = 120; }
 }
 }
+/* 안내방송 듣기는 뺐어요 (현장에서 한 번도 역을 맞추지 못함) */
+listenCk = ''; listenMax = 0;
 out.listenCk = listenCk; out.listenMax = listenMax;
+out.showMic = false;
 out.isLiveRide = live && isRide;
 out.listenBg = st.listenOn ? '#1F3A5F' : 'var(--tile)';
 out.listenFg = st.listenOn ? '#FFFFFF' : 'var(--ink)';
@@ -1816,7 +1819,7 @@ var hideToggle = (live && !waiting && i < last) || (!!st.demo && i < last);
 out.toggleDisp = hideToggle ? 'none' : 'flex';
 out.nextGrow = hideToggle ? 1 : 0;
 var fixAge = st.fixT ? Math.round((Date.now() - st.fixT) / 1000) : null;
-var nowT = Date.now(), tail = st.listening ? ' · 안내방송 듣는 중' : (listenCk && st.listenErr === 'unsupported' ? ' · 이 브라우저는 음성인식을 못 써요' : (listenCk && st.listenErr ? ' · 마이크 버튼을 눌러 방송 듣기를 다시 켜 주세요' : ''));
+var nowT = Date.now(), tail = '';
 out.footNote = (waiting
 ? (i > 0 ? '갈아탈 열차를 타면 알아서 다시 따라가요. 안 되면 \'열차 탔어요\'를 눌러 주세요' : '아직 탑승 전이에요. 열차에 타면 \'열차 탔어요\'를 눌러 주세요. 움직임이 잡히면 알아서 시작해요')
 : !live ? (st.demo ? '데모예요. 종료를 누르면 내 위치로 돌아가요' : '시안용 조작이에요. 실제 앱은 열차를 따라 알아서 움직여요')
@@ -2090,6 +2093,7 @@ app.props.onListenRetry = function (ck) { unlockAudio(); if (!recOn) startRec(ck
 /* 아이폰은 화면을 한 번 눌러야 마이크를 켤 수 있어요. 그래서 앱의 아무 버튼이나 누르는 그 순간에
    탑승 중이면 바로 듣기를 시작해요 (따로 마이크 버튼을 누를 필요 없게) */
 var gestureKick = function () {
+return; /* 안내방송 듣기 뺌 */
 var st = app.state || {};
 if (!SR || recOn || !st.listenOn || st.demo || st.listenErr === 'not-allowed') return;
 unlockAudio();
@@ -2112,7 +2116,7 @@ setTimeout(function () { app.setState({ syncing: false }); }, 6000);
 try { navigator.geolocation.getCurrentPosition(function (pos) { app.applyGeo({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy || 9999, speed: pos.coords.speed, t: pos.timestamp || Date.now() }); }, function () {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 8000 }); } catch (e) {}
 if (st.mode === 'ride') { rtLast = 0; pollTrains(); } else pollHome(true);
 /* 자동으로 다시 맞출 때는 화면을 누른 게 아니라서 마이크는 켤 수 없어요(아이폰 제한) */
-if (auto !== true && SR && st.listenOn !== false && st.listenErr !== 'not-allowed') { unlockAudio(); if (recOn) recCk = 'sync'; else startRec('sync'); }
+if (false && auto !== true && SR && st.listenOn !== false && st.listenErr !== 'not-allowed') { unlockAudio(); if (recOn) recCk = 'sync'; else startRec('sync'); }
 };
 app.props.onHomeListen = function (on) {
 unlockAudio();

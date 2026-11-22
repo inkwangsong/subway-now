@@ -222,6 +222,7 @@ app.props.onListenRetry = function (ck) { unlockAudio(); if (!recOn) startRec(ck
 /* 아이폰은 화면을 한 번 눌러야 마이크를 켤 수 있어요. 그래서 앱의 아무 버튼이나 누르는 그 순간에
    탑승 중이면 바로 듣기를 시작해요 (따로 마이크 버튼을 누를 필요 없게) */
 var gestureKick = function () {
+return; /* 안내방송 듣기 뺌 */
 var st = app.state || {};
 if (!SR || recOn || !st.listenOn || st.demo || st.listenErr === 'not-allowed') return;
 unlockAudio();
@@ -244,7 +245,7 @@ setTimeout(function () { app.setState({ syncing: false }); }, 6000);
 try { navigator.geolocation.getCurrentPosition(function (pos) { app.applyGeo({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy || 9999, speed: pos.coords.speed, t: pos.timestamp || Date.now() }); }, function () {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 8000 }); } catch (e) {}
 if (st.mode === 'ride') { rtLast = 0; pollTrains(); } else pollHome(true);
 /* 자동으로 다시 맞출 때는 화면을 누른 게 아니라서 마이크는 켤 수 없어요(아이폰 제한) */
-if (auto !== true && SR && st.listenOn !== false && st.listenErr !== 'not-allowed') { unlockAudio(); if (recOn) recCk = 'sync'; else startRec('sync'); }
+if (false && auto !== true && SR && st.listenOn !== false && st.listenErr !== 'not-allowed') { unlockAudio(); if (recOn) recCk = 'sync'; else startRec('sync'); }
 };
 app.props.onHomeListen = function (on) {
 unlockAudio();
