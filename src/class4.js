@@ -41,7 +41,7 @@ var auto = this.detectRide(geo);
 if (auto) { this.setState(Object.assign(patch, auto)); return; }
 }
 var route = this._route, G = this._G;
-if (st.mode === 'ride' && this.props.live && !st.demo && route && G && geo && geo.acc < 1500) {
+if (st.mode === 'ride' && this.props.live && !st.demo && route && G && geo && geo.acc <= 150) {
 if (!st.boarded && geo.speed && geo.speed > 5) { patch.boarded = true; patch.playing = true; }
 var i = Math.min(st.i || 0, route.length - 1), best = null;
 for (var k = i; k < Math.min(route.length - 1, i + 3); k++) {
@@ -60,10 +60,12 @@ for (var pk in G.pos) { var q2 = G.pos[pk], dd = Math.pow((q2[0] - geo.lon) * CO
 if (bn && Math.sqrt(bd) * 111000 < 600 && this.reroute(bn, null, { boarded: !!(geo.speed && geo.speed > 5), geo: geo })) return;
 }
 } else this._off = 0;
-if (best && best.dist < Math.max(500, geo.acc * 1.5)) {
+if (best && best.dist < Math.max(300, geo.acc * 1.5)) {
 var cur = i + (st.f || 0), nxt = best.k + best.t;
+/* 오차가 큰 위치는 한 번에 한 정거장 넘게 앞으로 끌어가지 못하게 해요 (뒤쪽 오차는 무시되고 앞쪽 오차만 반영돼 점점 앞서가는 걸 막아요) */
+if (geo.acc > 60 && nxt > cur + 1) nxt = cur + 1;
 if (!st.boarded && (nxt > i + 0.35 || (geo.speed && geo.speed > 5))) { patch.boarded = true; patch.playing = true; }
-if ((st.boarded || patch.boarded) && nxt > cur - 0.15) { if (best.t > 0.96) { patch.i = best.k + 1; patch.f = 0; } else { patch.i = best.k; patch.f = best.t; } patch.fixT = Date.now(); if (geo.acc < 150) patch.resyncT = null; }
+if ((st.boarded || patch.boarded) && nxt > cur - 0.15) { var nk = Math.floor(nxt), nt = nxt - nk; if (nt > 0.96) { patch.i = nk + 1; patch.f = 0; } else { patch.i = nk; patch.f = nt; } patch.fixT = Date.now(); if (geo.acc < 150) patch.resyncT = null; }
 var txG = xferAfter(route, i);
 if (patch.i !== undefined && txG >= 0 && patch.i + (patch.f || 0) >= txG && (st.boarded || patch.boarded)) { patch.i = txG; patch.f = 0; patch.boarded = false; patch.trainNo = null; }
 }
@@ -245,10 +247,23 @@ var st = this.state || {}, route = this._route;
 if ((st.mode || 'confirm') === 'confirm') { if (ck === 'home' || ck === 'sync') this.applyHeardHome(text); return; }
 if (!route || st.mode !== 'ride' || !text) return;
 var T = String(text).replace(/\s+/g, ''), last = route.length - 1, i = Math.min(st.i || 0, last), best = null;
+var Gn = (this._G || (this._G = buildNet())).names;
+/* '산성'이 '남한산성입구' 안에서 찾아지지 않게: 더 긴 역 이름의 일부인 자리는 건너뛰어요 */
+var lastStn = function (txt, nm) {
+var from = txt.length;
+for (;;) {
+var at = txt.lastIndexOf(nm, from);
+if (at < 0) return -1;
+var inside = false;
+for (var q = 0; q < Gn.length && !inside; q++) { var ln = stnNorm(Gn[q]); if (ln.length > nm.length) { var off = ln.indexOf(nm); if (off >= 0 && txt.substr(at - off, ln.length) === ln) inside = true; } }
+if (!inside) return at;
+from = at - 1; if (from < 0) return -1;
+}
+};
 for (var k = Math.max(1, i); k <= Math.min(last, i + 4); k++) {
 var nm = stnNorm(route[k].n);
 if (nm.length < 2) continue;
-var pos = T.lastIndexOf(nm);
+var pos = lastStn(T, nm);
 if (pos < 0) continue;
 var kind = T.slice(Math.max(0, pos - 6), pos).indexOf('다음') >= 0 ? 'next' : 'this';
 var score = (kind === 'this' ? 100 : 50) + nm.length;
@@ -317,9 +332,9 @@ var best = null;
 var G2 = this._G, gq = st.geo && Date.now() - (st.geo.t || 0) < 300000 && st.geo.acc < 1500 ? st.geo : null;
 /* 다시 맞출 때 최근 위치가 있으면 그 위치에 가장 가까운 열차를, 없으면 시간 추정에 가장 가까운 열차를 골라요 */
 var score = function (p) {
-if (!resync || !gq || !G2) return Math.abs(p - cur);
+if (!resync || !gq || !G2) return (p > cur ? (p - cur) * 1.6 : cur - p);
 var k = Math.max(0, Math.min(last, Math.round(p))), q = G2.pos[route[k].n + '|' + route[k].l];
-return q ? Math.sqrt(Math.pow((q[0] - gq.lon) * COS, 2) + Math.pow(q[1] - gq.lat, 2)) * 111 : Math.abs(p - cur);
+return q ? Math.sqrt(Math.pow((q[0] - gq.lon) * COS, 2) + Math.pow(q[1] - gq.lat, 2)) * 111 : (p > cur ? (p - cur) * 1.6 : cur - p);
 };
 rows.forEach(function (r) { var p = posOf(r); if (p === null || !dirOk(r) || (st.badTrain && String(r.no) === st.badTrain && Date.now() - (st.badT || 0) < 600000)) return; var d = score(p); if ((resync ? (p >= cur - 1.5 && p <= cur + 4) : d <= 0.75) && (!best || d < best.d)) best = { r: r, p: p, d: d }; });
 if (best) { var bp = resync ? best.p : Math.max(best.p, cur - 0.1); patch = { resyncT: null, trainNo: String(best.r.no), trainT: Date.now(), trainMiss: 0, i: Math.max(0, Math.floor(bp)), f: bp - Math.floor(bp) }; }
@@ -368,7 +383,9 @@ var at = stnNorm(r.stn), code = String(r.st), no = String(r.no);
 if (at === S && (code === '0' || code === '1')) { if (!w.seen[no]) w.seen[no] = now; }
 /* 떠남: 우리 역에서 출발(2)했거나, 다음 역으로 넘어감(다음 역 진입·도착·전역출발) */
 var gone = (at === S && code === '2') || (at === N && (code === '0' || code === '1' || code === '3'));
-if (gone && (w.seen[no] || now - w.t0 > 45000) && !hit) hit = { no: no, p: at === S ? 0.1 : (code === '3' ? 0.3 : code === '0' ? 0.8 : 0.95) };
+var age = r.t ? (now - new Date(String(r.t).replace(' ', 'T') + '+09:00').getTime()) / 1000 : 0;
+/* 우리 역에 서 있는 걸 본 열차만, 못 봤다면 방금 우리 역에서 출발한 열차만 인정해요 (앞서 떠난 열차는 제외) */
+if (gone && !hit && (w.seen[no] || (at === S && code === '2' && now - w.t0 > 45000 && age < 90))) hit = { no: no, p: at === S ? 0.1 : (code === '3' ? 0.3 : code === '0' ? 0.8 : 0.95) };
 });
 if (!hit) return;
 this._bw = null; this._acc = 0;
