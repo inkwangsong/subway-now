@@ -162,6 +162,19 @@ if (on && SR && !recOn) { startRec('warmup'); setTimeout(function () { if (recCk
 if (!on) stopRec();
 };
 app.props.onListenRetry = function (ck) { unlockAudio(); if (!recOn) startRec(ck); };
+/* 시작 화면의 '안내방송으로 찾기': 누른 순간 시작해서 최대 3분 들어요 */
+var homeTimer = null;
+app.props.onHomeListen = function (on) {
+unlockAudio();
+if (homeTimer) { clearTimeout(homeTimer); homeTimer = null; }
+if (!on) { if (recCk === 'home') stopRec(); app.setState({ homeListening: false }); return; }
+if (recOn) stopRec();
+setTimeout(function () {
+startRec('home');
+app.setState({ homeListening: true });
+homeTimer = setTimeout(function () { if (recCk === 'home') stopRec(); app.setState({ homeListening: false }); }, 180000);
+}, recOn ? 300 : 0);
+};
 var manageListen = function (vals) {
 var want = vals.listenCk, st = app.state || {};
 if (want && ckStart[want] && Date.now() - ckStart[want] > vals.listenMax * 1000) {
@@ -170,7 +183,11 @@ stopRec(); app.setState({ ckDone: done }); return;
 }
 if (want && !recOn && Date.now() - recEndT > 1200 && st.listenErr !== 'not-allowed') startRec(want);
 else if (want && recOn) recCk = want;
-else if (!want && recOn && recCk !== 'warmup') stopRec();
+else if (!want && recOn && recCk !== 'warmup' && !(recCk === 'home' && (st.mode || 'confirm') === 'confirm')) stopRec();
+/* 시작 화면에서 듣다가 방송으로 탑승이 잡히면 이어서 듣기 표시를 꺼요 */
+if (st.homeListening && (st.mode || 'confirm') !== 'confirm') app.setState({ homeListening: false });
+/* 듣기가 끝났는데(권한 거부 등) 표시가 남아 있으면 끄고, 3분 안이면 다시 이어 들어요 */
+if (st.homeListening && !recOn && (st.mode || 'confirm') === 'confirm' && Date.now() - recEndT > 1200) { if (st.listenErr === 'not-allowed') app.setState({ homeListening: false }); else startRec('home'); }
 };
 
 /* 실시간 열차 위치: 탄 뒤에만 30초마다 (인증키 하루 1,000회 제한) 지금 노선의 열차 위치를 받아요 */

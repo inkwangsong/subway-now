@@ -43,6 +43,10 @@ a{{color:{BLUE}}}a:hover{{color:{NAVY}}}
 button{{font-family:inherit;cursor:pointer}}
 input{{font-family:inherit}}
 input::placeholder{{color:{SUB}}}
+@keyframes sn-spin{{to{{transform:rotate(360deg)}}}}
+@keyframes sn-pulse{{0%,100%{{opacity:1;transform:scale(1)}}50%{{opacity:.35;transform:scale(.7)}}}}
+@keyframes sn-dots{{0%{{content:''}}25%{{content:'.'}}50%{{content:'..'}}75%{{content:'...'}}}}
+.sn-dots::after{{content:'';display:inline-block;width:1.2em;text-align:left;animation:sn-dots 1.2s steps(1) infinite}}
 </style>
 </helmet>
 <div style="position: relative; width: 390px; height: {{{{H}}}}; overflow: hidden; --ink: {{{{th.ink}}}}; --sub: {{{{th.sub}}}}; --title: {{{{th.title}}}}; --blue: {{{{th.blue}}}}; --card: {{{{th.card}}}}; --card-line: {{{{th.card_line}}}}; --card-shadow: {{{{th.card_shadow}}}}; --tile: {{{{th.tile}}}}; --row: {{{{th.row}}}}; --row-shadow: {{{{th.row_shadow}}}}; --field: {{{{th.field}}}}; --land: {{{{th.land}}}}; --haze0: {{{{th.haze0}}}}; --hazeM: {{{{th.hazeM}}}}; --hazeT: {{{{th.hazeT}}}}; --sun: {{{{th.sun}}}}; --river: {{{{th.river}}}}; --river-edge: {{{{th.river_edge}}}}; --grid: {{{{th.grid}}}}; --tint: {{{{th.tint}}}}; --lm-filter: {{{{th.lm_filter}}}}; {TABLE}; color: {INK}; font-family: 'IBM Plex Sans KR', sans-serif">
@@ -338,9 +342,17 @@ input::placeholder{{color:{SUB}}}
 <sc-if value="{{{{ isConfirm }}}}" hint-placeholder-val="{{{{ false }}}}">
 <div style="position: absolute; left: 20px; right: 20px; top: 52px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px">
 <div style="{ACRYL}; border-radius: 16px; height: 32px; box-sizing: border-box; padding: 0 12px 0 9px; display: flex; align-items: center; gap: 6px; max-width: 100%; color: {{{{locFg}}}}">
-<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>
-<span style="font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{pillText}}}}</span>
+<span style="display: {{{{locSpin}}}}; flex-shrink: 0; width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--card-line); border-top-color: var(--blue); animation: sn-spin 0.8s linear infinite"></span>
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: {{{{locPin}}}}"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>
+<span class="{{{{locDots}}}}" style="font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{pillText}}}}</span>
 </div>
+<sc-if value="{{{{ isLive }}}}" hint-placeholder-val="{{{{ false }}}}">
+<button onClick="{{{{ onHomeListen }}}}" style="{ACRYL}; border-radius: 16px; height: 32px; box-sizing: border-box; padding: 0 12px 0 9px; display: flex; align-items: center; gap: 6px; color: {{{{hlFg}}}}">
+<span style="display: {{{{hlDot}}}}; width: 8px; height: 8px; border-radius: 4px; background: #E8453C; animation: sn-pulse 1s ease-in-out infinite"></span>
+<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display: {{{{hlMic}}}}"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><line x1="12" y1="18" x2="12" y2="21"></line></svg>
+<span class="{{{{hlDots}}}}" style="font-size: 13px; font-weight: 700; white-space: nowrap">{{{{hlLabel}}}}</span>
+</button>
+</sc-if>
 <div style="font-size: 34px; font-weight: 700; letter-spacing: -1.2px; line-height: 1.2; color: {NAVY}; padding-left: 4px">{{{{hello}}}}</div>
 </div>
 </sc-if>
@@ -398,7 +410,7 @@ input::placeholder{{color:{SUB}}}
 
 <sc-if value="{{{{ noOrigin }}}}" hint-placeholder-val="{{{{ false }}}}">
 <div style="display: flex; flex-direction: column; gap: 10px">
-<div style="{ACRYL}; border-radius: 24px; padding: 16px 20px; font-size: 14px; font-weight: 500; line-height: 1.6; color: {INK}">탑승을 자동으로 못 잡았어요. 출발역만 골라 주면 바로 따라갈게요.</div>
+<div style="{ACRYL}; border-radius: 24px; padding: 16px 20px; font-size: 14px; font-weight: 500; line-height: 1.6; color: {INK}">{{{{noOriginMsg}}}}</div>
 <button onClick="{{{{ onPickOrigin }}}}" style="height: 60px; border-radius: 20px; {PRIMARY}; color: #FFFFFF; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 12px; padding: 0 20px">
 {search_icon('#FFFFFF')}
 <span>출발역 검색</span>

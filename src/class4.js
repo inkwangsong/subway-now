@@ -111,8 +111,46 @@ this._trail = [];
 return { mode: 'ride', origin: o, dest: null, route: route, i: 0, f: Math.max(0, Math.min(0.95, Math.abs(on.s - k0))), boarded: true, playing: true, auto: true, fixT: now, ckDone: {}, trainNo: null, q: '', from: null, pickFor: null };
 }
 /* 안내방송 반영: "이번 역은 문정" → 문정으로 가는 중(곧 도착), "다음 역은 가락시장" → 방금 문정을 떠남 */
+/* 시작 화면에서 안내방송 듣기: "이번 역은 X" + "다음 역은 Y"로 노선·방향까지 알아내요 */
+applyHeardHome(text) {
+var st = this.state || {}, G = this._G || (this._G = buildNet());
+var T = String(text || '').replace(/\s+/g, '');
+var find = function (key) {
+var at = T.lastIndexOf(key); if (at < 0) return null;
+var rest = T.slice(at + key.length, at + key.length + 14), best = null;
+G.names.forEach(function (nm) { var n = stnNorm(nm); if (n.length >= 2 && rest.indexOf(n) === 0 && (!best || n.length > stnNorm(best).length)) best = nm; });
+return best;
+};
+var cur = find('이번역은') || find('이번역') , nxt = find('다음역은') || find('다음역');
+var now = Date.now(), mem = this._heardHome || {};
+if (cur) mem.cur = { n: cur, t: now };
+if (nxt) mem.nxt = { n: nxt, t: now };
+this._heardHome = mem;
+var a = mem.cur && now - mem.cur.t < 300000 ? mem.cur.n : null, b = mem.nxt && now - mem.nxt.t < 300000 ? mem.nxt.n : null;
+/* 두 역이 한 노선에서 바로 이웃이면 방향이 정해져요 */
+if (a && b && a !== b) {
+for (var li = 0; li < NET.length; li++) {
+var cs = NET[li].chains;
+for (var ci = 0; ci < cs.length; ci++) {
+var s = cs[ci].s, ia = s.indexOf(a), ib = s.indexOf(b);
+if (ia < 0 || ib < 0) continue;
+var fwd = ib - ia === 1 || (cs[ci].loop && ia === s.length - 1 && ib === 0), back = ia - ib === 1 || (cs[ci].loop && ib === s.length - 1 && ia === 0);
+if (!fwd && !back) continue;
+/* "다음 역은 b"가 더 나중에 들렸으면 a를 막 떠난 것, 아니면 a에 들어가는 중 */
+var left = mem.nxt.t >= mem.cur.t;
+var o = { n: a, l: li, ci: ci, toFirst: back }, route = freeRoute(o);
+if (route.length < 2) continue;
+this._heardHome = {};
+this.setState({ mode: 'ride', origin: o, dest: null, route: route, i: 0, f: left ? 0.1 : 0, boarded: true, playing: true, auto: true, heardName: left ? b : a, heardT: now, ckDone: { leg0: 'heard' }, trainNo: null, q: '', from: null, pickFor: null, homeHeard: null });
+return;
+}
+}
+}
+if (a || b) this.setState({ origin: { n: a || b }, homeHeard: a || b, homeHeardT: now });
+}
 applyHeard(text, ck) {
 var st = this.state || {}, route = this._route;
+if ((st.mode || 'confirm') === 'confirm') { if (ck === 'home') this.applyHeardHome(text); return; }
 if (!route || st.mode !== 'ride' || !text) return;
 var T = String(text).replace(/\s+/g, ''), last = route.length - 1, i = Math.min(st.i || 0, last), best = null;
 for (var k = Math.max(1, i); k <= Math.min(last, i + 4); k++) {
@@ -721,6 +759,17 @@ if (live) out.pillText = nearOn ? '지금 ' + nm.name + '역 · 탈 준비하세
 : nmAny ? '위치 신호 약함 · ' + Math.max(1, Math.round(ageS / 60)) + '분 전 ' + nmAny.name + '역 부근'
 : (st.geoErr ? '위치를 못 잡았어요' : '현재 위치 확인 중');
 out.locFg = nearOn ? 'var(--blue)' : 'var(--ink)';
+var homeHeardOn = live && st.homeHeard && st.homeHeardT && Date.now() - st.homeHeardT < 300000;
+var locBusy = live && !geo && !st.geoErr && !homeHeardOn;
+if (homeHeardOn) out.pillText = '방송으로 확인 · ' + st.homeHeard + '역 · 다음 역을 기다려요';
+if (locBusy) out.pillText = '현재 위치 찾는 중';
+out.noOriginMsg = locBusy ? '위치를 찾고 있어요. 열차 안이면 안내방송으로 찾기를 눌러 보세요.' : '탑승을 자동으로 못 잡았어요. 안내방송으로 찾기를 누르거나 출발역을 골라 주세요.';
+out.locSpin = locBusy ? 'inline-block' : 'none'; out.locPin = locBusy ? 'none' : 'block'; out.locDots = locBusy ? 'sn-dots' : '';
+var hl = !!st.homeListening;
+out.hlLabel = hl ? '안내방송 듣는 중' : '안내방송으로 찾기';
+out.hlDots = hl ? 'sn-dots' : ''; out.hlDot = hl ? 'inline-block' : 'none'; out.hlMic = hl ? 'none' : 'block';
+out.hlFg = hl ? 'var(--blue)' : 'var(--ink)';
+out.onHomeListen = function () { if (self.props.onHomeListen) self.props.onHomeListen(!hl); };
 out.isLive = !!this.props.live && !st.demo && mode === 'confirm';
 out.showTiles = !(dest && i === last) && !compact;
 out.hello = !origin ? '어디서 타요?' : '어디까지 가요?';

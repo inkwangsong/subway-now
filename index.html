@@ -22,6 +22,10 @@ a{color:var(--blue)}a:hover{color:var(--title)}
 button{font-family:inherit;cursor:pointer}
 input{font-family:inherit}
 input::placeholder{color:var(--sub)}
+@keyframes sn-spin{to{transform:rotate(360deg)}}
+@keyframes sn-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
+@keyframes sn-dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
+.sn-dots::after{content:'';display:inline-block;width:1.2em;text-align:left;animation:sn-dots 1.2s steps(1) infinite}
 
 </style>
 </head>
@@ -354,9 +358,17 @@ input::placeholder{color:var(--sub)}
 <sc-if value="{{ isConfirm }}" hint-placeholder-val="{{ false }}">
 <div style="position: absolute; left: 20px; right: 20px; top: 52px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px">
 <div style="background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 16px; height: 32px; box-sizing: border-box; padding: 0 12px 0 9px; display: flex; align-items: center; gap: 6px; max-width: 100%; color: {{locFg}}">
-<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>
-<span style="font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{pillText}}</span>
+<span style="display: {{locSpin}}; flex-shrink: 0; width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--card-line); border-top-color: var(--blue); animation: sn-spin 0.8s linear infinite"></span>
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: {{locPin}}"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>
+<span class="{{locDots}}" style="font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{pillText}}</span>
 </div>
+<sc-if value="{{ isLive }}" hint-placeholder-val="{{ false }}">
+<button onClick="{{ onHomeListen }}" style="background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 16px; height: 32px; box-sizing: border-box; padding: 0 12px 0 9px; display: flex; align-items: center; gap: 6px; color: {{hlFg}}">
+<span style="display: {{hlDot}}; width: 8px; height: 8px; border-radius: 4px; background: #E8453C; animation: sn-pulse 1s ease-in-out infinite"></span>
+<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display: {{hlMic}}"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><line x1="12" y1="18" x2="12" y2="21"></line></svg>
+<span class="{{hlDots}}" style="font-size: 13px; font-weight: 700; white-space: nowrap">{{hlLabel}}</span>
+</button>
+</sc-if>
 <div style="font-size: 34px; font-weight: 700; letter-spacing: -1.2px; line-height: 1.2; color: var(--title); padding-left: 4px">{{hello}}</div>
 </div>
 </sc-if>
@@ -418,7 +430,7 @@ input::placeholder{color:var(--sub)}
 
 <sc-if value="{{ noOrigin }}" hint-placeholder-val="{{ false }}">
 <div style="display: flex; flex-direction: column; gap: 10px">
-<div style="background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 24px; padding: 16px 20px; font-size: 14px; font-weight: 500; line-height: 1.6; color: var(--ink)">탑승을 자동으로 못 잡았어요. 출발역만 골라 주면 바로 따라갈게요.</div>
+<div style="background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 24px; padding: 16px 20px; font-size: 14px; font-weight: 500; line-height: 1.6; color: var(--ink)">{{noOriginMsg}}</div>
 <button onClick="{{ onPickOrigin }}" style="height: 60px; border-radius: 20px; background: linear-gradient(180deg, #2F5890, #1F3A5F); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 12px 24px rgba(20,36,70,0.45), inset 0 1px 0 rgba(255,255,255,0.4); color: #FFFFFF; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 12px; padding: 0 20px">
 <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>
 <span>출발역 검색</span>
@@ -849,8 +861,46 @@ this._trail = [];
 return { mode: 'ride', origin: o, dest: null, route: route, i: 0, f: Math.max(0, Math.min(0.95, Math.abs(on.s - k0))), boarded: true, playing: true, auto: true, fixT: now, ckDone: {}, trainNo: null, q: '', from: null, pickFor: null };
 }
 /* 안내방송 반영: "이번 역은 문정" → 문정으로 가는 중(곧 도착), "다음 역은 가락시장" → 방금 문정을 떠남 */
+/* 시작 화면에서 안내방송 듣기: "이번 역은 X" + "다음 역은 Y"로 노선·방향까지 알아내요 */
+applyHeardHome(text) {
+var st = this.state || {}, G = this._G || (this._G = buildNet());
+var T = String(text || '').replace(/\s+/g, '');
+var find = function (key) {
+var at = T.lastIndexOf(key); if (at < 0) return null;
+var rest = T.slice(at + key.length, at + key.length + 14), best = null;
+G.names.forEach(function (nm) { var n = stnNorm(nm); if (n.length >= 2 && rest.indexOf(n) === 0 && (!best || n.length > stnNorm(best).length)) best = nm; });
+return best;
+};
+var cur = find('이번역은') || find('이번역') , nxt = find('다음역은') || find('다음역');
+var now = Date.now(), mem = this._heardHome || {};
+if (cur) mem.cur = { n: cur, t: now };
+if (nxt) mem.nxt = { n: nxt, t: now };
+this._heardHome = mem;
+var a = mem.cur && now - mem.cur.t < 300000 ? mem.cur.n : null, b = mem.nxt && now - mem.nxt.t < 300000 ? mem.nxt.n : null;
+/* 두 역이 한 노선에서 바로 이웃이면 방향이 정해져요 */
+if (a && b && a !== b) {
+for (var li = 0; li < NET.length; li++) {
+var cs = NET[li].chains;
+for (var ci = 0; ci < cs.length; ci++) {
+var s = cs[ci].s, ia = s.indexOf(a), ib = s.indexOf(b);
+if (ia < 0 || ib < 0) continue;
+var fwd = ib - ia === 1 || (cs[ci].loop && ia === s.length - 1 && ib === 0), back = ia - ib === 1 || (cs[ci].loop && ib === s.length - 1 && ia === 0);
+if (!fwd && !back) continue;
+/* "다음 역은 b"가 더 나중에 들렸으면 a를 막 떠난 것, 아니면 a에 들어가는 중 */
+var left = mem.nxt.t >= mem.cur.t;
+var o = { n: a, l: li, ci: ci, toFirst: back }, route = freeRoute(o);
+if (route.length < 2) continue;
+this._heardHome = {};
+this.setState({ mode: 'ride', origin: o, dest: null, route: route, i: 0, f: left ? 0.1 : 0, boarded: true, playing: true, auto: true, heardName: left ? b : a, heardT: now, ckDone: { leg0: 'heard' }, trainNo: null, q: '', from: null, pickFor: null, homeHeard: null });
+return;
+}
+}
+}
+if (a || b) this.setState({ origin: { n: a || b }, homeHeard: a || b, homeHeardT: now });
+}
 applyHeard(text, ck) {
 var st = this.state || {}, route = this._route;
+if ((st.mode || 'confirm') === 'confirm') { if (ck === 'home') this.applyHeardHome(text); return; }
 if (!route || st.mode !== 'ride' || !text) return;
 var T = String(text).replace(/\s+/g, ''), last = route.length - 1, i = Math.min(st.i || 0, last), best = null;
 for (var k = Math.max(1, i); k <= Math.min(last, i + 4); k++) {
@@ -1459,6 +1509,17 @@ if (live) out.pillText = nearOn ? '지금 ' + nm.name + '역 · 탈 준비하세
 : nmAny ? '위치 신호 약함 · ' + Math.max(1, Math.round(ageS / 60)) + '분 전 ' + nmAny.name + '역 부근'
 : (st.geoErr ? '위치를 못 잡았어요' : '현재 위치 확인 중');
 out.locFg = nearOn ? 'var(--blue)' : 'var(--ink)';
+var homeHeardOn = live && st.homeHeard && st.homeHeardT && Date.now() - st.homeHeardT < 300000;
+var locBusy = live && !geo && !st.geoErr && !homeHeardOn;
+if (homeHeardOn) out.pillText = '방송으로 확인 · ' + st.homeHeard + '역 · 다음 역을 기다려요';
+if (locBusy) out.pillText = '현재 위치 찾는 중';
+out.noOriginMsg = locBusy ? '위치를 찾고 있어요. 열차 안이면 안내방송으로 찾기를 눌러 보세요.' : '탑승을 자동으로 못 잡았어요. 안내방송으로 찾기를 누르거나 출발역을 골라 주세요.';
+out.locSpin = locBusy ? 'inline-block' : 'none'; out.locPin = locBusy ? 'none' : 'block'; out.locDots = locBusy ? 'sn-dots' : '';
+var hl = !!st.homeListening;
+out.hlLabel = hl ? '안내방송 듣는 중' : '안내방송으로 찾기';
+out.hlDots = hl ? 'sn-dots' : ''; out.hlDot = hl ? 'inline-block' : 'none'; out.hlMic = hl ? 'none' : 'block';
+out.hlFg = hl ? 'var(--blue)' : 'var(--ink)';
+out.onHomeListen = function () { if (self.props.onHomeListen) self.props.onHomeListen(!hl); };
 out.isLive = !!this.props.live && !st.demo && mode === 'confirm';
 out.showTiles = !(dest && i === last) && !compact;
 out.hello = !origin ? '어디서 타요?' : '어디까지 가요?';
@@ -1722,6 +1783,19 @@ if (on && SR && !recOn) { startRec('warmup'); setTimeout(function () { if (recCk
 if (!on) stopRec();
 };
 app.props.onListenRetry = function (ck) { unlockAudio(); if (!recOn) startRec(ck); };
+/* 시작 화면의 '안내방송으로 찾기': 누른 순간 시작해서 최대 3분 들어요 */
+var homeTimer = null;
+app.props.onHomeListen = function (on) {
+unlockAudio();
+if (homeTimer) { clearTimeout(homeTimer); homeTimer = null; }
+if (!on) { if (recCk === 'home') stopRec(); app.setState({ homeListening: false }); return; }
+if (recOn) stopRec();
+setTimeout(function () {
+startRec('home');
+app.setState({ homeListening: true });
+homeTimer = setTimeout(function () { if (recCk === 'home') stopRec(); app.setState({ homeListening: false }); }, 180000);
+}, recOn ? 300 : 0);
+};
 var manageListen = function (vals) {
 var want = vals.listenCk, st = app.state || {};
 if (want && ckStart[want] && Date.now() - ckStart[want] > vals.listenMax * 1000) {
@@ -1730,7 +1804,11 @@ stopRec(); app.setState({ ckDone: done }); return;
 }
 if (want && !recOn && Date.now() - recEndT > 1200 && st.listenErr !== 'not-allowed') startRec(want);
 else if (want && recOn) recCk = want;
-else if (!want && recOn && recCk !== 'warmup') stopRec();
+else if (!want && recOn && recCk !== 'warmup' && !(recCk === 'home' && (st.mode || 'confirm') === 'confirm')) stopRec();
+/* 시작 화면에서 듣다가 방송으로 탑승이 잡히면 이어서 듣기 표시를 꺼요 */
+if (st.homeListening && (st.mode || 'confirm') !== 'confirm') app.setState({ homeListening: false });
+/* 듣기가 끝났는데(권한 거부 등) 표시가 남아 있으면 끄고, 3분 안이면 다시 이어 들어요 */
+if (st.homeListening && !recOn && (st.mode || 'confirm') === 'confirm' && Date.now() - recEndT > 1200) { if (st.listenErr === 'not-allowed') app.setState({ homeListening: false }); else startRec('home'); }
 };
 
 /* 실시간 열차 위치: 탄 뒤에만 30초마다 (인증키 하루 1,000회 제한) 지금 노선의 열차 위치를 받아요 */
