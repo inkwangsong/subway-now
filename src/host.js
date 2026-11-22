@@ -237,12 +237,15 @@ document.addEventListener('touchend', gestureKick, true);
    1.5초로 고르게 만든 크기가 3초 넘게 0.28m/s² 이상이면 '가속·감속 구간'으로 보고,
    출발 → (25초 이상) → 감속 → 조용해짐(3초) 을 '정차', 정차 뒤 다시 가속을 '출발'로 셉니다.
    아이폰은 처음에 화면을 누를 때 한 번 '동작 및 방향' 권한을 물어봐요 */
-var M = { on: false, asked: false, t: 0, grav: null, s: [0, 0, 0], vib: 0, hold: 0, low: 0, phase: 'unknown', phaseT: 0, decelSeen: false, lastEvt: 0, events: [] };
+var M = { walkSec: 0, walkEmitted: false, on: false, asked: false, t: 0, grav: null, s: [0, 0, 0], vib: 0, hold: 0, low: 0, phase: 'unknown', phaseT: 0, decelSeen: false, lastEvt: 0, events: [] };
 var A_TH = 0.28, LOW_TH = 0.12;
 var mEmit = function (type, t) {
+var walked = M.walkSec;
+if (type === 'stop') { M.walkSec = 0; M.walkEmitted = false; }
+if (type === 'depart') { M.walkSec = 0; M.walkEmitted = false; }
 M.events.push(type + ' ' + new Date(t).toTimeString().slice(0, 8)); if (M.events.length > 6) M.events.shift();
 try { var lg = JSON.parse(localStorage.getItem('subway-now:mlog') || '[]'); lg.push([type, t]); localStorage.setItem('subway-now:mlog', JSON.stringify(lg.slice(-200))); } catch (e) {}
-app.applyMotion(type, t);
+app.applyMotion(type, t, { walked: walked });
 if (type === 'depart') { rtLast = 0; setTimeout(function () { var st = app.state || {}; if (st.mode === 'ride') pollTrains(); else pollHome(true); }, 15000); }
 };
 var onMotion = function (e) {
@@ -262,6 +265,8 @@ var dv = Math.sqrt(Math.pow(x - M.s[0], 2) + Math.pow(y - M.s[1], 2) + Math.pow(
 M.vib = M.vib + (dv - M.vib) * Math.min(1, dt / 2);
 var walking = M.vib > 0.9;
 M.hold = mag > A_TH && !walking ? M.hold + dt : 0;
+/* 정차 뒤에 걸은 시간: 환승·하차를 알아보는 데 써요 (20초 넘게 걸으면 'walk' 한 번) */
+if (walking && M.phase !== 'moving') { M.walkSec += dt; if (M.walkSec >= 20 && !M.walkEmitted) { M.walkEmitted = true; mEmit('walk', now); } }
 M.low = mag < LOW_TH ? M.low + dt : 0;
 /* 상태 바뀜 */
 if (M.phase !== 'moving' && M.hold >= 3 && now - M.lastEvt > 15000) { M.phase = 'moving'; M.phaseT = now; M.decelSeen = false; M.lastEvt = now; mEmit('depart', now); }

@@ -138,7 +138,8 @@ if (d < R && (best[li] === undefined || d < best[li])) best[li] = d;
 return Object.keys(best).sort(function (a, b) { return best[a] - best[b]; }).slice(0, 3).map(Number);
 }
 /* 움직임 센서 이벤트: depart = 정차해 있다가 출발, stop = 달리다가 정차 */
-applyMotion(type, t) {
+applyMotion(type, t, info) {
+info = info || {};
 var st = this.state || {}, route = this._route, now = t || Date.now();
 if (st.demo || !this.props.live) return;
 var mode = st.mode || 'confirm';
@@ -147,7 +148,10 @@ if (mode !== 'ride' || !route) return;
 var last = route.length - 1, i = Math.min(st.i || 0, last), f = st.f || 0;
 if (type === 'depart') {
 var p0 = { motionT: now, motionLive: true, lastDepartT: now };
-if (!st.boarded && i < last) { p0.boarded = true; p0.playing = true; p0.f = 0.03; p0.boardedBy = 'motion'; p0.resyncT = null; this._lastT = 0; this._acc = 0; }
+var txHere = i > 0 && i < last && route[i + 1].l !== route[i].l;
+/* 환승역이라고 멈췄는데 걷지 않고 그대로 다시 출발했으면: 앞서 센 정차가 잘못된 거라 아직 환승역 전이에요 */
+if (!st.boarded && txHere && st.lastStopT && now - st.lastStopT < 300000 && (info.walked || 0) < 10 && st.stoppedHere) { p0.i = i - 1; p0.f = 0.03; p0.boarded = true; p0.playing = true; p0.trainNo = null; p0.fixNote = '아직 ' + route[i].n + ' 전이에요'; p0.fixNoteT = now; this._lastT = 0; this._acc = 0; }
+else if (!st.boarded && i < last) { p0.boarded = true; p0.playing = true; p0.f = 0.03; p0.boardedBy = 'motion'; p0.resyncT = null; this._lastT = 0; this._acc = 0; }
 else if (st.boarded && f < 0.03) p0.f = 0.03;
 this.setState(p0);
 return;
@@ -158,10 +162,21 @@ var p1 = { motionT: now, motionLive: true, lastStopT: now };
 if (st.boarded && i < last && st.lastDepartT && now - st.lastDepartT > 25000) {
 var ni = i + 1, tx = xferAfter(route, i);
 p1.i = ni; p1.f = 0; p1.stopName = route[ni].n;
-if (tx === ni) { p1.boarded = false; p1.trainNo = null; }
+if (tx === ni) { p1.boarded = false; p1.trainNo = null; p1.stoppedHere = true; }
+else p1.stoppedHere = false;
 this._lastT = 0; this._acc = 0;
 }
 this.setState(p1);
+return;
+}
+/* 정차 뒤 20초 넘게 걸었으면 내린 거예요: 환승역이나 도착역이 바로 앞이면 거기로 맞춰요 */
+if (type === 'walk' && st.boarded) {
+var tx2 = xferAfter(route, i), p2 = { motionT: now };
+if (tx2 >= 0 && (tx2 === i || tx2 === i + 1)) { p2.i = tx2; p2.f = 0; p2.boarded = false; p2.trainNo = null; p2.stoppedHere = false; p2.fixNote = route[tx2].n + '에서 갈아타는 중이죠?'; p2.fixNoteT = now; }
+else if (i + 1 === last || i === last) { p2.i = last; p2.f = 0; }
+else return;
+this._lastT = 0; this._acc = 0;
+this.setState(p2);
 }
 }
 applyHomeTrains(li, rows) {
@@ -1091,6 +1106,7 @@ out.onToggle = function () { if (waiting) { self._lastT = 0; self.setState({ boa
 out.headTitle = dest ? (route && route.length ? route[0].n + ' → ' : '') + dest : '어디 가요?';
 out.headSub = dest ? (i === last ? '다 왔어요' : summary(cs)) : NET[c.l].name + (c.d ? ' · ' + c.d : '') + ' · 골라 주면 내릴 역도 알려줘요';
 out.pickLabel = dest ? '바꾸기' : '검색';
+if (live && isRide && st.fixNoteT && Date.now() - st.fixNoteT < 20000) { banner = st.fixNote; bannerLabel = '위치 맞춤'; strong = false; }
 if (live && isRide && st.rerouteT && Date.now() - st.rerouteT < 25000) { banner = st.rerouteFrom + '역에 있네요. 여기서부터 길을 다시 찾았어요'; bannerLabel = '경로 다시 찾음'; strong = false; }
 out.hasBanner = !!banner;
 out.banner = banner;
