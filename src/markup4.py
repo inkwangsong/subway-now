@@ -323,9 +323,12 @@ input::placeholder{{color:{SUB}}}
 </sc-if>
 
 <sc-if value="{{{{ isConfirm }}}}" hint-placeholder-val="{{{{ false }}}}">
-<div style="position: absolute; left: 24px; right: 24px; top: 56px; display: flex; flex-direction: column; gap: 2px">
-<div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: {BLUE}">{{{{pillText}}}}</div>
-<div style="font-size: 34px; font-weight: 700; letter-spacing: -1.2px; line-height: 1.2; color: {NAVY}">{{{{hello}}}}</div>
+<div style="position: absolute; left: 20px; right: 20px; top: 52px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px">
+<div style="{ACRYL}; border-radius: 16px; height: 32px; box-sizing: border-box; padding: 0 12px 0 9px; display: flex; align-items: center; gap: 6px; max-width: 100%; color: {{{{locFg}}}}">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>
+<span style="font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{pillText}}}}</span>
+</div>
+<div style="font-size: 34px; font-weight: 700; letter-spacing: -1.2px; line-height: 1.2; color: {NAVY}; padding-left: 4px">{{{{hello}}}}</div>
 </div>
 </sc-if>
 
@@ -334,37 +337,39 @@ input::placeholder{{color:{SUB}}}
 
 <sc-if value="{{{{ hasOrigin }}}}" hint-placeholder-val="{{{{ true }}}}">
 <div style="display: flex; flex-direction: column; gap: 10px">
-<div style="{ACRYL}; border-radius: 24px; padding: 14px 14px 14px 20px; display: flex; align-items: center; gap: 12px">
-<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
-<div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: {SUB}">출발</div>
-<div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap">
-<span style="font-size: {{{{o.size}}}}; font-weight: 700; letter-spacing: -1px; line-height: 1.15; margin-right: 4px">{{{{o.name}}}}</span>
-{badges('o')}
-</div>
-<div style="font-size: 13px; font-weight: 500; color: {SUB}">{{{{o.label}}}}</div>
-</div>
-<button onClick="{{{{ onPickOrigin }}}}" style="height: 44px; border-radius: 14px; {TILE}; color: {INK}; font-size: 14px; font-weight: 600; padding: 0 14px; flex-shrink: 0">바꾸기</button>
+<div style="{ACRYL}; border-radius: 24px; padding: 6px; display: flex; align-items: stretch">
+<button onClick="{{{{ onPickOrigin }}}}" style="flex: 1 1 0; min-width: 0; border: 0; background: transparent; border-radius: 18px; color: {INK}; text-align: left; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: {SUB}">출발</span>
+<span style="display: flex; align-items: center; gap: 5px; min-width: 0">
+<span style="font-size: 22px; font-weight: 700; letter-spacing: -0.6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0">{{{{o.name}}}}</span>
+{badges('o', 20)}
+</span>
+<span style="font-size: 12px; font-weight: 500; color: {SUB}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{o.label}}}}</span>
+</button>
+<div style="flex-shrink: 0; width: 1px; margin: 12px 2px; background: var(--card-line)"></div>
+<button onClick="{{{{ onPick }}}}" style="flex: 1 1 0; min-width: 0; border: 0; background: transparent; border-radius: 18px; color: {INK}; text-align: left; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: {SUB}">도착</span>
+<span style="font-size: 22px; font-weight: 700; letter-spacing: -0.6px; color: {BLUE}">어디까지?</span>
+<span style="font-size: 12px; font-weight: 500; color: {SUB}; display: flex; align-items: center; gap: 4px"><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>역 이름으로 검색</span>
+</button>
 </div>
 <sc-if value="{{{{ hasUsual }}}}" hint-placeholder-val="{{{{ true }}}}">
-<button onClick="{{{{ onUsual }}}}" style="border-radius: 24px; {PRIMARY}; color: #FFFFFF; text-align: left; padding: 14px 20px; display: flex; align-items: center; gap: 12px">
-<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px">
-<span style="font-size: 11px; font-weight: 700; letter-spacing: 2px">평소처럼</span>
-<span style="font-size: 24px; font-weight: 700; letter-spacing: -0.5px">{{{{usualName}}}}</span>
-<span style="font-size: 13px; font-weight: 500">{{{{usualSummary}}}}</span>
+<button onClick="{{{{ onUsual }}}}" style="height: 60px; border-radius: 20px; {PRIMARY}; color: #FFFFFF; text-align: left; padding: 0 18px; display: flex; align-items: center; gap: 12px">
+<span style="font-size: 11px; font-weight: 700; letter-spacing: 1px; opacity: 0.8; flex-shrink: 0">평소처럼</span>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+<span style="font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{usualName}}}}</span>
+<span style="font-size: 12px; font-weight: 500; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{usualSummary}}}}</span>
 </span>
-<svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="20" y2="12"></line><polyline points="13 5 20 12 13 19"></polyline></svg>
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><line x1="4" y1="12" x2="20" y2="12"></line><polyline points="13 5 20 12 13 19"></polyline></svg>
 </button>
 </sc-if>
-<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
-<button onClick="{{{{ onPick }}}}" style="height: 60px; border-radius: 20px; {ACRYL}; color: {INK}; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 10px; padding: 0 16px">
-{search_icon(INK)}
-<span>도착역 검색</span>
-</button>
-<button onClick="{{{{ onFree }}}}" style="height: 60px; border-radius: 20px; {ACRYL}; color: {INK}; font-size: 15px; font-weight: 600; padding: 0 12px">지금 역만 보기</button>
-</div>
+<div style="display: flex; justify-content: center; align-items: center; gap: 4px">
+<button onClick="{{{{ onFree }}}}" style="height: 40px; border: 0; background: transparent; color: {INK}; font-size: 13px; font-weight: 600; padding: 0 10px">목적지 없이 타기</button>
 <sc-if value="{{{{ isLive }}}}" hint-placeholder-val="{{{{ false }}}}">
-<button onClick="{{{{ onDemo }}}}" style="height: 44px; border: 0; background: transparent; color: {INK}; font-size: 13px; font-weight: 600; text-decoration: underline">데모로 미리 보기 (신흥 → 고속터미널)</button>
+<span style="width: 3px; height: 3px; border-radius: 2px; background: {SUB}"></span>
+<button onClick="{{{{ onDemo }}}}" style="height: 40px; border: 0; background: transparent; color: {INK}; font-size: 13px; font-weight: 600; padding: 0 10px">데모 보기</button>
 </sc-if>
+</div>
 </div>
 </sc-if>
 
@@ -429,8 +434,8 @@ input::placeholder{{color:{SUB}}}
 
 <div style="display: flex; gap: 8px">
 <button onClick="{{{{ onReset }}}}" style="height: 50px; border-radius: 18px; {ACRYL}; color: {INK}; font-size: 14px; font-weight: 600; padding: 0 14px; flex-shrink: 0">{{{{resetLabel}}}}</button>
-<button onClick="{{{{ onToggle }}}}" disabled="{{{{ atEnd }}}}" style="flex-grow: 1; height: 50px; border-radius: 18px; {PRIMARY}; color: #FFFFFF; font-size: 15px; font-weight: 600; opacity: {{{{nextOpacity}}}}">{{{{playLabel}}}}</button>
-<button onClick="{{{{ onNext }}}}" disabled="{{{{ atEnd }}}}" style="height: 50px; border-radius: 18px; {ACRYL}; color: {INK}; font-size: 14px; font-weight: 600; padding: 0 14px; flex-shrink: 0; opacity: {{{{nextOpacity}}}}">다음 역</button>
+<button onClick="{{{{ onToggle }}}}" disabled="{{{{ atEnd }}}}" style="display: {{{{toggleDisp}}}}; align-items: center; justify-content: center; flex-grow: 1; height: 50px; border-radius: 18px; {PRIMARY}; color: #FFFFFF; font-size: 15px; font-weight: 600; opacity: {{{{nextOpacity}}}}">{{{{playLabel}}}}</button>
+<button onClick="{{{{ onNext }}}}" disabled="{{{{ atEnd }}}}" style="height: 50px; border-radius: 18px; {ACRYL}; color: {INK}; font-size: 14px; font-weight: 600; padding: 0 14px; flex-shrink: 0; flex-grow: {{{{nextGrow}}}}; opacity: {{{{nextOpacity}}}}">다음 역</button>
 </div>
 <div style="font-size: 11px; font-weight: 500; color: {INK}; text-align: center">{{{{footNote}}}}</div>
 </div>

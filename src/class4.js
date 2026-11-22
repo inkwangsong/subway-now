@@ -640,7 +640,10 @@ var nm = live && geo && this._near && geo.acc < 200 ? this._near : null;
 var nearOn = !!(nm && nm.m < 150 && mode === 'confirm');
 out.nearStation = nearOn ? nm.name : '';
 out.nearFar = !nm || nm.m > 300;
-if (live && mode === 'confirm' && !st.origin && nm) out.pillText = nearOn ? nm.name + '역 도착! 탈 준비하세요' : '가장 가까운 역 · 약 ' + (nm.m < 1000 ? Math.round(nm.m / 10) * 10 + 'm' : (nm.m / 1000).toFixed(1) + 'km');
+/* 현재 위치 칩: 출발역을 직접 골라도 내 위치는 따로 계속 보여줘요 */
+var distTxt = nm ? (nm.m < 1000 ? Math.round(nm.m / 10) * 10 + 'm' : (nm.m / 1000).toFixed(1) + 'km') : '';
+if (live) out.pillText = nearOn ? '지금 ' + nm.name + '역 · 탈 준비하세요' : nm ? '현재 위치 · ' + nm.name + '역에서 ' + distTxt : (st.geoErr ? '위치를 못 잡았어요' : '현재 위치 확인 중');
+out.locFg = nearOn ? 'var(--blue)' : 'var(--ink)';
 out.isLive = !!this.props.live && !st.demo && mode === 'confirm';
 out.showTiles = !(dest && i === last) && !compact;
 out.hello = !origin ? '어디서 타요?' : '어디까지 가요?';
@@ -681,7 +684,11 @@ if (st.listenOn && st.listenErr && listenCk && st.listenErr !== 'unsupported') {
 var on = !st.listenOn; self.setState({ listenOn: on }); if (self.props.onListenToggle) self.props.onListenToggle(on); };
 out.hereTag = waiting ? '탑승 전' : (frac > 0 ? '달리는 중' : (i >= last ? '도착' : '정차 중'));
 out.playLabel = i >= last ? '도착했어요' : waiting ? '열차 탔어요' : (live ? (playing ? '시간 추정 끄기' : '시간으로 추정하기') : (playing ? '잠깐 멈추기' : '자동으로 달리기'));
-out.resetLabel = live ? '종료' : '처음부터';
+out.resetLabel = live || st.demo ? '종료' : '처음부터';
+/* 실제로 따라가는 중엔 '시간 추정' 버튼을 숨기고 다음 역 버튼을 넓혀요 */
+var hideToggle = live && !waiting && i < last;
+out.toggleDisp = hideToggle ? 'none' : 'flex';
+out.nextGrow = hideToggle ? 1 : 0;
 var fixAge = st.fixT ? Math.round((Date.now() - st.fixT) / 1000) : null;
 var nowT = Date.now(), tail = st.listening ? ' · 안내방송 듣는 중' : (listenCk && st.listenErr === 'unsupported' ? ' · 이 브라우저는 음성인식을 못 써요' : (listenCk && st.listenErr ? ' · 마이크 버튼을 눌러 방송 듣기를 다시 켜 주세요' : ''));
 out.footNote = (waiting
@@ -696,7 +703,7 @@ var D0 = dijkstra(G, srcsOf(G, { n: USUAL.from })), a = pathTo(G, D0, USUAL.via)
 self.setState(Object.assign({ demo: true, mode: 'ride', origin: DETECTED, dest: USUAL.to, route: withDirs(a.concat(b.slice(1))), i: 0, f: 0, playing: true }, clear));
 };
 out.onToggle = function () { if (waiting) { self._lastT = 0; self.setState({ boarded: true, playing: true }); } else self.setState({ playing: !playing }); };
-out.headTitle = dest ? dest : '목적지 없이';
+out.headTitle = dest ? (route && route.length ? route[0].n + ' → ' : '') + dest : '목적지 없이';
 out.headSub = dest ? (i === last ? '다 왔어요' : summary(cs)) : '지금 역만 보여줘요';
 out.pickLabel = dest ? '바꾸기' : '도착역 정하기';
 out.hasBanner = !!banner;
