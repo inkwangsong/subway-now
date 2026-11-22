@@ -1920,6 +1920,34 @@ o.connect(g); g.connect(audio.destination); o.start(t0); o.stop(t0 + 0.28);
 }
 } catch (e) {}
 };
+/* 음성 안내: 음악을 듣고 있어도 알 수 있게 소리 내어 말해줘요 (이어폰이면 이어폰으로)
+   아이폰은 화면을 한 번 누른 뒤에만 말할 수 있어서, 첫 터치 때 미리 열어 둬요 */
+var TTS = window.speechSynthesis, ttsUntil = 0, ttsReady = false, koVoice = null;
+var pickVoice = function () { try { var vs = TTS.getVoices() || []; koVoice = vs.filter(function (v) { return /^ko/i.test(v.lang); })[0] || null; } catch (e) {} };
+if (TTS) { pickVoice(); try { TTS.onvoiceschanged = pickVoice; } catch (e) {} }
+var unlockTTS = function () {
+if (!TTS || ttsReady) return;
+try { var u = new SpeechSynthesisUtterance(' '); u.volume = 0; u.lang = 'ko-KR'; TTS.speak(u); ttsReady = true; } catch (e) {}
+};
+document.addEventListener('touchend', unlockTTS, true);
+document.addEventListener('click', unlockTTS, true);
+var say = function (text) {
+if (!TTS || !text) return;
+try {
+TTS.cancel();
+var u = new SpeechSynthesisUtterance(text); u.lang = 'ko-KR'; u.rate = 1.0; u.volume = 1; if (koVoice) u.voice = koVoice;
+ttsUntil = Date.now() + 1500 + text.length * 180;
+TTS.speak(u);
+} catch (e) {}
+};
+var SAY = function (label, vals, st) {
+var dest = st.dest || '';
+if (label === '내릴 준비') return '다음 역에서 내려요. ' + dest + '역이에요. 내릴 준비하세요.';
+if (label === '도착') return dest + '역에 도착했어요. 지금 내리세요.';
+if (label === '곧 환승' || label === '환승') return vals.banner;
+if (label === '곧 도착') return '두 정거장 남았어요.';
+return '';
+};
 var ALERT = { '곧 환승': 2, '환승': 4, '곧 도착': 2, '내릴 준비': 4, '도착': 4 };
 var wasOn = false, manualBoard = false;
 var lastAlert = '', wasArrived = false, wake = null, lastNear = '';
@@ -1941,7 +1969,7 @@ var key = riding ? vals.bannerLabel + '|' + vals.banner : '';
 if (key !== lastAlert) {
 lastAlert = key;
 var n = riding && vals.banner ? ALERT[vals.bannerLabel] : 0;
-if (n) { beep(n); try { if (navigator.vibrate) navigator.vibrate(n > 2 ? [300, 120, 300, 120, 300] : [200, 100, 200]); } catch (e) {} }
+if (n) { beep(n); try { if (navigator.vibrate) navigator.vibrate(n > 2 ? [300, 120, 300, 120, 300] : [200, 100, 200]); } catch (e) {} setTimeout(function () { say(SAY(vals.bannerLabel, vals, st)); }, n * 320 + 150); }
 }
 if (vals.isArrived && !wasArrived && !st.demo && st.route && st.dest) {
 var hist = readHist(), hk = st.route[0].n + '>' + st.dest;
@@ -1967,6 +1995,8 @@ try {
 rec = new SR(); rec.lang = 'ko-KR'; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 3;
 recCk = ck;
 rec.onresult = function (e) {
+/* 앱이 직접 말하는 동안 들린 건 방송이 아니니 무시해요 */
+if (Date.now() < ttsUntil) return;
 var txt = '';
 for (var k = e.resultIndex; k < e.results.length; k++) for (var a = 0; a < e.results[k].length; a++) txt += ' ' + e.results[k][a].transcript;
 app.setState({ rawHeard: String((e.results[e.results.length - 1][0] || {}).transcript || '').trim().slice(-28), rawT: Date.now() });
