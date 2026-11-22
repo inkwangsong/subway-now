@@ -306,11 +306,12 @@ input::placeholder{{color:{SUB}}}
 </sc-if>
 
 <sc-if value="{{{{ isRide }}}}" hint-placeholder-val="{{{{ true }}}}">
-<div style="position: absolute; left: 16px; right: 16px; top: 52px; {ACRYL}; border-radius: 22px; padding: 10px 10px 10px 18px; display: flex; align-items: center; gap: 10px">
+<div style="position: absolute; left: 16px; right: 16px; top: 52px; {ACRYL}; border-radius: 22px; padding: 10px 10px 10px 18px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 10px">
 <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px">
 <div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: {BLUE}">{{{{headKicker}}}}</div>
 <div style="font-size: 20px; font-weight: 700; letter-spacing: -0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{headTitle}}}}</div>
-<div style="font-size: 13px; font-weight: 500; color: {SUB}">{{{{headSub}}}}</div>
+<div style="font-size: 13px; font-weight: 500; color: {SUB}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{headSub}}}}</div>
 </div>
 <sc-if value="{{{{ isLiveRide }}}}" hint-placeholder-val="{{{{ false }}}}">
 <button onClick="{{{{ onListen }}}}" aria-label="{{{{listenAria}}}}" style="position: relative; width: 44px; height: 44px; border: 0; border-radius: 14px; background: {{{{listenBg}}}}; color: {{{{listenFg}}}}; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
@@ -319,6 +320,18 @@ input::placeholder{{color:{SUB}}}
 </button>
 </sc-if>
 <button onClick="{{{{ onPick }}}}" style="height: 44px; border-radius: 14px; {TILE}; color: {INK}; font-size: 14px; font-weight: 600; padding: 0 14px; flex-shrink: 0">{{{{pickLabel}}}}</button>
+</div>
+<sc-if value="{{{{ rideFavs }}}}" hint-placeholder-val="{{{{ false }}}}">
+<div style="display: flex; gap: 6px; overflow-x: auto; margin: 0 0 0 -8px; padding-bottom: 2px; scrollbar-width: none">
+<sc-for list="{{{{ favChips }}}}" as="p" hint-placeholder-count="2">
+<button onClick="{{{{ p.pick }}}}" style="flex-shrink: 0; height: 38px; border-radius: 19px; {TILE}; color: {INK}; padding: 0 12px 0 10px; display: flex; align-items: center; gap: 5px">
+<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="#F6B545" stroke="#E09A20" stroke-width="1.8" stroke-linejoin="round"><polygon points="12 2.8 14.8 8.9 21.4 9.6 16.4 14.1 17.9 20.6 12 17.2 6.1 20.6 7.6 14.1 2.6 9.6 9.2 8.9"></polygon></svg>
+<span style="font-size: 15px; font-weight: 700">{{{{p.name}}}}</span>
+<span style="font-size: 12px; font-weight: 600; color: {SUB}">{{{{p.mins}}}}</span>
+</button>
+</sc-for>
+</div>
+</sc-if>
 </div>
 </sc-if>
 
@@ -376,9 +389,7 @@ input::placeholder{{color:{SUB}}}
 </button>
 </sc-if>
 <div style="display: flex; justify-content: center; align-items: center; gap: 4px">
-<button onClick="{{{{ onFree }}}}" style="height: 40px; border: 0; background: transparent; color: {INK}; font-size: 13px; font-weight: 600; padding: 0 10px">목적지 없이 타기</button>
 <sc-if value="{{{{ isLive }}}}" hint-placeholder-val="{{{{ false }}}}">
-<span style="width: 3px; height: 3px; border-radius: 2px; background: {SUB}"></span>
 <button onClick="{{{{ onDemo }}}}" style="height: 40px; border: 0; background: transparent; color: {INK}; font-size: 13px; font-weight: 600; padding: 0 10px">데모 보기</button>
 </sc-if>
 </div>

@@ -36,6 +36,10 @@ else this.setState({ f: f });
 applyGeo(geo) {
 var st = this.state || {};
 var patch = { geo: geo };
+if ((st.mode || 'confirm') === 'confirm' && this.props.live && !st.demo && geo) {
+var auto = this.detectRide(geo);
+if (auto) { this.setState(Object.assign(patch, auto)); return; }
+}
 var route = this._route, G = this._G;
 if (st.mode === 'ride' && this.props.live && !st.demo && route && G && geo && geo.acc < 1500) {
 if (!st.boarded && geo.speed && geo.speed > 5) { patch.boarded = true; patch.playing = true; }
@@ -56,6 +60,54 @@ if (patch.i !== undefined && txG >= 0 && patch.i + (patch.f || 0) >= txG && (st.
 }
 }
 this.setState(patch);
+}
+/* 탑승 자동 감지 (앱만 켜 둔 상태): 최근 위치들이 같은 노선 위를 열차 속도로 지나가면
+   그 노선·방향으로 '지금 역 보기'를 시작해요 */
+segOn(G, lat, lon) {
+var best = null, px = lon * COS, py = lat;
+for (var li = 0; li < NET.length; li++) {
+var cs = NET[li].chains;
+for (var ci = 0; ci < cs.length; ci++) {
+var s = cs[ci].s;
+for (var k = 0; k < s.length - 1; k++) {
+var a = G.pos[s[k] + '|' + li], b = G.pos[s[k + 1] + '|' + li];
+if (!a || !b) continue;
+var ax = a[0] * COS, ay = a[1], vx = b[0] * COS - ax, vy = b[1] - ay, l2 = vx * vx + vy * vy || 1e-12;
+var t = Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / l2));
+var ex = ax + vx * t - px, ey = ay + vy * t - py, d = Math.sqrt(ex * ex + ey * ey) * 111000;
+if (!best || d < best.d) best = { li: li, ci: ci, s: k + t, d: d };
+}
+}
+}
+return best;
+}
+detectRide(geo) {
+var now = Date.now();
+if (this._autoOff && now - this._autoOff < 300000) return null;
+if (!(geo.acc < 300)) return null;
+var G = this._G || (this._G = buildNet());
+var on = this.segOn(G, geo.lat, geo.lon);
+if (!on || on.d > Math.max(200, geo.acc)) { this._trail = []; return null; }
+var tr = (this._trail || []).filter(function (p) { return now - p.t < 300000 && p.li === on.li && p.ci === on.ci; });
+tr.push({ t: now, lat: geo.lat, lon: geo.lon, li: on.li, ci: on.ci, s: on.s });
+this._trail = tr;
+/* 최근 2분 반 안에서, 지금보다 반 정거장 이상 떨어져 있던 가장 최근 위치와 비교해요
+   (승강장에서 기다린 시간은 빠지도록) */
+var first = null;
+for (var w = tr.length - 2; w >= 0; w--) { if (now - tr[w].t > 150000) break; if (Math.abs(on.s - tr[w].s) >= 0.5) { first = tr[w]; break; } }
+if (!first) return null;
+var ds = on.s - first.s, sec = (now - first.t) / 1000;
+if (sec < 15) return null;
+var meters = Math.sqrt(Math.pow((geo.lon - first.lon) * COS, 2) + Math.pow(geo.lat - first.lat, 2)) * 111000;
+/* 걷기보다 훨씬 빠르게(초속 5m 이상), 400m 넘게 움직였을 때만 탄 걸로 봐요 */
+if (meters < 400 || meters / sec < 5) return null;
+var c = NET[on.li].chains[on.ci], fwd = ds > 0, k0 = fwd ? Math.floor(on.s) : Math.ceil(on.s);
+k0 = Math.max(0, Math.min(c.s.length - 1, k0));
+var o = { n: c.s[k0], l: on.li, ci: on.ci, toFirst: !fwd };
+var route = freeRoute(o);
+if (route.length < 2) return null;
+this._trail = [];
+return { mode: 'ride', origin: o, dest: null, route: route, i: 0, f: Math.max(0, Math.min(0.95, Math.abs(on.s - k0))), boarded: true, playing: true, auto: true, fixT: now, ckDone: {}, trainNo: null, q: '', from: null, pickFor: null };
 }
 /* 안내방송 반영: "이번 역은 문정" → 문정으로 가는 중(곧 도착), "다음 역은 가락시장" → 방금 문정을 떠남 */
 applyHeard(text, ck) {
@@ -161,7 +213,9 @@ this._last = last;
 var c = route[i], p = route[i - 1], n = route[i + 1], nn = route[i + 2];
 var isRide = mode === 'ride';
 var riding = isRide || (mode === 'pick' && prevMode === 'ride');
-var srcs = riding ? [c.n + '|' + c.l] : (origin ? srcsOf(G, origin) : []);
+/* 달리는 중에 목적지를 고르면 진행 방향의 다음 역부터 길을 찾아요 (반대로 돌아가지 않게) */
+var fromNext = riding && !!st.boarded && !!n && i < last && (st.f || 0) > 0.05;
+var srcs = riding ? [fromNext ? n.n + '|' + n.l : c.n + '|' + c.l] : (origin ? srcsOf(G, origin) : []);
 var skey = srcs.join(',');
 if (!this._D || this._D.key !== skey) { this._D = dijkstra(G, srcs); this._D.key = skey; }
 var D = this._D;
@@ -171,8 +225,8 @@ var clear = { q: '', from: null, pickFor: null };
 var go = function (name) {
 var path = pathTo(G, D, name);
 if (!path) return;
-var head = riding ? route.slice(0, i) : [];
-self.setState(Object.assign({ mode: 'ride', dest: name, route: head.concat(path), i: head.length, f: 0, playing: true, boarded: riding ? !!st.boarded : false, ckDone: {}, trainNo: null }, clear));
+var head = riding ? route.slice(0, fromNext ? i + 1 : i) : [];
+self.setState(Object.assign({ mode: 'ride', dest: name, route: withDirs(head.concat(path)), i: fromNext ? i : head.length, f: fromNext ? (st.f || 0) : 0, playing: true, boarded: riding ? !!st.boarded : false, ckDone: {}, trainNo: null }, clear));
 };
 var setOrigin = function (name) {
 self.setState(Object.assign({ mode: 'confirm', origin: { n: name }, dest: null, route: null, i: 0 }, clear));
@@ -681,7 +735,10 @@ out.c = { name: c.n, short: NET[c.l].short, bg: NET[c.l].color, fg: fgFor(NET[c.
 out.nameSize = nameSize(c.n, true);
 out.prev = p ? p.n : '출발역';
 out.next = n ? n.n : (dest ? '도착' : '종착역');
-out.headKicker = (dest ? '가는 중' : '둘러보는 중') + ' · ' + TM.kicker;
+var freeLive = live && isRide && !dest;
+out.headKicker = freeLive ? (st.auto ? '지하철 탔네요!' : '지금 역 보는 중') : (dest ? '가는 중' : '둘러보는 중') + ' · ' + TM.kicker;
+out.isFreeRide = isRide && !dest;
+out.rideFavs = isRide && !dest && favChips.length > 0;
 var playing = st.playing !== false;
 var waiting = live && isRide && !st.boarded;
 /* 안내방송 듣기: 탑승 직후 첫 구간, 환승 후 첫 구간, 내리기 전 구간에만 잠깐 들어요 */
@@ -721,9 +778,9 @@ var D0 = dijkstra(G, srcsOf(G, { n: USUAL.from })), a = pathTo(G, D0, USUAL.via)
 self.setState(Object.assign({ demo: true, mode: 'ride', origin: DETECTED, dest: USUAL.to, route: withDirs(a.concat(b.slice(1))), i: 0, f: 0, playing: true }, clear));
 };
 out.onToggle = function () { if (waiting) { self._lastT = 0; self.setState({ boarded: true, playing: true }); } else self.setState({ playing: !playing }); };
-out.headTitle = dest ? (route && route.length ? route[0].n + ' → ' : '') + dest : '목적지 없이';
-out.headSub = dest ? (i === last ? '다 왔어요' : summary(cs)) : '지금 역만 보여줘요';
-out.pickLabel = dest ? '바꾸기' : '도착역 정하기';
+out.headTitle = dest ? (route && route.length ? route[0].n + ' → ' : '') + dest : '어디 가요?';
+out.headSub = dest ? (i === last ? '다 왔어요' : summary(cs)) : NET[c.l].name + (c.d ? ' · ' + c.d : '') + ' · 골라 주면 내릴 역도 알려줘요';
+out.pickLabel = dest ? '바꾸기' : '검색';
 out.hasBanner = !!banner;
 out.banner = banner;
 out.bannerLabel = bannerLabel;
@@ -750,7 +807,7 @@ else self.setState({ mode: 'dir', from: 'confirm' });
 out.onPick = function () { self.setState({ mode: 'pick', from: mode, pickFor: 'dest', q: '' }); };
 out.onPickOrigin = function () { self.setState({ mode: 'pick', from: 'confirm', pickFor: 'origin', q: '' }); };
 out.onNext = function () { self._dwell = 0; var tx2 = live ? xferAfter(route, i) : -1; self.setState({ i: Math.min(i + 1, last), f: 0, playing: live ? true : false, boarded: live ? !(tx2 === i + 1) : st.boarded, trainNo: null }); };
-out.onReset = function () { self.setState(Object.assign({ mode: 'confirm', origin: null, dest: null, route: null, i: 0, f: 0, demo: false, fixT: null, boarded: false, ckDone: {}, trainNo: null, heardT: null }, clear)); };
+out.onReset = function () { if (live && st.mode === 'ride') { self._autoOff = Date.now(); self._trail = []; } self.setState(Object.assign({ mode: 'confirm', origin: null, dest: null, route: null, i: 0, f: 0, demo: false, fixT: null, boarded: false, ckDone: {}, trainNo: null, heardT: null }, clear)); };
 return out;
 }
 }
