@@ -19,6 +19,8 @@ if (this._acc < 1) return;
 var total = i + (st.f || 0) + this._acc / 110; this._acc = 0;
 /* 탄 열차를 실시간으로 따라가는 중이면, 다음 도착 소식이 올 때까지 역 직전에서 기다려요 */
 if (st.trainNo && st.trainT && now - st.trainT < 60000) total = Math.min(total, i + 0.92);
+/* 움직임 센서가 살아 있으면 역을 넘는 건 '정차 감지'나 실시간 열차로만 해요 */
+if (st.motionLive && st.motionT && now - st.motionT < 360000) total = Math.min(total, i + 0.9);
 /* 환승역에 닿으면 멈추고 다시 탑승을 기다려요 (갈아탈 열차를 타면 다시 출발) */
 var tx = xferAfter(this._route, i);
 if (tx >= 0 && total >= tx) { this.setState({ i: tx, f: 0, boarded: false, trainNo: null, trainMiss: 0 }); return; }
@@ -135,6 +137,33 @@ if (d < R && (best[li] === undefined || d < best[li])) best[li] = d;
 }
 return Object.keys(best).sort(function (a, b) { return best[a] - best[b]; }).slice(0, 3).map(Number);
 }
+/* 움직임 센서 이벤트: depart = 정차해 있다가 출발, stop = 달리다가 정차 */
+applyMotion(type, t) {
+var st = this.state || {}, route = this._route, now = t || Date.now();
+if (st.demo || !this.props.live) return;
+var mode = st.mode || 'confirm';
+if (mode === 'confirm') { if (type === 'depart') this.setState({ motionDepartT: now, motionT: now, motionLive: true }); return; }
+if (mode !== 'ride' || !route) return;
+var last = route.length - 1, i = Math.min(st.i || 0, last), f = st.f || 0;
+if (type === 'depart') {
+var p0 = { motionT: now, motionLive: true, lastDepartT: now };
+if (!st.boarded && i < last) { p0.boarded = true; p0.playing = true; p0.f = 0.03; p0.boardedBy = 'motion'; p0.resyncT = null; this._lastT = 0; this._acc = 0; }
+else if (st.boarded && f < 0.03) p0.f = 0.03;
+this.setState(p0);
+return;
+}
+if (type === 'stop') {
+var p1 = { motionT: now, motionLive: true, lastStopT: now };
+/* 출발 뒤 25초 넘게 달렸다가 멈췄으면 다음 역에 도착한 거예요 */
+if (st.boarded && i < last && st.lastDepartT && now - st.lastDepartT > 25000) {
+var ni = i + 1, tx = xferAfter(route, i);
+p1.i = ni; p1.f = 0; p1.stopName = route[ni].n;
+if (tx === ni) { p1.boarded = false; p1.trainNo = null; }
+this._lastT = 0; this._acc = 0;
+}
+this.setState(p1);
+}
+}
 applyHomeTrains(li, rows) {
 var st = this.state || {}, geo = st.geo, G = this._G;
 if ((st.mode || 'confirm') !== 'confirm' || !geo || !G || !rows) return;
@@ -160,6 +189,27 @@ break;
 }
 });
 /* 판정: 최근 4분 동안 3번 넘게 내 위치 가까이 있었고, 그동안 열차도 나도 한 정거장쯤 같이 움직였어야 해요 */
+/* 움직임 센서가 방금 '출발'을 느꼈으면: 가장 가까운 역을 막 떠난 열차가 하나뿐일 때 바로 그 열차로 정해요 */
+if (st.motionDepartT && now - st.motionDepartT < 120000 && this._near && this._near.m < 700) {
+var S0 = stnNorm(this._near.name), left = [];
+rows.forEach(function (r) {
+for (var ci = 0; ci < cs.length; ci++) {
+var s = cs[ci].s, k = -1, tq = -1;
+for (var q = 0; q < s.length; q++) { if (stnNorm(s[q]) === stnNorm(r.stn)) k = q; if (stnNorm(s[q]) === stnNorm(r.term)) tq = q; }
+if (k < 0 || cs[ci].loop || tq < 0 || tq === k) continue;
+var dir = tq > k ? 1 : -1, code = String(r.st), prevIdx = k - dir;
+var fromS = (stnNorm(s[k]) === S0 && code === '2') || (prevIdx >= 0 && prevIdx < s.length && stnNorm(s[prevIdx]) === S0 && (code === '3' || code === '0'));
+if (fromS) left.push({ li: li, ci: ci, dir: dir, no: String(r.no), k: stnNorm(s[k]) === S0 ? k : prevIdx });
+break;
+}
+});
+var pool = (this._left || []).filter(function (x) { return x.li !== li; }).concat(left);
+this._left = pool;
+if (pool.length === 1) {
+var w0 = pool[0], ch0 = NET[w0.li].chains[w0.ci], o0 = { n: ch0.s[w0.k], l: w0.li, ci: w0.ci, toFirst: w0.dir < 0 }, r0 = freeRoute(o0);
+if (r0.length >= 2) { this._left = []; this._cand = {}; this.setState({ mode: 'ride', origin: o0, dest: null, route: r0, i: 0, f: 0.1, boarded: true, playing: true, auto: true, trainNo: w0.no, trainT: now, trainMiss: 0, lastDepartT: st.motionDepartT, ckDone: {}, q: '', from: null, pickFor: null }); return; }
+}
+}
 var ok = [];
 for (var key2 in cand) {
 var c2 = cand[key2], h = c2.h.filter(function (x) { return now - x.t < 240000; });
@@ -946,6 +996,7 @@ var nowD = Date.now(), ago = function (t) { return t ? Math.round((nowD - t) / 1
 out.diag = live ? ['마이크 ' + (this.props.srOk ? (st.listening ? '듣는 중' : (st.listenOn ? '대기' : '꺼짐')) + ' ' + (st.recStarts || 0) + '회' + (st.lastErr ? ' 오류:' + st.lastErr : '') : '미지원'),
 '들린 말 ' + (st.rawHeard ? '"' + st.rawHeard + '" ' + ago(st.rawT) : '없음'),
 '위치 ' + (geo ? '오차 ' + Math.round(geo.acc) + 'm ' + ago(geo.t) : (st.geoErr ? '오류:' + st.geoErr : '없음')),
+'센서 ' + (st.motionErr ? '오류:' + st.motionErr : (st.mdbg || '꺼짐')),
 '실시간 ' + (this.props.rtUrl ? (st.rtErr ? '오류:' + String(st.rtErr).slice(0, 20) : '응답 ' + ago(st.rtOkT)) : '연결 안 됨')].join(' · ') : '';
 out.hasDiag = !!out.diag && !!this.props.debug;
 out.onRefresh = function () { if (self.props.onSync) self.props.onSync(); };
@@ -1028,6 +1079,7 @@ out.footNote = (waiting
 ? (i > 0 ? '갈아탈 열차를 타면 알아서 다시 따라가요. 안 되면 \'열차 탔어요\'를 눌러 주세요' : '아직 탑승 전이에요. 열차에 타면 \'열차 탔어요\'를 눌러 주세요. 움직임이 잡히면 알아서 시작해요')
 : !live ? (st.demo ? '데모예요. 종료를 누르면 내 위치로 돌아가요' : '시안용 조작이에요. 실제 앱은 열차를 따라 알아서 움직여요')
 : st.heardT && nowT - st.heardT < 25000 ? '안내방송으로 확인했어요: ' + st.heardName
+: st.stopName && st.lastStopT && nowT - st.lastStopT < 30000 ? '열차가 멈춘 걸 느꼈어요: ' + st.stopName
 : st.trainNo && st.trainT && nowT - st.trainT < 60000 ? st.trainNo + '번 열차를 실시간으로 따라가는 중 (서울특별시 공공데이터)'
 : fixAge !== null && fixAge < 25 ? '위치로 따라가는 중' + (geo ? ' (오차 약 ' + Math.round(geo.acc) + 'm)' : '')
 : playing ? '위치 신호가 없어서 시간으로 추정 중이에요. 틀리면 다음 역을 눌러 주세요' : '위치 신호가 없어요. 다음 역을 눌러 맞춰 주세요') + tail;

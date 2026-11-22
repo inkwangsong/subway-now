@@ -232,6 +232,63 @@ if (want) startRec(want);
 };
 document.addEventListener('click', function () { setTimeout(gestureKick, 0); }, true);
 document.addEventListener('touchend', gestureKick, true);
+/* ===== 움직임 센서로 정거장 세기 =====
+   열차는 역마다 출발(가속) → 달림 → 감속 → 정차를 되풀이해요. 폰이 느끼는 가속도(중력 뺀 값)를
+   1.5초로 고르게 만든 크기가 3초 넘게 0.28m/s² 이상이면 '가속·감속 구간'으로 보고,
+   출발 → (25초 이상) → 감속 → 조용해짐(3초) 을 '정차', 정차 뒤 다시 가속을 '출발'로 셉니다.
+   아이폰은 처음에 화면을 누를 때 한 번 '동작 및 방향' 권한을 물어봐요 */
+var M = { on: false, asked: false, t: 0, grav: null, s: [0, 0, 0], vib: 0, hold: 0, low: 0, phase: 'unknown', phaseT: 0, decelSeen: false, lastEvt: 0, events: [] };
+var A_TH = 0.28, LOW_TH = 0.12;
+var mEmit = function (type, t) {
+M.events.push(type + ' ' + new Date(t).toTimeString().slice(0, 8)); if (M.events.length > 6) M.events.shift();
+try { var lg = JSON.parse(localStorage.getItem('subway-now:mlog') || '[]'); lg.push([type, t]); localStorage.setItem('subway-now:mlog', JSON.stringify(lg.slice(-200))); } catch (e) {}
+app.applyMotion(type, t);
+if (type === 'depart') { rtLast = 0; setTimeout(function () { var st = app.state || {}; if (st.mode === 'ride') pollTrains(); else pollHome(true); }, 15000); }
+};
+var onMotion = function (e) {
+var now = Date.now(), dt = M.t ? Math.min(0.5, (now - M.t) / 1000) : 0.016; M.t = now;
+var a = e.acceleration, x, y, z;
+if (a && a.x !== null && a.x !== undefined) { x = a.x; y = a.y; z = a.z; }
+else {
+var g = e.accelerationIncludingGravity; if (!g || g.x === null) return;
+if (!M.grav) M.grav = [g.x, g.y, g.z];
+var kg = Math.min(1, dt / 20); M.grav = [M.grav[0] + (g.x - M.grav[0]) * kg, M.grav[1] + (g.y - M.grav[1]) * kg, M.grav[2] + (g.z - M.grav[2]) * kg];
+x = g.x - M.grav[0]; y = g.y - M.grav[1]; z = g.z - M.grav[2];
+}
+var ks = Math.min(1, dt / 1.5);
+M.s = [M.s[0] + (x - M.s[0]) * ks, M.s[1] + (y - M.s[1]) * ks, M.s[2] + (z - M.s[2]) * ks];
+var mag = Math.sqrt(M.s[0] * M.s[0] + M.s[1] * M.s[1] + M.s[2] * M.s[2]);
+var dv = Math.sqrt(Math.pow(x - M.s[0], 2) + Math.pow(y - M.s[1], 2) + Math.pow(z - M.s[2], 2));
+M.vib = M.vib + (dv - M.vib) * Math.min(1, dt / 2);
+var walking = M.vib > 0.9;
+M.hold = mag > A_TH && !walking ? M.hold + dt : 0;
+M.low = mag < LOW_TH ? M.low + dt : 0;
+/* 상태 바뀜 */
+if (M.phase !== 'moving' && M.hold >= 3 && now - M.lastEvt > 15000) { M.phase = 'moving'; M.phaseT = now; M.decelSeen = false; M.lastEvt = now; mEmit('depart', now); }
+else if (M.phase === 'moving') {
+if (M.hold >= 3 && now - M.phaseT > 25000) M.decelSeen = true;
+if (M.decelSeen && M.low >= 3) { M.phase = 'stopped'; M.phaseT = now; M.lastEvt = now; mEmit('stop', now); }
+}
+else if (M.phase === 'unknown' && M.low >= 8) { M.phase = 'stopped'; M.phaseT = now; }
+if (now - (M.uiT || 0) > 1000) {
+M.uiT = now;
+app.setState({ mdbg: (M.phase === 'moving' ? '달림' : M.phase === 'stopped' ? '정차' : '?') + ' ' + mag.toFixed(2) + '/' + M.vib.toFixed(2) + (walking ? ' 걷는 중' : '') + (M.events.length ? ' [' + M.events.slice(-2).join(', ') + ']' : '') });
+}
+};
+var startMotion = function () { if (M.on) return; M.on = true; window.addEventListener('devicemotion', onMotion); app.setState({ motionOn: true, motionErr: null }); };
+var askMotion = function () {
+if (M.asked) return; M.asked = true;
+var D = window.DeviceMotionEvent;
+if (!D) { app.setState({ motionErr: '미지원' }); return; }
+if (typeof D.requestPermission === 'function') {
+D.requestPermission().then(function (r) { if (r === 'granted') startMotion(); else app.setState({ motionErr: r }); }).catch(function (er) { M.asked = false; app.setState({ motionErr: String(er && er.name || 'err') }); });
+} else startMotion();
+};
+document.addEventListener('click', askMotion, true);
+document.addEventListener('touchend', askMotion, true);
+/* 안드로이드 등 권한이 필요 없는 곳은 바로 시작해요 */
+try { if (window.DeviceMotionEvent && typeof window.DeviceMotionEvent.requestPermission !== 'function') { M.asked = true; startMotion(); } } catch (e) {}
+window.__motion = M; window.__onMotion = onMotion;
 var homeTimer = null;
 /* 오른쪽 아래(시작 화면은 위) 다시 확인 버튼: 페이지를 새로 여는 게 아니라 지금 위치를 바로 다시 맞춰요
    GPS 새로 받기 + 실시간 열차 바로 조회 + 안내방송 1분 듣기 */
