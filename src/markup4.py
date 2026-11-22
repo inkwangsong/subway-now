@@ -358,7 +358,7 @@ input::placeholder{{color:{SUB}}}
 <div style="display: {{{{progDet}}}}; width: {{{{progW}}}}; height: 100%; background: var(--blue); transition: width .6s ease"></div>
 </div>
 </div>
-<button onClick="{{{{ onRefresh }}}}" aria-label="새로고침" style="flex-shrink: 0; width: 32px; height: 32px; border-radius: 16px; {ACRYL}; color: {INK}; padding: 0; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.3-5.7"></path><polyline points="20 4 20 9 15 9"></polyline></svg></button>
+<button onClick="{{{{ onRefresh }}}}" aria-label="{{{{syncLabel}}}}" style="flex-shrink: 0; width: 32px; height: 32px; border-radius: 16px; {ACRYL}; color: {INK}; padding: 0; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="animation: {{{{syncAnim}}}}"><path d="M20 12a8 8 0 1 1-2.3-5.7"></path><polyline points="20 4 20 9 15 9"></polyline></svg></button>
 </div>
 
 <div style="font-size: 34px; font-weight: 700; letter-spacing: -1.2px; line-height: 1.2; color: {NAVY}; padding-left: 4px">{{{{hello}}}}</div>
@@ -478,7 +478,7 @@ input::placeholder{{color:{SUB}}}
 <div style="display: flex; gap: 8px">
 <button onClick="{{{{ onReset }}}}" style="height: 50px; border-radius: 18px; {ACRYL}; color: {INK}; font-size: 14px; font-weight: 600; padding: 0 14px; flex-shrink: 0">{{{{resetLabel}}}}</button>
 <button onClick="{{{{ onToggle }}}}" disabled="{{{{ atEnd }}}}" style="display: {{{{toggleDisp}}}}; align-items: center; justify-content: center; flex-grow: 1; height: 50px; border-radius: 18px; {PRIMARY}; color: #FFFFFF; font-size: 15px; font-weight: 600; opacity: {{{{nextOpacity}}}}">{{{{playLabel}}}}</button>
-<button onClick="{{{{ onRefresh }}}}" aria-label="새로고침" style="height: 50px; width: 50px; border-radius: 18px; {ACRYL}; color: {INK}; padding: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: center; order: 3"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.3-5.7"></path><polyline points="20 4 20 9 15 9"></polyline></svg></button>
+<button onClick="{{{{ onRefresh }}}}" aria-label="{{{{syncLabel}}}}" style="height: 50px; width: 50px; border-radius: 18px; {ACRYL}; color: {INK}; padding: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: center; order: 3"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="animation: {{{{syncAnim}}}}"><path d="M20 12a8 8 0 1 1-2.3-5.7"></path><polyline points="20 4 20 9 15 9"></polyline></svg></button>
 <button onClick="{{{{ onNext }}}}" disabled="{{{{ atEnd }}}}" style="height: 50px; border-radius: 18px; {ACRYL}; color: {INK}; font-size: 14px; font-weight: 600; padding: 0 14px; flex-shrink: 0; flex-grow: {{{{nextGrow}}}}; opacity: {{{{nextOpacity}}}}">다음 역</button>
 </div>
 <div style="font-size: 11px; font-weight: 500; color: {INK}; text-align: center">{{{{footNote}}}}</div>

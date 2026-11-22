@@ -87,11 +87,7 @@ if (st.mode === 'ride' && !st.demo) { var o = { at: Date.now() }; RIDE_FIELDS.fo
 else localStorage.removeItem(RIDE_KEY);
 } catch (e) {}
 };
-/* 새로고침 버튼: 지금 상태를 저장하고, 캐시 말고 최신 버전으로 다시 열어요 */
-app.props.onRefresh = function () {
-saveRide();
-try { var u = location.pathname + '?r=' + Date.now(); location.replace(u); } catch (e) { location.reload(); }
-};
+
 try { if (localStorage.getItem(LISTEN_KEY) !== '0') app.state = Object.assign({}, app.state, { listenOn: true }); } catch (e) { app.state = Object.assign({}, app.state, { listenOn: true }); }
 /* 실시간 열차 위치 중계 주소: 주소 끝에 ?rt=https://... 를 붙여 한 번 열면 저장돼요 */
 var RT_URL = (window.SUBWAY_RT_URL || '');
@@ -203,6 +199,19 @@ if (!want) setTimeout(function () { if (recCk === 'warmup') stopRec(); }, 4000);
 document.addEventListener('click', function () { setTimeout(gestureKick, 0); }, true);
 document.addEventListener('touchend', gestureKick, true);
 var homeTimer = null;
+/* 오른쪽 아래(시작 화면은 위) 다시 확인 버튼: 페이지를 새로 여는 게 아니라 지금 위치를 바로 다시 맞춰요
+   GPS 새로 받기 + 실시간 열차 바로 조회 + 안내방송 1분 듣기 */
+var syncT = 0;
+app.props.onSync = function () {
+var st = app.state || {};
+syncT = Date.now();
+app.setState({ syncing: true });
+try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {}
+setTimeout(function () { app.setState({ syncing: false }); }, 6000);
+try { navigator.geolocation.getCurrentPosition(function (pos) { app.applyGeo({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy || 9999, speed: pos.coords.speed, t: pos.timestamp || Date.now() }); }, function () {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 8000 }); } catch (e) {}
+if (st.mode === 'ride') { rtLast = 0; pollTrains(); } else pollHome(true);
+if (SR && st.listenOn !== false && st.listenErr !== 'not-allowed') { unlockAudio(); if (recOn) recCk = 'sync'; else startRec('sync'); }
+};
 app.props.onHomeListen = function (on) {
 unlockAudio();
 if (homeTimer) { clearTimeout(homeTimer); homeTimer = null; }
@@ -222,7 +231,7 @@ stopRec(); app.setState({ ckDone: done }); return;
 }
 if (want && !recOn && Date.now() - recEndT > 1200 && st.listenErr !== 'not-allowed') startRec(want);
 else if (want && recOn) recCk = want;
-else if (!want && recOn && recCk !== 'warmup' && !(recCk === 'home' && (st.mode || 'confirm') === 'confirm')) stopRec();
+else if (!want && recOn && recCk !== 'warmup' && !(recCk === 'sync' && Date.now() - syncT < 60000) && !(recCk === 'home' && (st.mode || 'confirm') === 'confirm')) stopRec();
 /* 시작 화면에서 듣다가 방송으로 탑승이 잡히면 이어서 듣기 표시를 꺼요 */
 if (st.homeListening && (st.mode || 'confirm') !== 'confirm') app.setState({ homeListening: false });
 /* 듣기가 끝났는데(권한 거부 등) 표시가 남아 있으면 끄고, 3분 안이면 다시 이어 들어요 */
@@ -248,10 +257,11 @@ setInterval(pollTrains, 30000);
 /* 시작 화면: 대략적인 위치(실내·지하)일 때 근처 노선의 열차들을 30초마다 보고 같이 움직이는 열차를 찾아요.
    집에 오래 켜 두면 하루 조회 한도를 다 쓰지 않게, 위치가 크게 바뀌지 않으면 15분 뒤 멈춰요 */
 var homeBusy = false, homeAnchor = null;
-var pollHome = function () {
+var pollHome = function (force) {
 var st = app.state || {}, geo = st.geo;
-if (!RT_URL || homeBusy || document.hidden || st.demo || (st.mode || 'confirm') !== 'confirm' || !geo || !(geo.acc > 60)) return;
+if (!RT_URL || homeBusy || document.hidden || st.demo || (st.mode || 'confirm') !== 'confirm' || !geo || !(force === true || geo.acc > 60)) return;
 var now = Date.now();
+if (force === true) homeAnchor = null;
 if (!homeAnchor || Math.sqrt(Math.pow((geo.lon - homeAnchor.lon) * COS, 2) + Math.pow(geo.lat - homeAnchor.lat, 2)) * 111000 > 1000) homeAnchor = { lat: geo.lat, lon: geo.lon, t: now };
 if (now - homeAnchor.t > 900000) return;
 var lines = app.homeLines();

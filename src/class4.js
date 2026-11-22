@@ -212,7 +212,7 @@ if (a || b) this.setState({ origin: { n: a || b }, homeHeard: a || b, homeHeardT
 }
 applyHeard(text, ck) {
 var st = this.state || {}, route = this._route;
-if ((st.mode || 'confirm') === 'confirm') { if (ck === 'home') this.applyHeardHome(text); return; }
+if ((st.mode || 'confirm') === 'confirm') { if (ck === 'home' || ck === 'sync') this.applyHeardHome(text); return; }
 if (!route || st.mode !== 'ride' || !text) return;
 var T = String(text).replace(/\s+/g, ''), last = route.length - 1, i = Math.min(st.i || 0, last), best = null;
 for (var k = Math.max(1, i); k <= Math.min(last, i + 4); k++) {
@@ -228,7 +228,7 @@ if (!best) return;
 var ni = best.k - 1, nf = best.kind === 'this' ? Math.max(0.85, ni === i ? (st.f || 0) : 0) : 0.1;
 if (ni + nf < i + (st.f || 0) - 1.2) return;
 var patch = { i: ni, f: nf, boarded: true, playing: true, heardName: route[best.k].n, heardT: Date.now() };
-if (ck && ck !== 'live' && ck !== 'warmup') { patch.ckDone = Object.assign({}, st.ckDone || {}); patch.ckDone[ck] = 'heard'; }
+if (ck && ck !== 'live' && ck !== 'warmup' && ck !== 'sync') { patch.ckDone = Object.assign({}, st.ckDone || {}); patch.ckDone[ck] = 'heard'; }
 this._acc = 0; this._lastT = 0;
 this.setState(patch);
 }
@@ -868,7 +868,9 @@ out.diag = live ? ['마이크 ' + (this.props.srOk ? (st.listening ? '듣는 중
 '위치 ' + (geo ? '오차 ' + Math.round(geo.acc) + 'm ' + ago(geo.t) : (st.geoErr ? '오류:' + st.geoErr : '없음')),
 '실시간 ' + (this.props.rtUrl ? (st.rtErr ? '오류:' + String(st.rtErr).slice(0, 20) : '응답 ' + ago(st.rtOkT)) : '연결 안 됨')].join(' · ') : '';
 out.hasDiag = !!out.diag;
-out.onRefresh = function () { if (self.props.onRefresh) self.props.onRefresh(); else try { window.location.reload(); } catch (e) {} };
+out.onRefresh = function () { if (self.props.onSync) self.props.onSync(); };
+out.syncAnim = st.syncing ? 'sn-spin 0.9s linear infinite' : 'none';
+out.syncLabel = st.syncing ? '지금 위치 다시 확인 중' : '지금 위치 다시 확인';
 out.locSpin = locBusy ? 'inline-block' : 'none'; out.locPin = locBusy ? 'none' : 'block'; out.locDots = locBusy ? 'sn-dots' : '';
 var hl = !!st.homeListening;
 out.hlLabel = hl ? '안내방송 듣는 중' : '안내방송으로 찾기';
@@ -908,7 +910,8 @@ var isLegStart = i === 0 || route[i + 1].l !== route[i].l;
 if (isLegStart && (st.boarded || i > 0) && !ckDone['leg' + i]) { listenCk = 'leg' + i; listenMax = i > 0 ? 300 : 150; }
 else if (i === last - 1 && st.boarded && !ckDone.dest) { listenCk = 'dest'; listenMax = 150; }
 /* 실시간 열차로 확실히 따라가는 중이 아니면 계속 들어요 (위치가 제일 중요하니까) */
-else if (st.boarded && !(st.trainNo && st.trainT && Date.now() - st.trainT < 90000)) { listenCk = 'live'; listenMax = 86400; }
+/* 실시간 열차로 못 따라가는 중이면, 방송을 마지막으로 들은 지 4분이 지났을 때만 다시 들어요 (계속 켜 두지 않게) */
+else if (st.boarded && !(st.trainNo && st.trainT && Date.now() - st.trainT < 90000) && !(st.heardT && Date.now() - st.heardT < 240000)) { listenCk = 'live'; listenMax = 86400; }
 }
 out.listenCk = listenCk; out.listenMax = listenMax;
 out.isLiveRide = live && isRide;
