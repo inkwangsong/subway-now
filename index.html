@@ -24,6 +24,7 @@ input{font-family:inherit}
 input::placeholder{color:var(--sub)}
 @keyframes sn-spin{to{transform:rotate(360deg)}}
 @keyframes sn-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
+@keyframes sn-bar{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
 @keyframes sn-dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
 .sn-dots::after{content:'';display:inline-block;width:1.2em;text-align:left;animation:sn-dots 1.2s steps(1) infinite}
 
@@ -357,10 +358,19 @@ input::placeholder{color:var(--sub)}
 
 <sc-if value="{{ isConfirm }}" hint-placeholder-val="{{ false }}">
 <div style="position: absolute; left: 20px; right: 20px; top: 52px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px">
-<div style="background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 16px; height: 32px; box-sizing: border-box; padding: 0 12px 0 9px; display: flex; align-items: center; gap: 6px; max-width: 100%; color: {{locFg}}">
+<div style="display: flex; align-items: center; gap: 8px; max-width: 100%">
+<div style="background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 16px; min-width: 0; box-sizing: border-box; padding: 0 12px 0 9px; display: flex; flex-direction: column; justify-content: center; gap: 0; color: {{locFg}}; overflow: hidden; position: relative">
+<div style="height: 32px; display: flex; align-items: center; gap: 6px">
 <span style="display: {{locSpin}}; flex-shrink: 0; width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--card-line); border-top-color: var(--blue); animation: sn-spin 0.8s linear infinite"></span>
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: {{locPin}}"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>
 <span class="{{locDots}}" style="font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{pillText}}</span>
+</div>
+<div style="display: {{progShow}}; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--card-line); overflow: hidden">
+<div style="display: {{progIndet}}; width: 40%; height: 100%; border-radius: 2px; background: var(--blue); animation: sn-bar 1.1s ease-in-out infinite"></div>
+<div style="display: {{progDet}}; width: {{progW}}; height: 100%; background: var(--blue); transition: width .6s ease"></div>
+</div>
+</div>
+<button onClick="{{ onRefresh }}" aria-label="새로고침" style="flex-shrink: 0; width: 32px; height: 32px; border-radius: 16px; background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: var(--ink); padding: 0; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.3-5.7"></path><polyline points="20 4 20 9 15 9"></polyline></svg></button>
 </div>
 
 <div style="font-size: 34px; font-weight: 700; letter-spacing: -1.2px; line-height: 1.2; color: var(--title); padding-left: 4px">{{hello}}</div>
@@ -486,6 +496,7 @@ input::placeholder{color:var(--sub)}
 <div style="display: flex; gap: 8px">
 <button onClick="{{ onReset }}" style="height: 50px; border-radius: 18px; background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: var(--ink); font-size: 14px; font-weight: 600; padding: 0 14px; flex-shrink: 0">{{resetLabel}}</button>
 <button onClick="{{ onToggle }}" disabled="{{ atEnd }}" style="display: {{toggleDisp}}; align-items: center; justify-content: center; flex-grow: 1; height: 50px; border-radius: 18px; background: linear-gradient(180deg, #2F5890, #1F3A5F); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 12px 24px rgba(20,36,70,0.45), inset 0 1px 0 rgba(255,255,255,0.4); color: #FFFFFF; font-size: 15px; font-weight: 600; opacity: {{nextOpacity}}">{{playLabel}}</button>
+<button onClick="{{ onRefresh }}" aria-label="새로고침" style="height: 50px; width: 50px; border-radius: 18px; background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: var(--ink); padding: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: center; order: 3"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.3-5.7"></path><polyline points="20 4 20 9 15 9"></polyline></svg></button>
 <button onClick="{{ onNext }}" disabled="{{ atEnd }}" style="height: 50px; border-radius: 18px; background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: var(--ink); font-size: 14px; font-weight: 600; padding: 0 14px; flex-shrink: 0; flex-grow: {{nextGrow}}; opacity: {{nextOpacity}}">다음 역</button>
 </div>
 <div style="font-size: 11px; font-weight: 500; color: var(--ink); text-align: center">{{footNote}}</div>
@@ -561,6 +572,18 @@ var USUAL = { from: '신흥', to: '고속터미널', via: '가락시장' };
 var FAVORITES = ['고속터미널', '잠실', '양재'];
 var RECENT_ORIGINS = ['신흥', '고속터미널'];
 var HOP = 2, XFER = 5;
+/* 걸리는 시간 추정: 역 사이 = 정차·가감속 0.5분 + 거리 ÷ 노선 평균 속도(km/분)
+   갈아타기 = 걸어서 4분 + 갈아탈 노선 배차 간격의 절반만큼 기다림 */
+var LINE_SPEED = { '2호선': 0.7, '8호선': 0.7, '수인분당선': 0.68, '신분당선': 1.3, 'GTX-A': 2.0, '경의중앙선': 0.9, '경춘선': 1.0, '공항철도': 1.1, '서해선': 1.0, '경강선': 1.0, '1호선': 0.8, '9호선': 0.8 };
+var LINE_GAP = { '2호선': 4, '8호선': 6, '9호선': 6, '수인분당선': 9, '신분당선': 6, 'GTX-A': 10, '경의중앙선': 13, '경춘선': 15, '공항철도': 8, '서해선': 12, '경강선': 10, '1호선': 6, '우이신설선': 5, '신림선': 5, '김포골드라인': 4, '의정부경전철': 6, '용인에버라인': 7 };
+var NETPOS = null;
+function hopMin(li, a, b) {
+var pa = NETPOS && NETPOS[a + '|' + li], pb = NETPOS && NETPOS[b + '|' + li];
+if (!pa || !pb) return HOP;
+var km = Math.sqrt(Math.pow((pa[0] - pb[0]) * 0.7934, 2) + Math.pow(pa[1] - pb[1], 2)) * 111;
+return 0.5 + km / (LINE_SPEED[NET[li].name] || 0.75);
+}
+function xferMin(toLi) { return 4 + (LINE_GAP[NET[toLi].name] || 5) / 2; }
 var INK = '#2B2118';
 var NAVY = '#1F3A5F', BLUE = '#1F5FA8';
 /* 한강: 다리 위치를 따라 손으로 찍은 대략적인 중심선 (장식용) */
@@ -620,15 +643,16 @@ if (!linesAt[s[k]]) { linesAt[s[k]] = []; names.push(s[k]); }
 if (linesAt[s[k]].indexOf(li) < 0) linesAt[s[k]].push(li);
 pos[s[k] + '|' + li] = [c.p[k * 2] / 1e4, c.p[k * 2 + 1] / 1e4];
 var nx = k + 1 < s.length ? s[k + 1] : (c.loop ? s[0] : null);
-if (nx) { add(s[k] + '|' + li, nx + '|' + li, HOP); if (!c.one) add(nx + '|' + li, s[k] + '|' + li, HOP); }
+if (nx) { pos[nx + '|' + li] = pos[nx + '|' + li] || [c.p[((k + 1) % s.length) * 2] / 1e4, c.p[((k + 1) % s.length) * 2 + 1] / 1e4]; NETPOS = pos; var hw = hopMin(li, s[k], nx); add(s[k] + '|' + li, nx + '|' + li, hw); if (!c.one) add(nx + '|' + li, s[k] + '|' + li, hw); }
 }
 });
 });
 names.forEach(function (n) {
 var ls = linesAt[n];
-ls.forEach(function (a) { ls.forEach(function (b) { if (a !== b) add(n + '|' + a, n + '|' + b, XFER); }); });
+ls.forEach(function (a) { ls.forEach(function (b) { if (a !== b) add(n + '|' + a, n + '|' + b, xferMin(b)); }); });
 });
 names.sort();
+NETPOS = pos;
 return { adj: adj, linesAt: linesAt, names: names, pos: pos };
 }
 function dijkstra(G, srcs) {
@@ -706,9 +730,12 @@ if ((c.loop && !c.one) || (!c.loop && i > 0)) out.push({ n: name, l: li, ci: ci,
 return out;
 }
 function stats(stops, from) {
-var hops = stops.length - 1 - from, x = 0, k;
-for (k = from; k < stops.length - 1; k++) if (stops[k + 1].l !== stops[k].l) x++;
-return { hops: hops, x: x, min: hops * HOP + x * XFER };
+var hops = stops.length - 1 - from, x = 0, k, m = 0;
+for (k = from; k < stops.length - 1; k++) {
+if (stops[k + 1].l !== stops[k].l) { x++; m += xferMin(stops[k + 1].l) + hopMin(stops[k + 1].l, stops[k].n, stops[k + 1].n); }
+else m += hopMin(stops[k].l, stops[k].n, stops[k + 1].n);
+}
+return { hops: hops, x: x, min: Math.max(1, Math.round(m)) };
 }
 function summary(st) {
 return (st.x ? '환승 ' + st.x + '번' : '환승 없이') + ' · ' + st.hops + '정거장 · 약 ' + st.min + '분';
@@ -902,6 +929,10 @@ var moved = Math.abs(h[h.length - 1].s - h[0].s) >= 0.8;
 var me = Math.sqrt(Math.pow((h[h.length - 1].lon - h[0].lon) * COS, 2) + Math.pow(h[h.length - 1].lat - h[0].lat, 2)) * 111000;
 if (near && moved && me >= 350) ok.push({ c: c2, avg: h.reduce(function (a, x) { return a + x.d; }, 0) / h.length, last: h[h.length - 1] });
 }
+/* 진행 표시용: 내 근처에 계속 있는 열차가 몇 번 확인됐는지 */
+var bestN = 0;
+for (var key3 in cand) { var hh = cand[key3].h.filter(function (x) { return now - x.t < 240000; }); var run = 0; for (var z = hh.length - 1; z >= 0 && hh[z].d < Math.max(600, hh[z].acc * 1.5); z--) run++; if (run > bestN) bestN = run; }
+if (bestN !== (st.matchN || 0) || bestN) this.setState({ matchN: bestN, matchT: now });
 if (!ok.length) return;
 ok.sort(function (a, b) { return a.avg - b.avg; });
 /* 비슷하게 맞는 열차가 둘이면(같은 방향에 붙어 오는 열차 등) 아직 고르지 않아요 */
@@ -1566,6 +1597,13 @@ var locBusy = live && !geo && !st.geoErr && !homeHeardOn;
 if (homeHeardOn) out.pillText = '방송으로 확인 · ' + st.homeHeard + '역 · 다음 역을 기다려요';
 if (locBusy) out.pillText = '현재 위치 찾는 중';
 out.noOriginMsg = locBusy ? '위치를 찾고 있어요. 열차 안이면 같이 움직이는 열차를 찾아서 알아서 시작해요.' : '아직 위치를 못 잡았어요. 잡히면 알아서 시작해요. 급하면 출발역을 골라 주세요.';
+/* 진행 표시: 위치 찾는 중엔 움직이는 막대, 같이 가는 열차를 확인하는 중엔 n/3 채워지는 막대 */
+var mN = live && !homeHeardOn ? Math.min(3, st.matchN || 0) : 0, mFresh = st.matchT && Date.now() - st.matchT < 90000;
+if (mN > 0 && mFresh && !nearOn) out.pillText = '같이 움직이는 열차 확인 중 · ' + mN + '/3';
+out.progShow = locBusy || (mN > 0 && mFresh) ? 'block' : 'none';
+out.progIndet = locBusy ? 'block' : 'none'; out.progDet = locBusy ? 'none' : 'block';
+out.progW = Math.round(mN / 3 * 100) + '%';
+out.onRefresh = function () { try { window.location.reload(); } catch (e) {} };
 out.locSpin = locBusy ? 'inline-block' : 'none'; out.locPin = locBusy ? 'none' : 'block'; out.locDots = locBusy ? 'sn-dots' : '';
 var hl = !!st.homeListening;
 out.hlLabel = hl ? '안내방송 듣는 중' : '안내방송으로 찾기';

@@ -45,6 +45,7 @@ input{{font-family:inherit}}
 input::placeholder{{color:{SUB}}}
 @keyframes sn-spin{{to{{transform:rotate(360deg)}}}}
 @keyframes sn-pulse{{0%,100%{{opacity:1;transform:scale(1)}}50%{{opacity:.35;transform:scale(.7)}}}}
+@keyframes sn-bar{{0%{{transform:translateX(-100%)}}100%{{transform:translateX(250%)}}}}
 @keyframes sn-dots{{0%{{content:''}}25%{{content:'.'}}50%{{content:'..'}}75%{{content:'...'}}}}
 .sn-dots::after{{content:'';display:inline-block;width:1.2em;text-align:left;animation:sn-dots 1.2s steps(1) infinite}}
 </style>
@@ -341,10 +342,19 @@ input::placeholder{{color:{SUB}}}
 
 <sc-if value="{{{{ isConfirm }}}}" hint-placeholder-val="{{{{ false }}}}">
 <div style="position: absolute; left: 20px; right: 20px; top: 52px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px">
-<div style="{ACRYL}; border-radius: 16px; height: 32px; box-sizing: border-box; padding: 0 12px 0 9px; display: flex; align-items: center; gap: 6px; max-width: 100%; color: {{{{locFg}}}}">
+<div style="display: flex; align-items: center; gap: 8px; max-width: 100%">
+<div style="{ACRYL}; border-radius: 16px; min-width: 0; box-sizing: border-box; padding: 0 12px 0 9px; display: flex; flex-direction: column; justify-content: center; gap: 0; color: {{{{locFg}}}}; overflow: hidden; position: relative">
+<div style="height: 32px; display: flex; align-items: center; gap: 6px">
 <span style="display: {{{{locSpin}}}}; flex-shrink: 0; width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--card-line); border-top-color: var(--blue); animation: sn-spin 0.8s linear infinite"></span>
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: {{{{locPin}}}}"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>
 <span class="{{{{locDots}}}}" style="font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{pillText}}}}</span>
+</div>
+<div style="display: {{{{progShow}}}}; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--card-line); overflow: hidden">
+<div style="display: {{{{progIndet}}}}; width: 40%; height: 100%; border-radius: 2px; background: var(--blue); animation: sn-bar 1.1s ease-in-out infinite"></div>
+<div style="display: {{{{progDet}}}}; width: {{{{progW}}}}; height: 100%; background: var(--blue); transition: width .6s ease"></div>
+</div>
+</div>
+<button onClick="{{{{ onRefresh }}}}" aria-label="새로고침" style="flex-shrink: 0; width: 32px; height: 32px; border-radius: 16px; {ACRYL}; color: {INK}; padding: 0; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.3-5.7"></path><polyline points="20 4 20 9 15 9"></polyline></svg></button>
 </div>
 
 <div style="font-size: 34px; font-weight: 700; letter-spacing: -1.2px; line-height: 1.2; color: {NAVY}; padding-left: 4px">{{{{hello}}}}</div>
@@ -464,6 +474,7 @@ input::placeholder{{color:{SUB}}}
 <div style="display: flex; gap: 8px">
 <button onClick="{{{{ onReset }}}}" style="height: 50px; border-radius: 18px; {ACRYL}; color: {INK}; font-size: 14px; font-weight: 600; padding: 0 14px; flex-shrink: 0">{{{{resetLabel}}}}</button>
 <button onClick="{{{{ onToggle }}}}" disabled="{{{{ atEnd }}}}" style="display: {{{{toggleDisp}}}}; align-items: center; justify-content: center; flex-grow: 1; height: 50px; border-radius: 18px; {PRIMARY}; color: #FFFFFF; font-size: 15px; font-weight: 600; opacity: {{{{nextOpacity}}}}">{{{{playLabel}}}}</button>
+<button onClick="{{{{ onRefresh }}}}" aria-label="새로고침" style="height: 50px; width: 50px; border-radius: 18px; {ACRYL}; color: {INK}; padding: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: center; order: 3"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.3-5.7"></path><polyline points="20 4 20 9 15 9"></polyline></svg></button>
 <button onClick="{{{{ onNext }}}}" disabled="{{{{ atEnd }}}}" style="height: 50px; border-radius: 18px; {ACRYL}; color: {INK}; font-size: 14px; font-weight: 600; padding: 0 14px; flex-shrink: 0; flex-grow: {{{{nextGrow}}}}; opacity: {{{{nextOpacity}}}}">다음 역</button>
 </div>
 <div style="font-size: 11px; font-weight: 500; color: {INK}; text-align: center">{{{{footNote}}}}</div>

@@ -5,6 +5,18 @@ var USUAL = { from: '신흥', to: '고속터미널', via: '가락시장' };
 var FAVORITES = ['고속터미널', '잠실', '양재'];
 var RECENT_ORIGINS = ['신흥', '고속터미널'];
 var HOP = 2, XFER = 5;
+/* 걸리는 시간 추정: 역 사이 = 정차·가감속 0.5분 + 거리 ÷ 노선 평균 속도(km/분)
+   갈아타기 = 걸어서 4분 + 갈아탈 노선 배차 간격의 절반만큼 기다림 */
+var LINE_SPEED = { '2호선': 0.7, '8호선': 0.7, '수인분당선': 0.68, '신분당선': 1.3, 'GTX-A': 2.0, '경의중앙선': 0.9, '경춘선': 1.0, '공항철도': 1.1, '서해선': 1.0, '경강선': 1.0, '1호선': 0.8, '9호선': 0.8 };
+var LINE_GAP = { '2호선': 4, '8호선': 6, '9호선': 6, '수인분당선': 9, '신분당선': 6, 'GTX-A': 10, '경의중앙선': 13, '경춘선': 15, '공항철도': 8, '서해선': 12, '경강선': 10, '1호선': 6, '우이신설선': 5, '신림선': 5, '김포골드라인': 4, '의정부경전철': 6, '용인에버라인': 7 };
+var NETPOS = null;
+function hopMin(li, a, b) {
+var pa = NETPOS && NETPOS[a + '|' + li], pb = NETPOS && NETPOS[b + '|' + li];
+if (!pa || !pb) return HOP;
+var km = Math.sqrt(Math.pow((pa[0] - pb[0]) * 0.7934, 2) + Math.pow(pa[1] - pb[1], 2)) * 111;
+return 0.5 + km / (LINE_SPEED[NET[li].name] || 0.75);
+}
+function xferMin(toLi) { return 4 + (LINE_GAP[NET[toLi].name] || 5) / 2; }
 var INK = '#2B2118';
 var NAVY = '#1F3A5F', BLUE = '#1F5FA8';
 /* 한강: 다리 위치를 따라 손으로 찍은 대략적인 중심선 (장식용) */
@@ -64,15 +76,16 @@ if (!linesAt[s[k]]) { linesAt[s[k]] = []; names.push(s[k]); }
 if (linesAt[s[k]].indexOf(li) < 0) linesAt[s[k]].push(li);
 pos[s[k] + '|' + li] = [c.p[k * 2] / 1e4, c.p[k * 2 + 1] / 1e4];
 var nx = k + 1 < s.length ? s[k + 1] : (c.loop ? s[0] : null);
-if (nx) { add(s[k] + '|' + li, nx + '|' + li, HOP); if (!c.one) add(nx + '|' + li, s[k] + '|' + li, HOP); }
+if (nx) { pos[nx + '|' + li] = pos[nx + '|' + li] || [c.p[((k + 1) % s.length) * 2] / 1e4, c.p[((k + 1) % s.length) * 2 + 1] / 1e4]; NETPOS = pos; var hw = hopMin(li, s[k], nx); add(s[k] + '|' + li, nx + '|' + li, hw); if (!c.one) add(nx + '|' + li, s[k] + '|' + li, hw); }
 }
 });
 });
 names.forEach(function (n) {
 var ls = linesAt[n];
-ls.forEach(function (a) { ls.forEach(function (b) { if (a !== b) add(n + '|' + a, n + '|' + b, XFER); }); });
+ls.forEach(function (a) { ls.forEach(function (b) { if (a !== b) add(n + '|' + a, n + '|' + b, xferMin(b)); }); });
 });
 names.sort();
+NETPOS = pos;
 return { adj: adj, linesAt: linesAt, names: names, pos: pos };
 }
 function dijkstra(G, srcs) {
@@ -150,9 +163,12 @@ if ((c.loop && !c.one) || (!c.loop && i > 0)) out.push({ n: name, l: li, ci: ci,
 return out;
 }
 function stats(stops, from) {
-var hops = stops.length - 1 - from, x = 0, k;
-for (k = from; k < stops.length - 1; k++) if (stops[k + 1].l !== stops[k].l) x++;
-return { hops: hops, x: x, min: hops * HOP + x * XFER };
+var hops = stops.length - 1 - from, x = 0, k, m = 0;
+for (k = from; k < stops.length - 1; k++) {
+if (stops[k + 1].l !== stops[k].l) { x++; m += xferMin(stops[k + 1].l) + hopMin(stops[k + 1].l, stops[k].n, stops[k + 1].n); }
+else m += hopMin(stops[k].l, stops[k].n, stops[k + 1].n);
+}
+return { hops: hops, x: x, min: Math.max(1, Math.round(m)) };
 }
 function summary(st) {
 return (st.x ? '환승 ' + st.x + '번' : '환승 없이') + ' · ' + st.hops + '정거장 · 약 ' + st.min + '분';

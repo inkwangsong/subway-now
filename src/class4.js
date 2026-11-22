@@ -158,6 +158,10 @@ var moved = Math.abs(h[h.length - 1].s - h[0].s) >= 0.8;
 var me = Math.sqrt(Math.pow((h[h.length - 1].lon - h[0].lon) * COS, 2) + Math.pow(h[h.length - 1].lat - h[0].lat, 2)) * 111000;
 if (near && moved && me >= 350) ok.push({ c: c2, avg: h.reduce(function (a, x) { return a + x.d; }, 0) / h.length, last: h[h.length - 1] });
 }
+/* 진행 표시용: 내 근처에 계속 있는 열차가 몇 번 확인됐는지 */
+var bestN = 0;
+for (var key3 in cand) { var hh = cand[key3].h.filter(function (x) { return now - x.t < 240000; }); var run = 0; for (var z = hh.length - 1; z >= 0 && hh[z].d < Math.max(600, hh[z].acc * 1.5); z--) run++; if (run > bestN) bestN = run; }
+if (bestN !== (st.matchN || 0) || bestN) this.setState({ matchN: bestN, matchT: now });
 if (!ok.length) return;
 ok.sort(function (a, b) { return a.avg - b.avg; });
 /* 비슷하게 맞는 열차가 둘이면(같은 방향에 붙어 오는 열차 등) 아직 고르지 않아요 */
@@ -822,6 +826,13 @@ var locBusy = live && !geo && !st.geoErr && !homeHeardOn;
 if (homeHeardOn) out.pillText = '방송으로 확인 · ' + st.homeHeard + '역 · 다음 역을 기다려요';
 if (locBusy) out.pillText = '현재 위치 찾는 중';
 out.noOriginMsg = locBusy ? '위치를 찾고 있어요. 열차 안이면 같이 움직이는 열차를 찾아서 알아서 시작해요.' : '아직 위치를 못 잡았어요. 잡히면 알아서 시작해요. 급하면 출발역을 골라 주세요.';
+/* 진행 표시: 위치 찾는 중엔 움직이는 막대, 같이 가는 열차를 확인하는 중엔 n/3 채워지는 막대 */
+var mN = live && !homeHeardOn ? Math.min(3, st.matchN || 0) : 0, mFresh = st.matchT && Date.now() - st.matchT < 90000;
+if (mN > 0 && mFresh && !nearOn) out.pillText = '같이 움직이는 열차 확인 중 · ' + mN + '/3';
+out.progShow = locBusy || (mN > 0 && mFresh) ? 'block' : 'none';
+out.progIndet = locBusy ? 'block' : 'none'; out.progDet = locBusy ? 'none' : 'block';
+out.progW = Math.round(mN / 3 * 100) + '%';
+out.onRefresh = function () { try { window.location.reload(); } catch (e) {} };
 out.locSpin = locBusy ? 'inline-block' : 'none'; out.locPin = locBusy ? 'none' : 'block'; out.locDots = locBusy ? 'sn-dots' : '';
 var hl = !!st.homeListening;
 out.hlLabel = hl ? '안내방송 듣는 중' : '안내방송으로 찾기';
