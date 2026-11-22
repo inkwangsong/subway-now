@@ -228,7 +228,7 @@ if (!best) return;
 var ni = best.k - 1, nf = best.kind === 'this' ? Math.max(0.85, ni === i ? (st.f || 0) : 0) : 0.1;
 if (ni + nf < i + (st.f || 0) - 1.2) return;
 var patch = { i: ni, f: nf, boarded: true, playing: true, heardName: route[best.k].n, heardT: Date.now() };
-if (ck) { patch.ckDone = Object.assign({}, st.ckDone || {}); patch.ckDone[ck] = 'heard'; }
+if (ck && ck !== 'live' && ck !== 'warmup') { patch.ckDone = Object.assign({}, st.ckDone || {}); patch.ckDone[ck] = 'heard'; }
 this._acc = 0; this._lastT = 0;
 this.setState(patch);
 }
@@ -871,6 +871,8 @@ if (live && isRide && st.listenOn && i < last) {
 var isLegStart = i === 0 || route[i + 1].l !== route[i].l;
 if (isLegStart && (st.boarded || i > 0) && !ckDone['leg' + i]) { listenCk = 'leg' + i; listenMax = i > 0 ? 300 : 150; }
 else if (i === last - 1 && st.boarded && !ckDone.dest) { listenCk = 'dest'; listenMax = 150; }
+/* 실시간 열차로 확실히 따라가는 중이 아니면 계속 들어요 (위치가 제일 중요하니까) */
+else if (st.boarded && !(st.trainNo && st.trainT && Date.now() - st.trainT < 90000)) { listenCk = 'live'; listenMax = 86400; }
 }
 out.listenCk = listenCk; out.listenMax = listenMax;
 out.isLiveRide = live && isRide;

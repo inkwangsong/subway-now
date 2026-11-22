@@ -72,7 +72,8 @@ try { localStorage.setItem(FAV_KEY, JSON.stringify(f)); } catch (e) {}
 schedule();
 };
 var LISTEN_KEY = 'subway-now:listen', RT_KEY = 'subway-now:rt';
-try { if (localStorage.getItem(LISTEN_KEY) === '1') app.state = Object.assign({}, app.state, { listenOn: true }); } catch (e) {}
+/* 안내방송 듣기는 기본으로 켜 둬요 (끄면 그 설정을 기억해요) */
+try { if (localStorage.getItem(LISTEN_KEY) !== '0') app.state = Object.assign({}, app.state, { listenOn: true }); } catch (e) { app.state = Object.assign({}, app.state, { listenOn: true }); }
 /* 실시간 열차 위치 중계 주소: 주소 끝에 ?rt=https://... 를 붙여 한 번 열면 저장돼요 */
 var RT_URL = (window.SUBWAY_RT_URL || '');
 try { var qrt = new URLSearchParams(location.search).get('rt'); if (qrt) localStorage.setItem(RT_KEY, qrt); RT_URL = localStorage.getItem(RT_KEY) || RT_URL; } catch (e) {}
@@ -163,6 +164,18 @@ if (!on) stopRec();
 };
 app.props.onListenRetry = function (ck) { unlockAudio(); if (!recOn) startRec(ck); };
 /* 시작 화면의 '안내방송으로 찾기': 누른 순간 시작해서 최대 3분 들어요 */
+/* 아이폰은 화면을 한 번 눌러야 마이크를 켤 수 있어요. 그래서 앱의 아무 버튼이나 누르는 그 순간에
+   탑승 중이면 바로 듣기를 시작해요 (따로 마이크 버튼을 누를 필요 없게) */
+var gestureKick = function () {
+var st = app.state || {};
+if (!SR || recOn || !st.listenOn || st.demo || st.listenErr === 'not-allowed') return;
+unlockAudio();
+var want = lastVals && lastVals.listenCk;
+startRec(want || 'warmup');
+if (!want) setTimeout(function () { if (recCk === 'warmup') stopRec(); }, 4000);
+};
+document.addEventListener('click', function () { setTimeout(gestureKick, 0); }, true);
+document.addEventListener('touchend', gestureKick, true);
 var homeTimer = null;
 app.props.onHomeListen = function (on) {
 unlockAudio();
