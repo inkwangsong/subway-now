@@ -239,7 +239,36 @@ document.addEventListener('touchend', gestureKick, true);
    아이폰은 처음에 화면을 누를 때 한 번 '동작 및 방향' 권한을 물어봐요 */
 var M = { walkSec: 0, walkEmitted: false, on: false, asked: false, t: 0, grav: null, s: [0, 0, 0], vib: 0, hold: 0, low: 0, phase: 'unknown', phaseT: 0, decelSeen: false, lastEvt: 0, events: [] };
 var A_TH = 0.28, LOW_TH = 0.12;
+/* ===== 탑승 기록 (자동) =====
+   1초마다 센서 요약과 앱 판단을 모아 1분마다 subway-now 서버의 비공개 저장소로 보내요.
+   좌표·녹음은 보내지 않아요(가까운 역 이름과 오차만). 탈 때나 움직일 때만 보내요 */
+var REC = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), part: 0, buf: [], ev: [], rt: [], t0: Date.now(), dirty: false };
+var recUrl = function () { return RT_URL ? RT_URL.replace(/\/api\/trains.*$/, '/api/log') : ''; };
+setInterval(function () {
+var st = app.state || {}, g = st.geo, r = app._route;
+if (!M.on && st.mode !== 'ride') return;
+var i = r ? Math.min(st.i || 0, r.length - 1) : -1;
+var nm = app._near;
+REC.buf.push([Math.round((Date.now() - REC.t0) / 1000), +(M.lastMag || 0).toFixed(2), +M.vib.toFixed(2), M.phase.charAt(0), (st.mode || 'confirm').charAt(0), i, r && i >= 0 ? r[i].n : '', +(st.f || 0).toFixed(2), st.boarded ? 1 : 0, st.trainNo || '', g ? Math.round(g.acc) : -1, g ? Math.round((Date.now() - g.t) / 1000) : -1, nm ? nm.name : '', nm ? Math.round(nm.m) : -1]);
+if (st.mode === 'ride' || M.phase === 'moving') REC.dirty = true;
+}, 1000);
+var recFlush = function (beacon) {
+var url = recUrl();
+if (!url || !REC.buf.length) return;
+if (!REC.dirty) { REC.buf = []; REC.ev = []; REC.rt = []; return; }
+var st = app.state || {}, r = app._route;
+var body = JSON.stringify({ id: REC.id, part: REC.part++, t0: REC.t0, cols: 't,mag,vib,phase,mode,i,stn,f,boarded,train,gAcc,gAge,near,nearM', s: REC.buf, ev: REC.ev, rt: REC.rt, route: r ? r.map(function (x) { return x.n + '/' + NET[x.l].short; }).join(' ') : '', dest: st.dest || '', ua: navigator.userAgent.slice(0, 80) });
+REC.buf = []; REC.ev = []; REC.rt = []; REC.dirty = false;
+try {
+if (beacon && navigator.sendBeacon) navigator.sendBeacon(url, new Blob([body], { type: 'text/plain' }));
+else fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body, keepalive: true }).catch(function () {});
+} catch (e) {}
+};
+setInterval(function () { recFlush(false); }, 60000);
+document.addEventListener('visibilitychange', function () { if (document.hidden) recFlush(true); });
+window.addEventListener('pagehide', function () { recFlush(true); });
 var mEmit = function (type, t) {
+REC.ev.push([type, Math.round((t - REC.t0) / 1000)]);
 var walked = M.walkSec;
 if (type === 'stop') { M.walkSec = 0; M.walkEmitted = false; }
 if (type === 'depart') { M.walkSec = 0; M.walkEmitted = false; }
@@ -260,7 +289,7 @@ x = g.x - M.grav[0]; y = g.y - M.grav[1]; z = g.z - M.grav[2];
 }
 var ks = Math.min(1, dt / 1.5);
 M.s = [M.s[0] + (x - M.s[0]) * ks, M.s[1] + (y - M.s[1]) * ks, M.s[2] + (z - M.s[2]) * ks];
-var mag = Math.sqrt(M.s[0] * M.s[0] + M.s[1] * M.s[1] + M.s[2] * M.s[2]);
+var mag = Math.sqrt(M.s[0] * M.s[0] + M.s[1] * M.s[1] + M.s[2] * M.s[2]); M.lastMag = mag;
 var dv = Math.sqrt(Math.pow(x - M.s[0], 2) + Math.pow(y - M.s[1], 2) + Math.pow(z - M.s[2], 2));
 M.vib = M.vib + (dv - M.vib) * Math.min(1, dt / 2);
 var walking = M.vib > 0.9;
@@ -346,7 +375,7 @@ var line = NET[route[i + 1].l].name;
 rtBusy = true; rtLast = Date.now();
 fetch(RT_URL + (RT_URL.indexOf('?') < 0 ? '?' : '&') + 'line=' + encodeURIComponent(line), { cache: 'no-store' })
 .then(function (r) { return r.json(); })
-.then(function (j) { rtBusy = false; if (j && j.rows) app.applyTrains(j.rows); app.setState({ rtErr: j && j.err || null, rtOkT: j && j.rows ? Date.now() : (app.state || {}).rtOkT }); })
+.then(function (j) { rtBusy = false; if (j && j.rows) { try { var names = {}; route.forEach(function (x) { names[stnNorm(x.n)] = 1; }); REC.rt.push([Math.round((Date.now() - REC.t0) / 1000), line, j.rows.filter(function (x) { return names[stnNorm(x.stn)]; }).map(function (x) { return [x.stn, x.no, x.st, x.ud, x.term, x.t]; })]); } catch (e) {} app.applyTrains(j.rows); } app.setState({ rtErr: j && j.err || null, rtOkT: j && j.rows ? Date.now() : (app.state || {}).rtOkT }); })
 .catch(function () { rtBusy = false; app.setState({ rtErr: 'network' }); });
 };
 setInterval(function () { var st = app.state || {}; if (st.mode === 'ride' && !st.boarded && Date.now() - rtLast > 18000) pollTrains(); }, 5000);
