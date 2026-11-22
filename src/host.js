@@ -106,6 +106,7 @@ o.connect(g); g.connect(audio.destination); o.start(t0); o.stop(t0 + 0.28);
 } catch (e) {}
 };
 var ALERT = { '곧 환승': 2, '환승': 4, '곧 도착': 2, '내릴 준비': 4, '도착': 4 };
+var wasOn = false, manualBoard = false;
 var lastAlert = '', wasArrived = false, wake = null, lastNear = '';
 var keepAwake = function (on) {
 try {
@@ -115,6 +116,10 @@ if (!on && wake) { wake.release(); wake = null; }
 };
 var afterRender = function (vals) {
 var st = app.state || {}, riding = st.mode === 'ride';
+/* 탑승이 (버튼 없이) 잡히는 순간 진동 + 소리로 알려요 */
+var onNow = riding && !!st.boarded && !st.demo;
+if (onNow && !wasOn && !manualBoard) { beep(1); try { if (navigator.vibrate) navigator.vibrate([150, 80, 150]); } catch (e) {} }
+wasOn = onNow; manualBoard = false;
 keepAwake(riding || st.mode === 'confirm' || !st.mode);
 var key = riding ? vals.bannerLabel + '|' + vals.banner : '';
 if (key !== lastAlert) {
@@ -209,7 +214,7 @@ if (st.homeListening && !recOn && (st.mode || 'confirm') === 'confirm' && Date.n
 var rtBusy = false, rtLast = 0;
 var pollTrains = function () {
 var st = app.state || {}, route = app._route;
-if (!RT_URL || rtBusy || st.mode !== 'ride' || st.demo || !st.boarded || !route || document.hidden) return;
+if (!RT_URL || rtBusy || st.mode !== 'ride' || st.demo || !route || document.hidden) return;
 var i = Math.min(st.i || 0, route.length - 1);
 if (i >= route.length - 1) return;
 var line = NET[route[i + 1].l].name;
@@ -219,6 +224,7 @@ fetch(RT_URL + (RT_URL.indexOf('?') < 0 ? '?' : '&') + 'line=' + encodeURICompon
 .then(function (j) { rtBusy = false; if (j && j.rows) app.applyTrains(j.rows); app.setState({ rtErr: j && j.err || null, rtOkT: j && j.rows ? Date.now() : (app.state || {}).rtOkT }); })
 .catch(function () { rtBusy = false; app.setState({ rtErr: 'network' }); });
 };
+setInterval(function () { var st = app.state || {}; if (st.mode === 'ride' && !st.boarded && Date.now() - rtLast > 18000) pollTrains(); }, 5000);
 setInterval(pollTrains, 30000);
 /* 시작 화면: 대략적인 위치(실내·지하)일 때 근처 노선의 열차들을 30초마다 보고 같이 움직이는 열차를 찾아요.
    집에 오래 켜 두면 하루 조회 한도를 다 쓰지 않게, 위치가 크게 바뀌지 않으면 15분 뒤 멈춰요 */
@@ -257,7 +263,7 @@ preact.render(h(Fragment, null, kids), stage);
 afterRender(vals);
 lastVals = vals;
 manageListen(vals);
-if (RT_URL && (app.state || {}).boarded && Date.now() - rtLast > 30000) pollTrains();
+if (RT_URL && (app.state || {}).mode === 'ride' && Date.now() - rtLast > 30000) pollTrains();
 };
 var schedule = function () { if (!queued) { queued = true; (window.requestAnimationFrame || setTimeout)(draw); } };
 DCLogic.onChange = schedule;

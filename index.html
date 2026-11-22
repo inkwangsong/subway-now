@@ -890,7 +890,7 @@ return { mode: 'ride', origin: o, dest: null, route: route, i: 0, f: Math.max(0,
    같이 움직이는 열차를 서울시 실시간 열차 정보에서 찾아내면 그 열차에 탄 걸로 봐요 */
 homeLines() {
 var st = this.state || {}, geo = st.geo, G = this._G;
-if (!G || !geo || Date.now() - (geo.t || 0) > 120000 || !(geo.acc < 1500)) return [];
+if (!G || !geo || Date.now() - (geo.t || 0) > 600000 || !(geo.acc < 1500)) return [];
 var R = Math.max(1500, geo.acc), best = {};
 for (var pk in G.pos) {
 var q = G.pos[pk], d = Math.sqrt(Math.pow((q[0] - geo.lon) * COS, 2) + Math.pow(q[1] - geo.lat, 2)) * 111000;
@@ -1010,9 +1010,10 @@ this.setState(patch);
 /* 실시간 열차 위치 반영: 내가 탄 열차를 한 번 찾으면 그 열차 번호로 계속 따라가요 */
 applyTrains(rows) {
 var st = this.state || {}, route = this._route;
-if (!route || st.mode !== 'ride' || !st.boarded || !rows) return;
+if (!route || st.mode !== 'ride' || !rows) return;
 var last = route.length - 1, i = Math.min(st.i || 0, last);
 if (i >= last) return;
+if (!st.boarded) { this.watchBoarding(rows, route, i); return; }
 var L = route[i + 1].l, lo = i, hi = i + 1;
 while (lo > 0 && route[lo].l === L) lo--;
 while (hi < last && route[hi + 1].l === L) hi++;
@@ -1056,6 +1057,34 @@ var txT = xferAfter(route, i);
 if (patch.i !== undefined && txT >= 0 && patch.i + (patch.f || 0) >= txT) { patch.i = txT; patch.f = 0; patch.boarded = false; patch.trainNo = null; }
 this._acc = 0; this.setState(patch);
 }
+}
+/* 탑승 대기 중: 내가 기다리는 역에 내 방향 열차가 들어왔다가 떠나면 그 열차에 탄 걸로 봐요 */
+watchBoarding(rows, route, i) {
+var st = this.state || {}, now = Date.now(), S = stnNorm(route[i].n), N = stnNorm(route[i + 1].n), L = route[i + 1].l;
+var cs = NET[L].chains, w = this._bw || (this._bw = { t0: now, seen: {} });
+if (w.at !== route[i].n + '|' + L) { this._bw = w = { t0: now, seen: {}, at: route[i].n + '|' + L }; }
+var dirOk = function (r) {
+for (var c = 0; c < cs.length; c++) {
+var s = cs[c].s, a = -1, b = -1, tq = -1;
+for (var q = 0; q < s.length; q++) { var nq = stnNorm(s[q]); if (nq === S) a = q; if (nq === N) b = q; if (nq === stnNorm(r.term)) tq = q; }
+if (a < 0 || b < 0) continue;
+if (cs[c].loop || tq < 0) return true;
+return (b - a) * (tq - a) > 0;
+}
+return false;
+};
+var hit = null;
+rows.forEach(function (r) {
+if (!dirOk(r)) return;
+var at = stnNorm(r.stn), code = String(r.st), no = String(r.no);
+if (at === S && (code === '0' || code === '1')) { if (!w.seen[no]) w.seen[no] = now; }
+/* 떠남: 우리 역에서 출발(2)했거나, 다음 역으로 넘어감(다음 역 진입·도착·전역출발) */
+var gone = (at === S && code === '2') || (at === N && (code === '0' || code === '1' || code === '3'));
+if (gone && (w.seen[no] || now - w.t0 > 45000) && !hit) hit = { no: no, p: at === S ? 0.1 : (code === '3' ? 0.3 : code === '0' ? 0.8 : 0.95) };
+});
+if (!hit) return;
+this._bw = null; this._acc = 0;
+this.setState({ boarded: true, playing: true, trainNo: hit.no, trainT: now, trainMiss: 0, i: i, f: Math.min(0.95, hit.p), boardedBy: 'train' });
 }
 renderVals() {
 var self = this;
@@ -1830,6 +1859,7 @@ o.connect(g); g.connect(audio.destination); o.start(t0); o.stop(t0 + 0.28);
 } catch (e) {}
 };
 var ALERT = { '곧 환승': 2, '환승': 4, '곧 도착': 2, '내릴 준비': 4, '도착': 4 };
+var wasOn = false, manualBoard = false;
 var lastAlert = '', wasArrived = false, wake = null, lastNear = '';
 var keepAwake = function (on) {
 try {
@@ -1839,6 +1869,10 @@ if (!on && wake) { wake.release(); wake = null; }
 };
 var afterRender = function (vals) {
 var st = app.state || {}, riding = st.mode === 'ride';
+/* 탑승이 (버튼 없이) 잡히는 순간 진동 + 소리로 알려요 */
+var onNow = riding && !!st.boarded && !st.demo;
+if (onNow && !wasOn && !manualBoard) { beep(1); try { if (navigator.vibrate) navigator.vibrate([150, 80, 150]); } catch (e) {} }
+wasOn = onNow; manualBoard = false;
 keepAwake(riding || st.mode === 'confirm' || !st.mode);
 var key = riding ? vals.bannerLabel + '|' + vals.banner : '';
 if (key !== lastAlert) {
@@ -1933,7 +1967,7 @@ if (st.homeListening && !recOn && (st.mode || 'confirm') === 'confirm' && Date.n
 var rtBusy = false, rtLast = 0;
 var pollTrains = function () {
 var st = app.state || {}, route = app._route;
-if (!RT_URL || rtBusy || st.mode !== 'ride' || st.demo || !st.boarded || !route || document.hidden) return;
+if (!RT_URL || rtBusy || st.mode !== 'ride' || st.demo || !route || document.hidden) return;
 var i = Math.min(st.i || 0, route.length - 1);
 if (i >= route.length - 1) return;
 var line = NET[route[i + 1].l].name;
@@ -1943,6 +1977,7 @@ fetch(RT_URL + (RT_URL.indexOf('?') < 0 ? '?' : '&') + 'line=' + encodeURICompon
 .then(function (j) { rtBusy = false; if (j && j.rows) app.applyTrains(j.rows); app.setState({ rtErr: j && j.err || null, rtOkT: j && j.rows ? Date.now() : (app.state || {}).rtOkT }); })
 .catch(function () { rtBusy = false; app.setState({ rtErr: 'network' }); });
 };
+setInterval(function () { var st = app.state || {}; if (st.mode === 'ride' && !st.boarded && Date.now() - rtLast > 18000) pollTrains(); }, 5000);
 setInterval(pollTrains, 30000);
 /* 시작 화면: 대략적인 위치(실내·지하)일 때 근처 노선의 열차들을 30초마다 보고 같이 움직이는 열차를 찾아요.
    집에 오래 켜 두면 하루 조회 한도를 다 쓰지 않게, 위치가 크게 바뀌지 않으면 15분 뒤 멈춰요 */
@@ -1981,7 +2016,7 @@ preact.render(h(Fragment, null, kids), stage);
 afterRender(vals);
 lastVals = vals;
 manageListen(vals);
-if (RT_URL && (app.state || {}).boarded && Date.now() - rtLast > 30000) pollTrains();
+if (RT_URL && (app.state || {}).mode === 'ride' && Date.now() - rtLast > 30000) pollTrains();
 };
 var schedule = function () { if (!queued) { queued = true; (window.requestAnimationFrame || setTimeout)(draw); } };
 DCLogic.onChange = schedule;
