@@ -196,9 +196,15 @@ usualPath = this._usual;
 
 /* 검색: 도착역 또는 출발역 */
 var forOrigin = pickFor === 'origin';
+var favs = (this.props.favs || []).slice();
 var found = q
 ? G.names.filter(function (x) { return (forOrigin || x !== here) && x.indexOf(q) >= 0; })
-: (forOrigin ? RECENT_ORIGINS.slice() : FAVORITES.filter(function (x) { return x !== here; }));
+: (function () {
+/* 검색어가 없으면 별표한 역을 먼저, 그다음 기본 목록을 보여줘요 */
+var base = forOrigin ? RECENT_ORIGINS : FAVORITES, seen = {}, outL = [];
+favs.concat(base).forEach(function (x) { if (!seen[x] && G.linesAt[x] && (forOrigin || x !== here)) { seen[x] = 1; outL.push(x); } });
+return outL;
+})();
 if (q) found.sort(function (a, b) { return (a.indexOf(q) - b.indexOf(q)) || (a.length - b.length); });
 var total = found.length;
 var picks = mode !== 'pick' ? [] : found.slice(0, 30).map(function (name) {
@@ -208,6 +214,17 @@ o.note = forOrigin
 ? (G.linesAt[name] || []).map(function (li) { return NET[li].name; }).join(' · ')
 : (path ? summary(stats(path, 0)) : '이어지는 길이 없어요');
 o.pick = function () { if (forOrigin) setOrigin(name); else go(name); };
+var on = favs.indexOf(name) >= 0;
+o.starFill = on ? '#F6B545' : 'none'; o.starLine = on ? '#E09A20' : 'var(--sub)';
+o.starAria = on ? name + ' 별표 빼기' : name + ' 별표하기';
+o.star = function () { if (self.props.onFav) self.props.onFav(name); };
+return o;
+});
+/* 시작 화면의 별표 역 버튼: 누르면 바로 그 역으로 가는 길을 따라가요 */
+var favChips = !origin ? [] : favs.filter(function (x) { return x !== here && G.linesAt[x]; }).map(function (name) {
+var o = badges(G, name), path = pathTo(G, D, name), stt = path ? stats(path, 0) : null;
+o.name = name; o.mins = stt ? summary(stt).split(' · ').pop() : '';
+o.pick = function () { go(name); };
 return o;
 });
 var recents = RECENT_ORIGINS.map(function (name) { var o = badges(G, name); o.name = name; o.pick = function () { setOrigin(name); }; return o; });
@@ -656,6 +673,7 @@ out.hasUsual = !!usualPath;
 out.usualName = usualTo;
 out.usualSummary = usualPath ? summary(stats(usualPath, 0)) : '';
 out.recents = recents;
+out.favChips = favChips; out.hasFavs = favChips.length > 0;
 out.pickTitle = forOrigin ? '어디서 타요?' : '어디까지 가요?';
 out.dirs = dirs;
 out.dirSub = origin ? origin.n + (origin.n.slice(-1) === '역' ? '' : '역') + '에서 탄 열차를 골라 주세요' : '';

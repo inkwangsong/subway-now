@@ -371,6 +371,20 @@ input::placeholder{color:var(--sub)}
 <span style="font-size: 12px; font-weight: 500; color: var(--sub); display: flex; align-items: center; gap: 4px"><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>역 이름으로 검색</span>
 </button>
 </div>
+<sc-if value="{{ hasFavs }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 4px; margin: -2px -2px -4px; scrollbar-width: none">
+<sc-for list="{{ favChips }}" as="p" hint-placeholder-count="2">
+<button onClick="{{ p.pick }}" style="flex-shrink: 0; height: 46px; border-radius: 23px; background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: var(--ink); padding: 0 16px 0 12px; display: flex; align-items: center; gap: 6px">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="#F6B545" stroke="#E09A20" stroke-width="1.8" stroke-linejoin="round"><polygon points="12 2.8 14.8 8.9 21.4 9.6 16.4 14.1 17.9 20.6 12 17.2 6.1 20.6 7.6 14.1 2.6 9.6 9.2 8.9"></polygon></svg>
+<span style="font-size: 16px; font-weight: 700; margin-right: 2px">{{p.name}}</span>
+<span style="display: {{p.b1.show}}; min-width: 20px; height: 20px; box-sizing: border-box; padding: 0 7px; border-radius: 10px; background: {{p.b1.bg}}; color: {{p.b1.fg}}; font-size: 12px; font-weight: 700; align-items: center; justify-content: center">{{p.b1.t}}</span>
+<span style="display: {{p.b2.show}}; min-width: 20px; height: 20px; box-sizing: border-box; padding: 0 7px; border-radius: 10px; background: {{p.b2.bg}}; color: {{p.b2.fg}}; font-size: 12px; font-weight: 700; align-items: center; justify-content: center">{{p.b2.t}}</span>
+<span style="display: {{p.b3.show}}; min-width: 20px; height: 20px; box-sizing: border-box; padding: 0 7px; border-radius: 10px; background: {{p.b3.bg}}; color: {{p.b3.fg}}; font-size: 12px; font-weight: 700; align-items: center; justify-content: center">{{p.b3.t}}</span>
+<span style="font-size: 12px; font-weight: 600; color: var(--sub)">{{p.mins}}</span>
+</button>
+</sc-for>
+</div>
+</sc-if>
 <sc-if value="{{ hasUsual }}" hint-placeholder-val="{{ true }}">
 <button onClick="{{ onUsual }}" style="height: 60px; border-radius: 20px; background: linear-gradient(180deg, #2F5890, #1F3A5F); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 12px 24px rgba(20,36,70,0.45), inset 0 1px 0 rgba(255,255,255,0.4); color: #FFFFFF; text-align: left; padding: 0 18px; display: flex; align-items: center; gap: 12px">
 <span style="font-size: 11px; font-weight: 700; letter-spacing: 1px; opacity: 0.8; flex-shrink: 0">평소처럼</span>
@@ -474,7 +488,8 @@ input::placeholder{color:var(--sub)}
 <div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--sub); padding: 6px 8px 0">{{listLabel}}</div>
 <div style="flex-grow: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-bottom: 24px">
 <sc-for list="{{ picks }}" as="p" hint-placeholder-count="5">
-<button onClick="{{ p.pick }}" style="flex-shrink: 0; width: 100%; min-height: 68px; border-radius: 20px; background: var(--row); border: 1px solid var(--card-line); box-shadow: var(--row-shadow); color: var(--ink); text-align: left; padding: 12px 20px; display: flex; flex-direction: column; justify-content: center; gap: 3px">
+<div style="flex-shrink: 0; position: relative; border-radius: 20px; background: var(--row); border: 1px solid var(--card-line); box-shadow: var(--row-shadow); display: flex; align-items: stretch">
+<button onClick="{{ p.pick }}" style="flex-grow: 1; min-width: 0; min-height: 68px; border: 0; border-radius: 20px; background: transparent; color: var(--ink); text-align: left; padding: 12px 4px 12px 20px; display: flex; flex-direction: column; justify-content: center; gap: 3px">
 <span style="display: flex; align-items: center; gap: 6px">
 <span style="font-size: 18px; font-weight: 700; margin-right: 2px">{{p.name}}</span>
 <span style="display: {{p.b1.show}}; min-width: 22px; height: 22px; box-sizing: border-box; padding: 0 7px; border-radius: 11px; background: {{p.b1.bg}}; color: {{p.b1.fg}}; font-size: 12px; font-weight: 700; align-items: center; justify-content: center">{{p.b1.t}}</span>
@@ -484,6 +499,10 @@ input::placeholder{color:var(--sub)}
 </span>
 <span style="font-size: 13px; font-weight: 500; color: var(--sub)">{{p.note}}</span>
 </button>
+<button onClick="{{ p.star }}" aria-label="{{p.starAria}}" style="flex-shrink: 0; width: 56px; border: 0; border-radius: 20px; background: transparent; padding: 0; display: flex; align-items: center; justify-content: center">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="{{p.starFill}}" stroke="{{p.starLine}}" stroke-width="1.8" stroke-linejoin="round"><polygon points="12 2.8 14.8 8.9 21.4 9.6 16.4 14.1 17.9 20.6 12 17.2 6.1 20.6 7.6 14.1 2.6 9.6 9.2 8.9"></polygon></svg>
+</button>
+</div>
 </sc-for>
 <sc-if value="{{ noResult }}" hint-placeholder-val="{{ false }}">
 <div style="padding: 32px 20px; font-size: 15px; font-weight: 500; line-height: 1.6; color: var(--sub); text-align: center">그런 역은 못 찾았어요. 이름을 다시 확인해 주세요.</div>
@@ -904,9 +923,15 @@ usualPath = this._usual;
 
 /* 검색: 도착역 또는 출발역 */
 var forOrigin = pickFor === 'origin';
+var favs = (this.props.favs || []).slice();
 var found = q
 ? G.names.filter(function (x) { return (forOrigin || x !== here) && x.indexOf(q) >= 0; })
-: (forOrigin ? RECENT_ORIGINS.slice() : FAVORITES.filter(function (x) { return x !== here; }));
+: (function () {
+/* 검색어가 없으면 별표한 역을 먼저, 그다음 기본 목록을 보여줘요 */
+var base = forOrigin ? RECENT_ORIGINS : FAVORITES, seen = {}, outL = [];
+favs.concat(base).forEach(function (x) { if (!seen[x] && G.linesAt[x] && (forOrigin || x !== here)) { seen[x] = 1; outL.push(x); } });
+return outL;
+})();
 if (q) found.sort(function (a, b) { return (a.indexOf(q) - b.indexOf(q)) || (a.length - b.length); });
 var total = found.length;
 var picks = mode !== 'pick' ? [] : found.slice(0, 30).map(function (name) {
@@ -916,6 +941,17 @@ o.note = forOrigin
 ? (G.linesAt[name] || []).map(function (li) { return NET[li].name; }).join(' · ')
 : (path ? summary(stats(path, 0)) : '이어지는 길이 없어요');
 o.pick = function () { if (forOrigin) setOrigin(name); else go(name); };
+var on = favs.indexOf(name) >= 0;
+o.starFill = on ? '#F6B545' : 'none'; o.starLine = on ? '#E09A20' : 'var(--sub)';
+o.starAria = on ? name + ' 별표 빼기' : name + ' 별표하기';
+o.star = function () { if (self.props.onFav) self.props.onFav(name); };
+return o;
+});
+/* 시작 화면의 별표 역 버튼: 누르면 바로 그 역으로 가는 길을 따라가요 */
+var favChips = !origin ? [] : favs.filter(function (x) { return x !== here && G.linesAt[x]; }).map(function (name) {
+var o = badges(G, name), path = pathTo(G, D, name), stt = path ? stats(path, 0) : null;
+o.name = name; o.mins = stt ? summary(stt).split(' · ').pop() : '';
+o.pick = function () { go(name); };
 return o;
 });
 var recents = RECENT_ORIGINS.map(function (name) { var o = badges(G, name); o.name = name; o.pick = function () { setOrigin(name); }; return o; });
@@ -1364,6 +1400,7 @@ out.hasUsual = !!usualPath;
 out.usualName = usualTo;
 out.usualSummary = usualPath ? summary(stats(usualPath, 0)) : '';
 out.recents = recents;
+out.favChips = favChips; out.hasFavs = favChips.length > 0;
 out.pickTitle = forOrigin ? '어디서 타요?' : '어디까지 가요?';
 out.dirs = dirs;
 out.dirSub = origin ? origin.n + (origin.n.slice(-1) === '역' ? '' : '역') + '에서 탄 열차를 골라 주세요' : '';
@@ -1509,6 +1546,17 @@ var HIST_KEY = 'subway-now:hist';
 var readHist = function () { try { return JSON.parse(localStorage.getItem(HIST_KEY) || '{}') || {}; } catch (e) { return {}; } };
 var todNow = function () { var hr = new Date().getHours(); return hr >= 5 && hr < 10 ? 'morning' : (hr >= 10 && hr < 17 ? 'noon' : 'evening'); };
 app.props = { live: true, tod: todNow(), hist: readHist(), viewH: 844 };
+/* 별표한 역: 처음엔 서현·서초로 시작해요 */
+var FAV_KEY = 'subway-now:favs';
+var readFavs = function () { try { var v = localStorage.getItem(FAV_KEY); return v === null ? ['서현', '서초'] : (JSON.parse(v) || []); } catch (e) { return ['서현', '서초']; } };
+app.props.favs = readFavs();
+app.props.onFav = function (name) {
+var f = app.props.favs.slice(), k = f.indexOf(name);
+if (k >= 0) f.splice(k, 1); else f.push(name);
+app.props.favs = f;
+try { localStorage.setItem(FAV_KEY, JSON.stringify(f)); } catch (e) {}
+schedule();
+};
 var LISTEN_KEY = 'subway-now:listen', RT_KEY = 'subway-now:rt';
 try { if (localStorage.getItem(LISTEN_KEY) === '1') app.state = Object.assign({}, app.state, { listenOn: true }); } catch (e) {}
 /* 실시간 열차 위치 중계 주소: 주소 끝에 ?rt=https://... 를 붙여 한 번 열면 저장돼요 */

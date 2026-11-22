@@ -353,6 +353,18 @@ input::placeholder{{color:{SUB}}}
 <span style="font-size: 12px; font-weight: 500; color: {SUB}; display: flex; align-items: center; gap: 4px"><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>역 이름으로 검색</span>
 </button>
 </div>
+<sc-if value="{{{{ hasFavs }}}}" hint-placeholder-val="{{{{ true }}}}">
+<div style="display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 4px; margin: -2px -2px -4px; scrollbar-width: none">
+<sc-for list="{{{{ favChips }}}}" as="p" hint-placeholder-count="2">
+<button onClick="{{{{ p.pick }}}}" style="flex-shrink: 0; height: 46px; border-radius: 23px; {ACRYL}; color: {INK}; padding: 0 16px 0 12px; display: flex; align-items: center; gap: 6px">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="#F6B545" stroke="#E09A20" stroke-width="1.8" stroke-linejoin="round"><polygon points="12 2.8 14.8 8.9 21.4 9.6 16.4 14.1 17.9 20.6 12 17.2 6.1 20.6 7.6 14.1 2.6 9.6 9.2 8.9"></polygon></svg>
+<span style="font-size: 16px; font-weight: 700; margin-right: 2px">{{{{p.name}}}}</span>
+{badges('p', 20)}
+<span style="font-size: 12px; font-weight: 600; color: {SUB}">{{{{p.mins}}}}</span>
+</button>
+</sc-for>
+</div>
+</sc-if>
 <sc-if value="{{{{ hasUsual }}}}" hint-placeholder-val="{{{{ true }}}}">
 <button onClick="{{{{ onUsual }}}}" style="height: 60px; border-radius: 20px; {PRIMARY}; color: #FFFFFF; text-align: left; padding: 0 18px; display: flex; align-items: center; gap: 12px">
 <span style="font-size: 11px; font-weight: 700; letter-spacing: 1px; opacity: 0.8; flex-shrink: 0">평소처럼</span>
@@ -454,7 +466,8 @@ input::placeholder{{color:{SUB}}}
 <div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: {SUB}; padding: 6px 8px 0">{{{{listLabel}}}}</div>
 <div style="flex-grow: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-bottom: 24px">
 <sc-for list="{{{{ picks }}}}" as="p" hint-placeholder-count="5">
-<button onClick="{{{{ p.pick }}}}" style="flex-shrink: 0; width: 100%; min-height: 68px; border-radius: 20px; background: var(--row); border: 1px solid var(--card-line); box-shadow: var(--row-shadow); color: {INK}; text-align: left; padding: 12px 20px; display: flex; flex-direction: column; justify-content: center; gap: 3px">
+<div style="flex-shrink: 0; position: relative; border-radius: 20px; background: var(--row); border: 1px solid var(--card-line); box-shadow: var(--row-shadow); display: flex; align-items: stretch">
+<button onClick="{{{{ p.pick }}}}" style="flex-grow: 1; min-width: 0; min-height: 68px; border: 0; border-radius: 20px; background: transparent; color: {INK}; text-align: left; padding: 12px 4px 12px 20px; display: flex; flex-direction: column; justify-content: center; gap: 3px">
 <span style="display: flex; align-items: center; gap: 6px">
 <span style="font-size: 18px; font-weight: 700; margin-right: 2px">{{{{p.name}}}}</span>
 {badges('p')}
@@ -462,6 +475,10 @@ input::placeholder{{color:{SUB}}}
 </span>
 <span style="font-size: 13px; font-weight: 500; color: {SUB}">{{{{p.note}}}}</span>
 </button>
+<button onClick="{{{{ p.star }}}}" aria-label="{{{{p.starAria}}}}" style="flex-shrink: 0; width: 56px; border: 0; border-radius: 20px; background: transparent; padding: 0; display: flex; align-items: center; justify-content: center">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="{{{{p.starFill}}}}" stroke="{{{{p.starLine}}}}" stroke-width="1.8" stroke-linejoin="round"><polygon points="12 2.8 14.8 8.9 21.4 9.6 16.4 14.1 17.9 20.6 12 17.2 6.1 20.6 7.6 14.1 2.6 9.6 9.2 8.9"></polygon></svg>
+</button>
+</div>
 </sc-for>
 <sc-if value="{{{{ noResult }}}}" hint-placeholder-val="{{{{ false }}}}">
 <div style="padding: 32px 20px; font-size: 15px; font-weight: 500; line-height: 1.6; color: {SUB}; text-align: center">그런 역은 못 찾았어요. 이름을 다시 확인해 주세요.</div>

@@ -60,6 +60,17 @@ var HIST_KEY = 'subway-now:hist';
 var readHist = function () { try { return JSON.parse(localStorage.getItem(HIST_KEY) || '{}') || {}; } catch (e) { return {}; } };
 var todNow = function () { var hr = new Date().getHours(); return hr >= 5 && hr < 10 ? 'morning' : (hr >= 10 && hr < 17 ? 'noon' : 'evening'); };
 app.props = { live: true, tod: todNow(), hist: readHist(), viewH: 844 };
+/* 별표한 역: 처음엔 서현·서초로 시작해요 */
+var FAV_KEY = 'subway-now:favs';
+var readFavs = function () { try { var v = localStorage.getItem(FAV_KEY); return v === null ? ['서현', '서초'] : (JSON.parse(v) || []); } catch (e) { return ['서현', '서초']; } };
+app.props.favs = readFavs();
+app.props.onFav = function (name) {
+var f = app.props.favs.slice(), k = f.indexOf(name);
+if (k >= 0) f.splice(k, 1); else f.push(name);
+app.props.favs = f;
+try { localStorage.setItem(FAV_KEY, JSON.stringify(f)); } catch (e) {}
+schedule();
+};
 var LISTEN_KEY = 'subway-now:listen', RT_KEY = 'subway-now:rt';
 try { if (localStorage.getItem(LISTEN_KEY) === '1') app.state = Object.assign({}, app.state, { listenOn: true }); } catch (e) {}
 /* 실시간 열차 위치 중계 주소: 주소 끝에 ?rt=https://... 를 붙여 한 번 열면 저장돼요 */
