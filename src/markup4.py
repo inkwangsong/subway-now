@@ -474,7 +474,7 @@ input::placeholder{{color:{SUB}}}
 <div style="margin-left: auto; display: {{{{tagShow}}}}; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: {BLUE}">{{{{hereTag}}}}</div>
 </div>
 <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr); align-items: baseline; column-gap: 8px; padding-top: 2px">
-<span style="min-width: 0; text-align: right; font-size: 15px; font-weight: 600; color: {SUB}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{prev}}}}</span>
+<button onClick="{{{{ onPrev }}}}" aria-label="여기가 {{{{prev}}}}역이에요" style="min-width: 0; border: 0; background: transparent; padding: 0; text-align: right; font-size: 15px; font-weight: 600; color: {SUB}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: underline dotted; text-underline-offset: 4px">{{{{prev}}}}</button>
 <span style="font-size: 14px; font-weight: 700; color: {SUB}; visibility: {{{{prevVis}}}}">›</span>
 <span style="flex-shrink: 0; font-size: {{{{curSize}}}}; font-weight: 700; line-height: 1.15; letter-spacing: -1px; white-space: nowrap; color: {NAVY}">{{{{c.name}}}}</span>
 <span style="flex-shrink: 0; font-size: 14px; font-weight: 700; color: {BLUE}">›</span>

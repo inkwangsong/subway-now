@@ -258,7 +258,8 @@ for (var c = 0; c < cs.length; c++) {
 var s = cs[c].s, a = s.indexOf(route[i].n), b = s.indexOf(route[i + 1].n), tq = -1, sq = -1;
 if (a < 0 || b < 0) continue;
 for (var q = 0; q < s.length; q++) { if (stnNorm(s[q]) === stnNorm(r.term)) tq = q; if (stnNorm(s[q]) === stnNorm(r.stn)) sq = q; }
-if (cs[c].loop || tq < 0 || sq < 0) return true;
+if (cs[c].loop) return loopDirOk(cs[c], a, b, r);
+if (tq < 0 || sq < 0) return true;
 return (b - a) * (tq - sq) > 0;
 }
 return true;
@@ -281,7 +282,7 @@ if (!resync || !gq || !G2) return Math.abs(p - cur);
 var k = Math.max(0, Math.min(last, Math.round(p))), q = G2.pos[route[k].n + '|' + route[k].l];
 return q ? Math.sqrt(Math.pow((q[0] - gq.lon) * COS, 2) + Math.pow(q[1] - gq.lat, 2)) * 111 : Math.abs(p - cur);
 };
-rows.forEach(function (r) { var p = posOf(r); if (p === null || !dirOk(r)) return; var d = score(p); if ((resync ? (p >= cur - 1.5 && p <= cur + 4) : d <= 0.75) && (!best || d < best.d)) best = { r: r, p: p, d: d }; });
+rows.forEach(function (r) { var p = posOf(r); if (p === null || !dirOk(r) || (st.badTrain && String(r.no) === st.badTrain && Date.now() - (st.badT || 0) < 600000)) return; var d = score(p); if ((resync ? (p >= cur - 1.5 && p <= cur + 4) : d <= 0.75) && (!best || d < best.d)) best = { r: r, p: p, d: d }; });
 if (best) { var bp = resync ? best.p : Math.max(best.p, cur - 0.1); patch = { resyncT: null, trainNo: String(best.r.no), trainT: Date.now(), trainMiss: 0, i: Math.max(0, Math.floor(bp)), f: bp - Math.floor(bp) }; }
 }
 if (patch) {
@@ -315,7 +316,8 @@ for (var c = 0; c < cs.length; c++) {
 var s = cs[c].s, a = -1, b = -1, tq = -1;
 for (var q = 0; q < s.length; q++) { var nq = stnNorm(s[q]); if (nq === S) a = q; if (nq === N) b = q; if (nq === stnNorm(r.term)) tq = q; }
 if (a < 0 || b < 0) continue;
-if (cs[c].loop || tq < 0) return true;
+if (cs[c].loop) return loopDirOk(cs[c], a, b, r);
+if (tq < 0) return true;
 return (b - a) * (tq - a) > 0;
 }
 return false;
@@ -950,7 +952,9 @@ if (st.listenOn && st.listenErr && listenCk && st.listenErr !== 'unsupported') {
 var on = !st.listenOn; self.setState({ listenOn: on }); if (self.props.onListenToggle) self.props.onListenToggle(on); };
 var resyncOn = live && isRide && st.resyncT && Date.now() - st.resyncT < 120000;
 var running = isRide && !waiting && !resyncOn && frac > 0 && i < last;
-out.runShow = running ? 'flex' : 'none'; out.prevVis = p ? 'visible' : 'hidden'; out.tagShow = running ? 'none' : 'block';
+out.runShow = running ? 'flex' : 'none'; out.prevVis = p ? 'visible' : 'hidden';
+/* 앱이 한 정거장 앞서 있으면 이전 역 이름을 눌러 '여기예요'로 되돌려요. 잘못 잡은 열차는 10분 동안 다시 안 잡아요 */
+out.onPrev = function () { if (!p || !isRide) return; self._acc = 0; self._lastT = 0; self.setState({ i: i - 1, f: 0.05, trainNo: null, badTrain: st.trainNo || st.badTrain || null, badT: Date.now(), heardT: Date.now(), heardName: p.n + ' (직접 맞춤)' }); }; out.tagShow = running ? 'none' : 'block';
 out.curSize = c.n.length <= 2 ? '40px' : c.n.length <= 3 ? '36px' : c.n.length <= 5 ? '28px' : c.n.length <= 7 ? '24px' : '20px';
 out.hereTag = resyncOn ? '다시 맞추는 중' : waiting ? '탑승 전' : (frac > 0 ? '달리는 중' : (i >= last ? '도착' : '정차 중'));
 out.playLabel = i >= last ? '도착했어요' : waiting ? '열차 탔어요' : (live ? (playing ? '시간 추정 끄기' : '시간으로 추정하기') : (playing ? '잠깐 멈추기' : '자동으로 달리기'));

@@ -197,6 +197,13 @@ return len <= 5 ? '34px' : len <= 7 ? '30px' : len <= 9 ? '26px' : '22px';
 var STN_ALIAS = { '대모산': '대모산입구', '응암순환': '응암', '서울': '서울역' };
 function stnNorm(s) { var n = String(s || '').replace(/\(.*?\)/g, '').replace(/\s+/g, '').replace(/역$/, ''); return STN_ALIAS[n] ? STN_ALIAS[n].replace(/역$/, '') : n; }
 /* i 다음에 처음 나오는 환승역 위치 (없으면 -1) */
+/* 순환선(2호선) 방향: 우리 노선 데이터는 시청→을지로입구 순서(외선)로 이어져 있어요.
+   서울시 실시간 정보 updnLine: 0 = 내선, 1 = 외선 */
+function loopDirOk(c, a, b, r) {
+if (r.ud === undefined || r.ud === null || r.ud === '') return true;
+var n = c.s.length, fwd = b - a === 1 || (a === n - 1 && b === 0);
+return String(r.ud) === (fwd ? '1' : '0');
+}
 function xferAfter(route, i) {
 if (!route) return -1;
 for (var k = i + 1; k < route.length - 1; k++) if (route[k + 1].l !== route[k].l) return k;
