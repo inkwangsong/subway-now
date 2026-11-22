@@ -90,7 +90,8 @@ return { adj: adj, linesAt: linesAt, names: names, pos: pos };
 }
 function dijkstra(G, srcs) {
 var dist = {}, prev = {}, done = {}, open = srcs.slice();
-srcs.forEach(function (s) { dist[s] = 0; });
+/* 출발할 때 기다리는 시간(그 노선 배차 간격의 절반)도 넣어요: 출발역에서 어느 노선을 탈지 고를 때 차이가 나요 */
+srcs.forEach(function (s) { var li = +String(s).split('|')[1]; dist[s] = NET[li] ? (LINE_GAP[NET[li].name] || 5) / 2 : 0; });
 while (open.length) {
 var bi = 0, k;
 for (k = 1; k < open.length; k++) if (dist[open[k]] < dist[open[bi]]) bi = k;

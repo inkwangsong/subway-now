@@ -674,7 +674,8 @@ return { adj: adj, linesAt: linesAt, names: names, pos: pos };
 }
 function dijkstra(G, srcs) {
 var dist = {}, prev = {}, done = {}, open = srcs.slice();
-srcs.forEach(function (s) { dist[s] = 0; });
+/* 출발할 때 기다리는 시간(그 노선 배차 간격의 절반)도 넣어요: 출발역에서 어느 노선을 탈지 고를 때 차이가 나요 */
+srcs.forEach(function (s) { var li = +String(s).split('|')[1]; dist[s] = NET[li] ? (LINE_GAP[NET[li].name] || 5) / 2 : 0; });
 while (open.length) {
 var bi = 0, k;
 for (k = 1; k < open.length; k++) if (dist[open[k]] < dist[open[bi]]) bi = k;
@@ -846,6 +847,15 @@ var vx = bx - ax, vy = by - ay, l2 = vx * vx + vy * vy || 1, tt = Math.max(0, Ma
 var ex = ax + vx * tt - px, ey = ay + vy * tt - py, dist = Math.sqrt(ex * ex + ey * ey) * 111000;
 if (!best || dist < best.dist) best = { k: k, t: tt, dist: dist };
 }
+/* 위치가 안내하던 길에서 많이 벗어났으면(두 번 연속) 가장 가까운 역에서 길을 다시 찾아요 */
+if (geo.acc <= 400 && (i > 0 || st.boarded) && (!best || best.dist > Math.max(700, geo.acc * 1.5))) {
+this._off = (this._off || 0) + 1;
+if (this._off >= 2) {
+var bd = 1e9, bn = null;
+for (var pk in G.pos) { var q2 = G.pos[pk], dd = Math.pow((q2[0] - geo.lon) * COS, 2) + Math.pow(q2[1] - geo.lat, 2); if (dd < bd) { bd = dd; bn = pk.split('|')[0]; } }
+if (bn && Math.sqrt(bd) * 111000 < 600 && this.reroute(bn, null, { boarded: !!(geo.speed && geo.speed > 5), geo: geo })) return;
+}
+} else this._off = 0;
 if (best && best.dist < Math.max(500, geo.acc * 1.5)) {
 var cur = i + (st.f || 0), nxt = best.k + best.t;
 if (!st.boarded && (nxt > i + 0.35 || (geo.speed && geo.speed > 5))) { patch.boarded = true; patch.playing = true; }
@@ -1005,6 +1015,27 @@ return;
 }
 if (a || b) this.setState({ origin: { n: a || b }, homeHeard: a || b, homeHeardT: now });
 }
+/* 경로 다시 찾기: 실제로 있는 곳(방송·위치)이 안내하던 길 밖이면, 그 역에서 목적지까지 새로 찾아요 */
+reroute(fromName, lineIdx, opts) {
+var st = this.state || {}, G = this._G;
+if (!G || !st.dest || !fromName || fromName === st.dest) return false;
+var o = { n: fromName }; if (lineIdx !== undefined && lineIdx !== null) o.l = lineIdx;
+var path = pathTo(G, dijkstra(G, srcsOf(G, o)), st.dest);
+if (!path || path.length < 2) return false;
+this._acc = 0; this._lastT = 0; this._bw = null; this._off = 0;
+this.setState(Object.assign({ route: path, i: 0, f: 0, trainNo: null, trainMiss: 0, ckDone: {}, rerouteT: Date.now(), rerouteFrom: fromName, resyncT: null }, opts || {}));
+return true;
+}
+heardStations(T) {
+var G = this._G;
+var find = function (key) {
+var at = T.lastIndexOf(key); if (at < 0) return null;
+var rest = T.slice(at + key.length, at + key.length + 14), best = null;
+G.names.forEach(function (nm) { var n = stnNorm(nm); if (n.length >= 2 && rest.indexOf(n) === 0 && (!best || n.length > stnNorm(best).length)) best = nm; });
+return best;
+};
+return { cur: find('이번역은'), nxt: find('다음역은') };
+}
 applyHeard(text, ck) {
 var st = this.state || {}, route = this._route;
 if ((st.mode || 'confirm') === 'confirm') { if (ck === 'home' || ck === 'sync') this.applyHeardHome(text); return; }
@@ -1019,7 +1050,16 @@ var kind = T.slice(Math.max(0, pos - 6), pos).indexOf('다음') >= 0 ? 'next' : 
 var score = (kind === 'this' ? 100 : 50) + nm.length;
 if (!best || score > best.score) best = { k: k, kind: kind, score: score };
 }
+if (true) {
+/* 길 밖의 역 이름이 방송에 나왔으면 그 역에서 다시 찾아요 ("이번 역은"이 길 밖이면 길 위 역보다 먼저 봐요) */
+var hs = this.heardStations(T), onRoute = function (nm) { for (var q = Math.max(0, i - 1); q <= last; q++) if (route[q].n === nm) return true; return false; };
+if (best && !(hs.cur && !onRoute(hs.cur))) hs = { cur: null, nxt: null };
+var lineOf = null;
+if (hs.cur && hs.nxt) NET.forEach(function (L, li) { L.chains.forEach(function (c) { var a = c.s.indexOf(hs.cur), b = c.s.indexOf(hs.nxt); if (a >= 0 && b >= 0 && Math.abs(a - b) === 1 && lineOf === null) lineOf = li; }); });
+if (hs.cur && !onRoute(hs.cur)) { this.reroute(hs.cur, lineOf, { boarded: true, playing: true, f: 0, heardName: hs.cur, heardT: Date.now() }); return; }
+if (!hs.cur && hs.nxt && !onRoute(hs.nxt)) { this.reroute(hs.nxt, null, { boarded: true, playing: true, f: 0, heardName: hs.nxt, heardT: Date.now() }); return; }
 if (!best) return;
+}
 var ni = best.k - 1, nf = best.kind === 'this' ? Math.max(0.85, ni === i ? (st.f || 0) : 0) : 0.1;
 if (ni + nf < i + (st.f || 0) - 1.2) return;
 var patch = { i: ni, f: nf, boarded: true, playing: true, heardName: route[best.k].n, heardT: Date.now(), resyncT: null };
@@ -1775,6 +1815,7 @@ out.onToggle = function () { if (waiting) { self._lastT = 0; self.setState({ boa
 out.headTitle = dest ? (route && route.length ? route[0].n + ' → ' : '') + dest : '어디 가요?';
 out.headSub = dest ? (i === last ? '다 왔어요' : summary(cs)) : NET[c.l].name + (c.d ? ' · ' + c.d : '') + ' · 골라 주면 내릴 역도 알려줘요';
 out.pickLabel = dest ? '바꾸기' : '검색';
+if (live && isRide && st.rerouteT && Date.now() - st.rerouteT < 25000) { banner = st.rerouteFrom + '역에 있네요. 여기서부터 길을 다시 찾았어요'; bannerLabel = '경로 다시 찾음'; strong = false; }
 out.hasBanner = !!banner;
 out.banner = banner;
 out.bannerLabel = bannerLabel;
