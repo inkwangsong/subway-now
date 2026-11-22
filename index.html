@@ -1643,7 +1643,7 @@ out.diag = live ? ['마이크 ' + (this.props.srOk ? (st.listening ? '듣는 중
 '위치 ' + (geo ? '오차 ' + Math.round(geo.acc) + 'm ' + ago(geo.t) : (st.geoErr ? '오류:' + st.geoErr : '없음')),
 '실시간 ' + (this.props.rtUrl ? (st.rtErr ? '오류:' + String(st.rtErr).slice(0, 20) : '응답 ' + ago(st.rtOkT)) : '연결 안 됨')].join(' · ') : '';
 out.hasDiag = !!out.diag;
-out.onRefresh = function () { try { window.location.reload(); } catch (e) {} };
+out.onRefresh = function () { if (self.props.onRefresh) self.props.onRefresh(); else try { window.location.reload(); } catch (e) {} };
 out.locSpin = locBusy ? 'inline-block' : 'none'; out.locPin = locBusy ? 'none' : 'block'; out.locDots = locBusy ? 'sn-dots' : '';
 var hl = !!st.homeListening;
 out.hlLabel = hl ? '안내방송 듣는 중' : '안내방송으로 찾기';
@@ -1827,6 +1827,24 @@ schedule();
 };
 var LISTEN_KEY = 'subway-now:listen', RT_KEY = 'subway-now:rt';
 /* 안내방송 듣기는 기본으로 켜 둬요 (끄면 그 설정을 기억해요) */
+/* 새로고침해도 타고 가던 상태(경로·현재 역·탄 열차)를 이어가요. 30분 지난 건 버려요 */
+var RIDE_KEY = 'subway-now:ride', RIDE_FIELDS = ['mode', 'origin', 'dest', 'route', 'i', 'f', 'boarded', 'playing', 'trainNo', 'trainT', 'ckDone', 'auto'];
+try {
+var saved = JSON.parse(localStorage.getItem(RIDE_KEY) || 'null');
+if (saved && saved.mode === 'ride' && Date.now() - saved.at < 1800000) { delete saved.at; app.state = Object.assign({}, app.state, saved); }
+} catch (e) {}
+var saveRide = function () {
+var st = app.state || {};
+try {
+if (st.mode === 'ride' && !st.demo) { var o = { at: Date.now() }; RIDE_FIELDS.forEach(function (k) { if (st[k] !== undefined) o[k] = st[k]; }); localStorage.setItem(RIDE_KEY, JSON.stringify(o)); }
+else localStorage.removeItem(RIDE_KEY);
+} catch (e) {}
+};
+/* 새로고침 버튼: 지금 상태를 저장하고, 캐시 말고 최신 버전으로 다시 열어요 */
+app.props.onRefresh = function () {
+saveRide();
+try { var u = location.pathname + '?r=' + Date.now(); location.replace(u); } catch (e) { location.reload(); }
+};
 try { if (localStorage.getItem(LISTEN_KEY) !== '0') app.state = Object.assign({}, app.state, { listenOn: true }); } catch (e) { app.state = Object.assign({}, app.state, { listenOn: true }); }
 /* 실시간 열차 위치 중계 주소: 주소 끝에 ?rt=https://... 를 붙여 한 번 열면 저장돼요 */
 var RT_URL = (window.SUBWAY_RT_URL || '');
@@ -1869,6 +1887,7 @@ if (!on && wake) { wake.release(); wake = null; }
 };
 var afterRender = function (vals) {
 var st = app.state || {}, riding = st.mode === 'ride';
+saveRide();
 /* 탑승이 (버튼 없이) 잡히는 순간 진동 + 소리로 알려요 */
 var onNow = riding && !!st.boarded && !st.demo;
 if (onNow && !wasOn && !manualBoard) { beep(1); try { if (navigator.vibrate) navigator.vibrate([150, 80, 150]); } catch (e) {} }

@@ -868,7 +868,7 @@ out.diag = live ? ['마이크 ' + (this.props.srOk ? (st.listening ? '듣는 중
 '위치 ' + (geo ? '오차 ' + Math.round(geo.acc) + 'm ' + ago(geo.t) : (st.geoErr ? '오류:' + st.geoErr : '없음')),
 '실시간 ' + (this.props.rtUrl ? (st.rtErr ? '오류:' + String(st.rtErr).slice(0, 20) : '응답 ' + ago(st.rtOkT)) : '연결 안 됨')].join(' · ') : '';
 out.hasDiag = !!out.diag;
-out.onRefresh = function () { try { window.location.reload(); } catch (e) {} };
+out.onRefresh = function () { if (self.props.onRefresh) self.props.onRefresh(); else try { window.location.reload(); } catch (e) {} };
 out.locSpin = locBusy ? 'inline-block' : 'none'; out.locPin = locBusy ? 'none' : 'block'; out.locDots = locBusy ? 'sn-dots' : '';
 var hl = !!st.homeListening;
 out.hlLabel = hl ? '안내방송 듣는 중' : '안내방송으로 찾기';
