@@ -46,6 +46,8 @@ input::placeholder{{color:{SUB}}}
 @keyframes sn-spin{{to{{transform:rotate(360deg)}}}}
 @keyframes sn-pulse{{0%,100%{{opacity:1;transform:scale(1)}}50%{{opacity:.35;transform:scale(.7)}}}}
 @keyframes sn-bar{{0%{{transform:translateX(-100%)}}100%{{transform:translateX(250%)}}}}
+@keyframes sn-speed{{0%{{transform:translateX(6px);opacity:0}}40%{{opacity:.6}}100%{{transform:translateX(-8px);opacity:0}}}}
+@keyframes sn-bob{{from{{transform:translateY(0)}}to{{transform:translateY(-1px)}}}}
 @keyframes sn-dots{{0%{{content:''}}25%{{content:'.'}}50%{{content:'..'}}75%{{content:'...'}}}}
 .sn-dots::after{{content:'';display:inline-block;width:1.2em;text-align:left;animation:sn-dots 1.2s steps(1) infinite}}
 </style>
@@ -452,21 +454,32 @@ input::placeholder{{color:{SUB}}}
 <div style="display: flex; align-items: center; gap: 8px">
 <div style="min-width: 24px; height: 24px; box-sizing: border-box; padding: 0 8px; border-radius: 12px; background: {{{{c.bg}}}}; color: {{{{c.fg}}}}; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{{{c.short}}}}</div>
 <div style="font-size: 13px; font-weight: 500; color: {SUB}">{{{{c.label}}}}</div>
-<div style="margin-left: auto; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: {BLUE}">{{{{hereTag}}}}</div>
+<div style="margin-left: auto; display: {{{{runShow}}}}; align-items: center; gap: 2px; height: 24px; margin-top: -6px; margin-bottom: -6px" aria-label="달리는 중">
+<span style="display: flex; flex-direction: column; gap: 3px; margin-right: 2px">
+<span style="display: block; width: 12px; height: 2px; border-radius: 1px; background: var(--blue); opacity: .55; animation: sn-speed .7s linear infinite"></span>
+<span style="display: block; width: 8px; height: 2px; border-radius: 1px; background: var(--blue); opacity: .35; animation: sn-speed .7s linear infinite .25s; margin-left: 4px"></span>
+<span style="display: block; width: 12px; height: 2px; border-radius: 1px; background: var(--blue); opacity: .55; animation: sn-speed .7s linear infinite .45s"></span>
+</span>
+<span style="display: inline-flex; transform: scaleX(-1)"><svg aria-hidden="true" width="66" height="34" viewBox="0 0 46 24" style="animation: sn-bob .5s ease-in-out infinite alternate">
+<polygon points="4,8 36,8 42,12 10,12" fill="#FFFFFF" stroke="rgba(0,0,0,.12)" stroke-width=".6"></polygon>
+<polygon points="4,8 10,12 10,21 4,17" fill="#C9D3DD"></polygon>
+<polygon points="10,12 42,12 42,21 10,21" fill="#E9EEF3"></polygon>
+<rect x="13" y="13.5" width="25" height="3.4" rx="1" fill="#22344F"></rect>
+<rect x="10" y="18" width="32" height="1.6" fill="{{{{c.bg}}}}"></rect>
+<polygon points="4,10.5 9,13.2 9,15.5 4,12.8" fill="#22344F"></polygon>
+<circle cx="5.6" cy="15.6" r=".9" fill="#FFE08A"></circle>
+<ellipse cx="24" cy="23" rx="18" ry="1.2" fill="#000" opacity=".12"></ellipse>
+</svg></span>
 </div>
-<div style="font-size: {{{{nameSize}}}}; font-weight: 700; line-height: 1.15; letter-spacing: -1.5px; white-space: nowrap; color: {NAVY}">{{{{c.name}}}}</div>
-<sc-if value="{{{{ showTiles }}}}" hint-placeholder-val="{{{{ true }}}}">
-<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding-top: 4px">
-<div style="{TILE}; border-radius: 14px; padding: 8px 12px; display: flex; flex-direction: column; min-width: 0">
-<div style="font-size: 11px; font-weight: 700; letter-spacing: 1px; color: {SUB}">이전</div>
-<div style="font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{prev}}}}</div>
+<div style="margin-left: auto; display: {{{{tagShow}}}}; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: {BLUE}">{{{{hereTag}}}}</div>
 </div>
-<div style="{TILE}; border-radius: 14px; padding: 8px 12px; display: flex; flex-direction: column; min-width: 0">
-<div style="font-size: 11px; font-weight: 700; letter-spacing: 1px; color: {BLUE}">다음</div>
-<div style="font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{next}}}}</div>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr); align-items: baseline; column-gap: 8px; padding-top: 2px">
+<span style="min-width: 0; text-align: right; font-size: 15px; font-weight: 600; color: {SUB}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{prev}}}}</span>
+<span style="font-size: 14px; font-weight: 700; color: {SUB}; visibility: {{{{prevVis}}}}">›</span>
+<span style="flex-shrink: 0; font-size: {{{{curSize}}}}; font-weight: 700; line-height: 1.15; letter-spacing: -1px; white-space: nowrap; color: {NAVY}">{{{{c.name}}}}</span>
+<span style="flex-shrink: 0; font-size: 14px; font-weight: 700; color: {BLUE}">›</span>
+<span style="min-width: 0; text-align: left; font-size: 15px; font-weight: 700; color: {BLUE}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{next}}}}</span>
 </div>
-</div>
-</sc-if>
 <sc-if value="{{{{ isArrived }}}}" hint-placeholder-val="{{{{ false }}}}">
 <div style="{TILE}; border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; margin-top: 4px">
 <div style="font-size: 11px; font-weight: 700; letter-spacing: 1px; color: {SUB}">이 역 근처</div>

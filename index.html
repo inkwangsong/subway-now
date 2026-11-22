@@ -25,6 +25,8 @@ input::placeholder{color:var(--sub)}
 @keyframes sn-spin{to{transform:rotate(360deg)}}
 @keyframes sn-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
 @keyframes sn-bar{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+@keyframes sn-speed{0%{transform:translateX(6px);opacity:0}40%{opacity:.6}100%{transform:translateX(-8px);opacity:0}}
+@keyframes sn-bob{from{transform:translateY(0)}to{transform:translateY(-1px)}}
 @keyframes sn-dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
 .sn-dots::after{content:'';display:inline-block;width:1.2em;text-align:left;animation:sn-dots 1.2s steps(1) infinite}
 
@@ -474,21 +476,32 @@ input::placeholder{color:var(--sub)}
 <div style="display: flex; align-items: center; gap: 8px">
 <div style="min-width: 24px; height: 24px; box-sizing: border-box; padding: 0 8px; border-radius: 12px; background: {{c.bg}}; color: {{c.fg}}; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{c.short}}</div>
 <div style="font-size: 13px; font-weight: 500; color: var(--sub)">{{c.label}}</div>
-<div style="margin-left: auto; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--blue)">{{hereTag}}</div>
+<div style="margin-left: auto; display: {{runShow}}; align-items: center; gap: 2px; height: 24px; margin-top: -6px; margin-bottom: -6px" aria-label="달리는 중">
+<span style="display: flex; flex-direction: column; gap: 3px; margin-right: 2px">
+<span style="display: block; width: 12px; height: 2px; border-radius: 1px; background: var(--blue); opacity: .55; animation: sn-speed .7s linear infinite"></span>
+<span style="display: block; width: 8px; height: 2px; border-radius: 1px; background: var(--blue); opacity: .35; animation: sn-speed .7s linear infinite .25s; margin-left: 4px"></span>
+<span style="display: block; width: 12px; height: 2px; border-radius: 1px; background: var(--blue); opacity: .55; animation: sn-speed .7s linear infinite .45s"></span>
+</span>
+<span style="display: inline-flex; transform: scaleX(-1)"><svg aria-hidden="true" width="66" height="34" viewBox="0 0 46 24" style="animation: sn-bob .5s ease-in-out infinite alternate">
+<polygon points="4,8 36,8 42,12 10,12" fill="#FFFFFF" stroke="rgba(0,0,0,.12)" stroke-width=".6"></polygon>
+<polygon points="4,8 10,12 10,21 4,17" fill="#C9D3DD"></polygon>
+<polygon points="10,12 42,12 42,21 10,21" fill="#E9EEF3"></polygon>
+<rect x="13" y="13.5" width="25" height="3.4" rx="1" fill="#22344F"></rect>
+<rect x="10" y="18" width="32" height="1.6" fill="{{c.bg}}"></rect>
+<polygon points="4,10.5 9,13.2 9,15.5 4,12.8" fill="#22344F"></polygon>
+<circle cx="5.6" cy="15.6" r=".9" fill="#FFE08A"></circle>
+<ellipse cx="24" cy="23" rx="18" ry="1.2" fill="#000" opacity=".12"></ellipse>
+</svg></span>
 </div>
-<div style="font-size: {{nameSize}}; font-weight: 700; line-height: 1.15; letter-spacing: -1.5px; white-space: nowrap; color: var(--title)">{{c.name}}</div>
-<sc-if value="{{ showTiles }}" hint-placeholder-val="{{ true }}">
-<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding-top: 4px">
-<div style="background: var(--tile); border: 0; border-radius: 14px; padding: 8px 12px; display: flex; flex-direction: column; min-width: 0">
-<div style="font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--sub)">이전</div>
-<div style="font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{prev}}</div>
+<div style="margin-left: auto; display: {{tagShow}}; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--blue)">{{hereTag}}</div>
 </div>
-<div style="background: var(--tile); border: 0; border-radius: 14px; padding: 8px 12px; display: flex; flex-direction: column; min-width: 0">
-<div style="font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--blue)">다음</div>
-<div style="font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{next}}</div>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr); align-items: baseline; column-gap: 8px; padding-top: 2px">
+<span style="min-width: 0; text-align: right; font-size: 15px; font-weight: 600; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{prev}}</span>
+<span style="font-size: 14px; font-weight: 700; color: var(--sub); visibility: {{prevVis}}">›</span>
+<span style="flex-shrink: 0; font-size: {{curSize}}; font-weight: 700; line-height: 1.15; letter-spacing: -1px; white-space: nowrap; color: var(--title)">{{c.name}}</span>
+<span style="flex-shrink: 0; font-size: 14px; font-weight: 700; color: var(--blue)">›</span>
+<span style="min-width: 0; text-align: left; font-size: 15px; font-weight: 700; color: var(--blue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{next}}</span>
 </div>
-</div>
-</sc-if>
 <sc-if value="{{ isArrived }}" hint-placeholder-val="{{ false }}">
 <div style="background: var(--tile); border: 0; border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; margin-top: 4px">
 <div style="font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--sub)">이 역 근처</div>
@@ -829,7 +842,7 @@ if (!best || dist < best.dist) best = { k: k, t: tt, dist: dist };
 if (best && best.dist < Math.max(500, geo.acc * 1.5)) {
 var cur = i + (st.f || 0), nxt = best.k + best.t;
 if (!st.boarded && (nxt > i + 0.35 || (geo.speed && geo.speed > 5))) { patch.boarded = true; patch.playing = true; }
-if ((st.boarded || patch.boarded) && nxt > cur - 0.15) { if (best.t > 0.96) { patch.i = best.k + 1; patch.f = 0; } else { patch.i = best.k; patch.f = best.t; } patch.fixT = Date.now(); }
+if ((st.boarded || patch.boarded) && nxt > cur - 0.15) { if (best.t > 0.96) { patch.i = best.k + 1; patch.f = 0; } else { patch.i = best.k; patch.f = best.t; } patch.fixT = Date.now(); if (geo.acc < 150) patch.resyncT = null; }
 var txG = xferAfter(route, i);
 if (patch.i !== undefined && txG >= 0 && patch.i + (patch.f || 0) >= txG && (st.boarded || patch.boarded)) { patch.i = txG; patch.f = 0; patch.boarded = false; patch.trainNo = null; }
 }
@@ -1002,7 +1015,7 @@ if (!best || score > best.score) best = { k: k, kind: kind, score: score };
 if (!best) return;
 var ni = best.k - 1, nf = best.kind === 'this' ? Math.max(0.85, ni === i ? (st.f || 0) : 0) : 0.1;
 if (ni + nf < i + (st.f || 0) - 1.2) return;
-var patch = { i: ni, f: nf, boarded: true, playing: true, heardName: route[best.k].n, heardT: Date.now() };
+var patch = { i: ni, f: nf, boarded: true, playing: true, heardName: route[best.k].n, heardT: Date.now(), resyncT: null };
 if (ck && ck.indexOf('live') !== 0 && ck !== 'warmup' && ck !== 'sync') { patch.ckDone = Object.assign({}, st.ckDone || {}); patch.ckDone[ck] = 'heard'; }
 this._acc = 0; this._lastT = 0;
 this.setState(patch);
@@ -1038,18 +1051,26 @@ return (b - a) * (tq - sq) > 0;
 }
 return true;
 };
-var cur = i + (st.f || 0), patch = null;
+var cur = i + (st.f || 0), patch = null, resync = !!(st.resyncT && Date.now() - st.resyncT < 120000);
 if (st.trainNo) {
 var mine = null;
 rows.forEach(function (r) { if (String(r.no) === String(st.trainNo)) mine = r; });
 var mp = mine ? posOf(mine) : null;
 if (mp === null) { patch = { trainMiss: (st.trainMiss || 0) + 1 }; if (patch.trainMiss >= 4) patch.trainNo = null; }
-else if (mp >= cur - 0.3) patch = { trainT: Date.now(), trainMiss: 0, i: Math.max(0, Math.floor(mp)), f: mp - Math.floor(mp) };
+else if (mp >= cur - 0.3 || resync) patch = { trainT: Date.now(), trainMiss: 0, resyncT: null, i: Math.max(0, Math.floor(mp)), f: mp - Math.floor(mp) };
 else patch = { trainT: Date.now(), trainMiss: 0 };
 } else {
 var best = null;
-rows.forEach(function (r) { var p = posOf(r); if (p === null || !dirOk(r)) return; var d = Math.abs(p - cur); if (d <= 0.75 && (!best || d < best.d)) best = { r: r, p: p, d: d }; });
-if (best) patch = { trainNo: String(best.r.no), trainT: Date.now(), trainMiss: 0, i: Math.max(0, Math.floor(Math.max(best.p, cur - 0.1))), f: Math.max(best.p, cur - 0.1) - Math.floor(Math.max(best.p, cur - 0.1)) };
+/* 다시 맞추는 중이면 더 넓게(뒤로 1.5, 앞으로 4정거장) 찾아서 추정 위치에 가장 가까운 열차를 골라요 */
+var G2 = this._G, gq = st.geo && Date.now() - (st.geo.t || 0) < 300000 && st.geo.acc < 1500 ? st.geo : null;
+/* 다시 맞출 때 최근 위치가 있으면 그 위치에 가장 가까운 열차를, 없으면 시간 추정에 가장 가까운 열차를 골라요 */
+var score = function (p) {
+if (!resync || !gq || !G2) return Math.abs(p - cur);
+var k = Math.max(0, Math.min(last, Math.round(p))), q = G2.pos[route[k].n + '|' + route[k].l];
+return q ? Math.sqrt(Math.pow((q[0] - gq.lon) * COS, 2) + Math.pow(q[1] - gq.lat, 2)) * 111 : Math.abs(p - cur);
+};
+rows.forEach(function (r) { var p = posOf(r); if (p === null || !dirOk(r)) return; var d = score(p); if ((resync ? (p >= cur - 1.5 && p <= cur + 4) : d <= 0.75) && (!best || d < best.d)) best = { r: r, p: p, d: d }; });
+if (best) { var bp = resync ? best.p : Math.max(best.p, cur - 0.1); patch = { resyncT: null, trainNo: String(best.r.no), trainT: Date.now(), trainMiss: 0, i: Math.max(0, Math.floor(bp)), f: bp - Math.floor(bp) }; }
 }
 if (patch) {
 if (patch.i !== undefined && patch.i >= last) { patch.i = last; patch.f = 0; }
@@ -1057,6 +1078,20 @@ var txT = xferAfter(route, i);
 if (patch.i !== undefined && txT >= 0 && patch.i + (patch.f || 0) >= txT) { patch.i = txT; patch.f = 0; patch.boarded = false; patch.trainNo = null; }
 this._acc = 0; this.setState(patch);
 }
+}
+/* 앱을 다시 열었을 때: 꺼져 있던 시간만큼 먼저 앞으로 보내 두고(역 사이 약 110초),
+   '다시 맞추는 중'으로 표시한 뒤 실시간 열차·GPS로 바로 맞춰요 */
+resume(sec) {
+var st = this.state || {}, route = this._route || st.route;
+if (st.mode !== 'ride' || st.demo || !route || !this.props.live) return;
+var last = route.length - 1, i = Math.min(st.i || 0, last), patch = { resyncT: Date.now() };
+if (st.boarded && sec > 5 && i < last) {
+var total = i + (st.f || 0) + sec / 110, tx = xferAfter(route, i);
+if (tx >= 0 && total >= tx) { patch.i = tx; patch.f = 0; patch.boarded = false; patch.trainNo = null; }
+else { var ni = Math.min(last, Math.floor(total)); patch.i = ni; patch.f = ni >= last ? 0 : total - ni; }
+}
+this._lastT = 0; this._acc = 0;
+this.setState(patch);
 }
 /* 탑승 대기 중: 내가 기다리는 역에 내 방향 열차가 들어왔다가 떠나면 그 열차에 탄 걸로 봐요 */
 watchBoarding(rows, route, i) {
@@ -1642,7 +1677,7 @@ out.diag = live ? ['마이크 ' + (this.props.srOk ? (st.listening ? '듣는 중
 '들린 말 ' + (st.rawHeard ? '"' + st.rawHeard + '" ' + ago(st.rawT) : '없음'),
 '위치 ' + (geo ? '오차 ' + Math.round(geo.acc) + 'm ' + ago(geo.t) : (st.geoErr ? '오류:' + st.geoErr : '없음')),
 '실시간 ' + (this.props.rtUrl ? (st.rtErr ? '오류:' + String(st.rtErr).slice(0, 20) : '응답 ' + ago(st.rtOkT)) : '연결 안 됨')].join(' · ') : '';
-out.hasDiag = !!out.diag;
+out.hasDiag = !!out.diag && !!this.props.debug;
 out.onRefresh = function () { if (self.props.onSync) self.props.onSync(); };
 out.syncAnim = st.syncing ? 'sn-spin 0.9s linear infinite' : 'none';
 out.syncLabel = st.syncing ? '지금 위치 다시 확인 중' : '지금 위치 다시 확인';
@@ -1670,8 +1705,8 @@ out.dirs = dirs;
 out.dirSub = origin ? origin.n + (origin.n.slice(-1) === '역' ? '' : '역') + '에서 탄 열차를 골라 주세요' : '';
 out.c = { name: c.n, short: NET[c.l].short, bg: NET[c.l].color, fg: fgFor(NET[c.l].color), label: NET[c.l].name + (c.d ? ' · ' + c.d : '') };
 out.nameSize = nameSize(c.n, true);
-out.prev = p ? p.n : '출발역';
-out.next = n ? n.n : (dest ? '도착' : '종착역');
+out.prev = p ? p.n : '';
+out.next = n ? n.n : (dest ? '도착' : '종착');
 var freeLive = live && isRide && !dest;
 out.headKicker = freeLive ? (st.auto ? '지하철 탔네요!' : '지금 역 보는 중') : (dest ? '가는 중' : '둘러보는 중') + ' · ' + TM.kicker;
 out.isFreeRide = isRide && !dest;
@@ -1701,7 +1736,11 @@ out.listenDot = st.listening ? 'block' : 'none';
 out.onListen = function () {
 if (st.listenOn && st.listenErr && listenCk && st.listenErr !== 'unsupported') { self.setState({ listenErr: null }); if (self.props.onListenRetry) self.props.onListenRetry(listenCk); return; }
 var on = !st.listenOn; self.setState({ listenOn: on }); if (self.props.onListenToggle) self.props.onListenToggle(on); };
-out.hereTag = waiting ? '탑승 전' : (frac > 0 ? '달리는 중' : (i >= last ? '도착' : '정차 중'));
+var resyncOn = live && isRide && st.resyncT && Date.now() - st.resyncT < 120000;
+var running = isRide && !waiting && !resyncOn && frac > 0 && i < last;
+out.runShow = running ? 'flex' : 'none'; out.prevVis = p ? 'visible' : 'hidden'; out.tagShow = running ? 'none' : 'block';
+out.curSize = c.n.length <= 2 ? '40px' : c.n.length <= 3 ? '36px' : c.n.length <= 5 ? '28px' : c.n.length <= 7 ? '24px' : '20px';
+out.hereTag = resyncOn ? '다시 맞추는 중' : waiting ? '탑승 전' : (frac > 0 ? '달리는 중' : (i >= last ? '도착' : '정차 중'));
 out.playLabel = i >= last ? '도착했어요' : waiting ? '열차 탔어요' : (live ? (playing ? '시간 추정 끄기' : '시간으로 추정하기') : (playing ? '잠깐 멈추기' : '자동으로 달리기'));
 out.resetLabel = live || st.demo ? '종료' : '처음부터';
 /* 실제로 따라가는 중엔 '시간 추정' 버튼을 숨기고 다음 역 버튼을 넓혀요 */
@@ -1821,6 +1860,8 @@ var readHist = function () { try { return JSON.parse(localStorage.getItem(HIST_K
 var todNow = function () { var hr = new Date().getHours(); return hr >= 5 && hr < 10 ? 'morning' : (hr >= 10 && hr < 17 ? 'noon' : 'evening'); };
 app.props = { live: true, tod: todNow(), hist: readHist(), viewH: 844 };
 app.props.srOk = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+/* 진단 줄은 주소 끝에 ?debug=1 을 붙여 열 때만 보여요 */
+try { app.props.debug = /[?&]debug=1/.test(location.search); } catch (e) {}
 /* 별표한 역: 처음엔 서현·서초로 시작해요 */
 var FAV_KEY = 'subway-now:favs';
 var readFavs = function () { try { var v = localStorage.getItem(FAV_KEY); return v === null ? ['서현', '서초'] : (JSON.parse(v) || []); } catch (e) { return ['서현', '서초']; } };
@@ -1838,7 +1879,7 @@ var LISTEN_KEY = 'subway-now:listen', RT_KEY = 'subway-now:rt';
 var RIDE_KEY = 'subway-now:ride', RIDE_FIELDS = ['mode', 'origin', 'dest', 'route', 'i', 'f', 'boarded', 'playing', 'trainNo', 'trainT', 'ckDone', 'auto'];
 try {
 var saved = JSON.parse(localStorage.getItem(RIDE_KEY) || 'null');
-if (saved && saved.mode === 'ride' && Date.now() - saved.at < 1800000) { delete saved.at; app.state = Object.assign({}, app.state, saved); }
+if (saved && saved.mode === 'ride' && Date.now() - saved.at < 1800000) { var away = (Date.now() - saved.at) / 1000; delete saved.at; app.state = Object.assign({}, app.state, saved); setTimeout(function () { app.resume(away); if (app.props.onSync) app.props.onSync(true); }, 600); }
 } catch (e) {}
 var saveRide = function () {
 var st = app.state || {};
@@ -1931,7 +1972,8 @@ for (var k = e.resultIndex; k < e.results.length; k++) for (var a = 0; a < e.res
 app.setState({ rawHeard: String((e.results[e.results.length - 1][0] || {}).transcript || '').trim().slice(-28), rawT: Date.now() });
 app.applyHeard(txt, recCk);
 };
-rec.onerror = function (e) { app.setState({ listenErr: e && e.error || 'error', lastErr: e && e.error || 'error' }); };
+/* 듣기를 우리가 멈출 때 나는 aborted, 조용해서 나는 no-speech 는 오류가 아니에요 */
+rec.onerror = function (e) { var er = e && e.error || 'error'; if (er === 'aborted' || er === 'no-speech') return; app.setState({ listenErr: er, lastErr: er }); };
 rec.onend = function () { recOn = false; rec = null; recEndT = Date.now(); app.setState({ listening: false }); };
 rec.start(); recOn = true; app.setState({ recStarts: ((app.state || {}).recStarts || 0) + 1 }); if (!ckStart[ck]) ckStart[ck] = Date.now();
 app.setState({ listening: true, listenErr: null });
@@ -1953,8 +1995,8 @@ var st = app.state || {};
 if (!SR || recOn || !st.listenOn || st.demo || st.listenErr === 'not-allowed') return;
 unlockAudio();
 var want = lastVals && lastVals.listenCk;
-startRec(want || 'warmup');
-if (!want) setTimeout(function () { if (recCk === 'warmup') stopRec(); }, 4000);
+/* 지금 들어야 하는 순간일 때만 켜요 (버튼 누를 때마다 켜지 않게) */
+if (want) startRec(want);
 };
 document.addEventListener('click', function () { setTimeout(gestureKick, 0); }, true);
 document.addEventListener('touchend', gestureKick, true);
@@ -1962,15 +2004,16 @@ var homeTimer = null;
 /* 오른쪽 아래(시작 화면은 위) 다시 확인 버튼: 페이지를 새로 여는 게 아니라 지금 위치를 바로 다시 맞춰요
    GPS 새로 받기 + 실시간 열차 바로 조회 + 안내방송 1분 듣기 */
 var syncT = 0;
-app.props.onSync = function () {
+app.props.onSync = function (auto) {
 var st = app.state || {};
 syncT = Date.now();
 app.setState({ syncing: true });
-try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {}
+if (auto !== true) try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {}
 setTimeout(function () { app.setState({ syncing: false }); }, 6000);
 try { navigator.geolocation.getCurrentPosition(function (pos) { app.applyGeo({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy || 9999, speed: pos.coords.speed, t: pos.timestamp || Date.now() }); }, function () {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 8000 }); } catch (e) {}
 if (st.mode === 'ride') { rtLast = 0; pollTrains(); } else pollHome(true);
-if (SR && st.listenOn !== false && st.listenErr !== 'not-allowed') { unlockAudio(); if (recOn) recCk = 'sync'; else startRec('sync'); }
+/* 자동으로 다시 맞출 때는 화면을 누른 게 아니라서 마이크는 켤 수 없어요(아이폰 제한) */
+if (auto !== true && SR && st.listenOn !== false && st.listenErr !== 'not-allowed') { unlockAudio(); if (recOn) recCk = 'sync'; else startRec('sync'); }
 };
 app.props.onHomeListen = function (on) {
 unlockAudio();
@@ -2064,7 +2107,14 @@ navigator.geolocation.watchPosition(function (pos) {
 app.applyGeo({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy || 9999, speed: pos.coords.speed, t: pos.timestamp || Date.now() });
 }, function (err) { app.setState({ geoErr: err && err.code ? err.code : 'err' }); }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
 };
-document.addEventListener('visibilitychange', function () { if (!document.hidden) { app.tick(); schedule(); } });
+var hiddenAt = 0;
+document.addEventListener('visibilitychange', function () {
+if (document.hidden) { hiddenAt = Date.now(); return; }
+var away = hiddenAt ? (Date.now() - hiddenAt) / 1000 : 0; hiddenAt = 0;
+/* 15초 넘게 다른 앱에 있다 돌아오면 바로 다시 맞춰요 */
+if (away > 15 && (app.state || {}).mode === 'ride') { app.resume(away); if (app.props.onSync) app.props.onSync(true); }
+app.tick(); schedule();
+});
 window.addEventListener('resize', layout);
 window.addEventListener('orientationchange', layout);
 layout();

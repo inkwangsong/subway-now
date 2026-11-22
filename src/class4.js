@@ -54,7 +54,7 @@ if (!best || dist < best.dist) best = { k: k, t: tt, dist: dist };
 if (best && best.dist < Math.max(500, geo.acc * 1.5)) {
 var cur = i + (st.f || 0), nxt = best.k + best.t;
 if (!st.boarded && (nxt > i + 0.35 || (geo.speed && geo.speed > 5))) { patch.boarded = true; patch.playing = true; }
-if ((st.boarded || patch.boarded) && nxt > cur - 0.15) { if (best.t > 0.96) { patch.i = best.k + 1; patch.f = 0; } else { patch.i = best.k; patch.f = best.t; } patch.fixT = Date.now(); }
+if ((st.boarded || patch.boarded) && nxt > cur - 0.15) { if (best.t > 0.96) { patch.i = best.k + 1; patch.f = 0; } else { patch.i = best.k; patch.f = best.t; } patch.fixT = Date.now(); if (geo.acc < 150) patch.resyncT = null; }
 var txG = xferAfter(route, i);
 if (patch.i !== undefined && txG >= 0 && patch.i + (patch.f || 0) >= txG && (st.boarded || patch.boarded)) { patch.i = txG; patch.f = 0; patch.boarded = false; patch.trainNo = null; }
 }
@@ -227,7 +227,7 @@ if (!best || score > best.score) best = { k: k, kind: kind, score: score };
 if (!best) return;
 var ni = best.k - 1, nf = best.kind === 'this' ? Math.max(0.85, ni === i ? (st.f || 0) : 0) : 0.1;
 if (ni + nf < i + (st.f || 0) - 1.2) return;
-var patch = { i: ni, f: nf, boarded: true, playing: true, heardName: route[best.k].n, heardT: Date.now() };
+var patch = { i: ni, f: nf, boarded: true, playing: true, heardName: route[best.k].n, heardT: Date.now(), resyncT: null };
 if (ck && ck.indexOf('live') !== 0 && ck !== 'warmup' && ck !== 'sync') { patch.ckDone = Object.assign({}, st.ckDone || {}); patch.ckDone[ck] = 'heard'; }
 this._acc = 0; this._lastT = 0;
 this.setState(patch);
@@ -263,18 +263,26 @@ return (b - a) * (tq - sq) > 0;
 }
 return true;
 };
-var cur = i + (st.f || 0), patch = null;
+var cur = i + (st.f || 0), patch = null, resync = !!(st.resyncT && Date.now() - st.resyncT < 120000);
 if (st.trainNo) {
 var mine = null;
 rows.forEach(function (r) { if (String(r.no) === String(st.trainNo)) mine = r; });
 var mp = mine ? posOf(mine) : null;
 if (mp === null) { patch = { trainMiss: (st.trainMiss || 0) + 1 }; if (patch.trainMiss >= 4) patch.trainNo = null; }
-else if (mp >= cur - 0.3) patch = { trainT: Date.now(), trainMiss: 0, i: Math.max(0, Math.floor(mp)), f: mp - Math.floor(mp) };
+else if (mp >= cur - 0.3 || resync) patch = { trainT: Date.now(), trainMiss: 0, resyncT: null, i: Math.max(0, Math.floor(mp)), f: mp - Math.floor(mp) };
 else patch = { trainT: Date.now(), trainMiss: 0 };
 } else {
 var best = null;
-rows.forEach(function (r) { var p = posOf(r); if (p === null || !dirOk(r)) return; var d = Math.abs(p - cur); if (d <= 0.75 && (!best || d < best.d)) best = { r: r, p: p, d: d }; });
-if (best) patch = { trainNo: String(best.r.no), trainT: Date.now(), trainMiss: 0, i: Math.max(0, Math.floor(Math.max(best.p, cur - 0.1))), f: Math.max(best.p, cur - 0.1) - Math.floor(Math.max(best.p, cur - 0.1)) };
+/* 다시 맞추는 중이면 더 넓게(뒤로 1.5, 앞으로 4정거장) 찾아서 추정 위치에 가장 가까운 열차를 골라요 */
+var G2 = this._G, gq = st.geo && Date.now() - (st.geo.t || 0) < 300000 && st.geo.acc < 1500 ? st.geo : null;
+/* 다시 맞출 때 최근 위치가 있으면 그 위치에 가장 가까운 열차를, 없으면 시간 추정에 가장 가까운 열차를 골라요 */
+var score = function (p) {
+if (!resync || !gq || !G2) return Math.abs(p - cur);
+var k = Math.max(0, Math.min(last, Math.round(p))), q = G2.pos[route[k].n + '|' + route[k].l];
+return q ? Math.sqrt(Math.pow((q[0] - gq.lon) * COS, 2) + Math.pow(q[1] - gq.lat, 2)) * 111 : Math.abs(p - cur);
+};
+rows.forEach(function (r) { var p = posOf(r); if (p === null || !dirOk(r)) return; var d = score(p); if ((resync ? (p >= cur - 1.5 && p <= cur + 4) : d <= 0.75) && (!best || d < best.d)) best = { r: r, p: p, d: d }; });
+if (best) { var bp = resync ? best.p : Math.max(best.p, cur - 0.1); patch = { resyncT: null, trainNo: String(best.r.no), trainT: Date.now(), trainMiss: 0, i: Math.max(0, Math.floor(bp)), f: bp - Math.floor(bp) }; }
 }
 if (patch) {
 if (patch.i !== undefined && patch.i >= last) { patch.i = last; patch.f = 0; }
@@ -282,6 +290,20 @@ var txT = xferAfter(route, i);
 if (patch.i !== undefined && txT >= 0 && patch.i + (patch.f || 0) >= txT) { patch.i = txT; patch.f = 0; patch.boarded = false; patch.trainNo = null; }
 this._acc = 0; this.setState(patch);
 }
+}
+/* 앱을 다시 열었을 때: 꺼져 있던 시간만큼 먼저 앞으로 보내 두고(역 사이 약 110초),
+   '다시 맞추는 중'으로 표시한 뒤 실시간 열차·GPS로 바로 맞춰요 */
+resume(sec) {
+var st = this.state || {}, route = this._route || st.route;
+if (st.mode !== 'ride' || st.demo || !route || !this.props.live) return;
+var last = route.length - 1, i = Math.min(st.i || 0, last), patch = { resyncT: Date.now() };
+if (st.boarded && sec > 5 && i < last) {
+var total = i + (st.f || 0) + sec / 110, tx = xferAfter(route, i);
+if (tx >= 0 && total >= tx) { patch.i = tx; patch.f = 0; patch.boarded = false; patch.trainNo = null; }
+else { var ni = Math.min(last, Math.floor(total)); patch.i = ni; patch.f = ni >= last ? 0 : total - ni; }
+}
+this._lastT = 0; this._acc = 0;
+this.setState(patch);
 }
 /* 탑승 대기 중: 내가 기다리는 역에 내 방향 열차가 들어왔다가 떠나면 그 열차에 탄 걸로 봐요 */
 watchBoarding(rows, route, i) {
@@ -867,7 +889,7 @@ out.diag = live ? ['마이크 ' + (this.props.srOk ? (st.listening ? '듣는 중
 '들린 말 ' + (st.rawHeard ? '"' + st.rawHeard + '" ' + ago(st.rawT) : '없음'),
 '위치 ' + (geo ? '오차 ' + Math.round(geo.acc) + 'm ' + ago(geo.t) : (st.geoErr ? '오류:' + st.geoErr : '없음')),
 '실시간 ' + (this.props.rtUrl ? (st.rtErr ? '오류:' + String(st.rtErr).slice(0, 20) : '응답 ' + ago(st.rtOkT)) : '연결 안 됨')].join(' · ') : '';
-out.hasDiag = !!out.diag;
+out.hasDiag = !!out.diag && !!this.props.debug;
 out.onRefresh = function () { if (self.props.onSync) self.props.onSync(); };
 out.syncAnim = st.syncing ? 'sn-spin 0.9s linear infinite' : 'none';
 out.syncLabel = st.syncing ? '지금 위치 다시 확인 중' : '지금 위치 다시 확인';
@@ -895,8 +917,8 @@ out.dirs = dirs;
 out.dirSub = origin ? origin.n + (origin.n.slice(-1) === '역' ? '' : '역') + '에서 탄 열차를 골라 주세요' : '';
 out.c = { name: c.n, short: NET[c.l].short, bg: NET[c.l].color, fg: fgFor(NET[c.l].color), label: NET[c.l].name + (c.d ? ' · ' + c.d : '') };
 out.nameSize = nameSize(c.n, true);
-out.prev = p ? p.n : '출발역';
-out.next = n ? n.n : (dest ? '도착' : '종착역');
+out.prev = p ? p.n : '';
+out.next = n ? n.n : (dest ? '도착' : '종착');
 var freeLive = live && isRide && !dest;
 out.headKicker = freeLive ? (st.auto ? '지하철 탔네요!' : '지금 역 보는 중') : (dest ? '가는 중' : '둘러보는 중') + ' · ' + TM.kicker;
 out.isFreeRide = isRide && !dest;
@@ -926,7 +948,11 @@ out.listenDot = st.listening ? 'block' : 'none';
 out.onListen = function () {
 if (st.listenOn && st.listenErr && listenCk && st.listenErr !== 'unsupported') { self.setState({ listenErr: null }); if (self.props.onListenRetry) self.props.onListenRetry(listenCk); return; }
 var on = !st.listenOn; self.setState({ listenOn: on }); if (self.props.onListenToggle) self.props.onListenToggle(on); };
-out.hereTag = waiting ? '탑승 전' : (frac > 0 ? '달리는 중' : (i >= last ? '도착' : '정차 중'));
+var resyncOn = live && isRide && st.resyncT && Date.now() - st.resyncT < 120000;
+var running = isRide && !waiting && !resyncOn && frac > 0 && i < last;
+out.runShow = running ? 'flex' : 'none'; out.prevVis = p ? 'visible' : 'hidden'; out.tagShow = running ? 'none' : 'block';
+out.curSize = c.n.length <= 2 ? '40px' : c.n.length <= 3 ? '36px' : c.n.length <= 5 ? '28px' : c.n.length <= 7 ? '24px' : '20px';
+out.hereTag = resyncOn ? '다시 맞추는 중' : waiting ? '탑승 전' : (frac > 0 ? '달리는 중' : (i >= last ? '도착' : '정차 중'));
 out.playLabel = i >= last ? '도착했어요' : waiting ? '열차 탔어요' : (live ? (playing ? '시간 추정 끄기' : '시간으로 추정하기') : (playing ? '잠깐 멈추기' : '자동으로 달리기'));
 out.resetLabel = live || st.demo ? '종료' : '처음부터';
 /* 실제로 따라가는 중엔 '시간 추정' 버튼을 숨기고 다음 역 버튼을 넓혀요 */

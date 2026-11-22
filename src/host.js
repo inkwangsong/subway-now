@@ -61,6 +61,8 @@ var readHist = function () { try { return JSON.parse(localStorage.getItem(HIST_K
 var todNow = function () { var hr = new Date().getHours(); return hr >= 5 && hr < 10 ? 'morning' : (hr >= 10 && hr < 17 ? 'noon' : 'evening'); };
 app.props = { live: true, tod: todNow(), hist: readHist(), viewH: 844 };
 app.props.srOk = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+/* 진단 줄은 주소 끝에 ?debug=1 을 붙여 열 때만 보여요 */
+try { app.props.debug = /[?&]debug=1/.test(location.search); } catch (e) {}
 /* 별표한 역: 처음엔 서현·서초로 시작해요 */
 var FAV_KEY = 'subway-now:favs';
 var readFavs = function () { try { var v = localStorage.getItem(FAV_KEY); return v === null ? ['서현', '서초'] : (JSON.parse(v) || []); } catch (e) { return ['서현', '서초']; } };
@@ -78,7 +80,7 @@ var LISTEN_KEY = 'subway-now:listen', RT_KEY = 'subway-now:rt';
 var RIDE_KEY = 'subway-now:ride', RIDE_FIELDS = ['mode', 'origin', 'dest', 'route', 'i', 'f', 'boarded', 'playing', 'trainNo', 'trainT', 'ckDone', 'auto'];
 try {
 var saved = JSON.parse(localStorage.getItem(RIDE_KEY) || 'null');
-if (saved && saved.mode === 'ride' && Date.now() - saved.at < 1800000) { delete saved.at; app.state = Object.assign({}, app.state, saved); }
+if (saved && saved.mode === 'ride' && Date.now() - saved.at < 1800000) { var away = (Date.now() - saved.at) / 1000; delete saved.at; app.state = Object.assign({}, app.state, saved); setTimeout(function () { app.resume(away); if (app.props.onSync) app.props.onSync(true); }, 600); }
 } catch (e) {}
 var saveRide = function () {
 var st = app.state || {};
@@ -171,7 +173,8 @@ for (var k = e.resultIndex; k < e.results.length; k++) for (var a = 0; a < e.res
 app.setState({ rawHeard: String((e.results[e.results.length - 1][0] || {}).transcript || '').trim().slice(-28), rawT: Date.now() });
 app.applyHeard(txt, recCk);
 };
-rec.onerror = function (e) { app.setState({ listenErr: e && e.error || 'error', lastErr: e && e.error || 'error' }); };
+/* 듣기를 우리가 멈출 때 나는 aborted, 조용해서 나는 no-speech 는 오류가 아니에요 */
+rec.onerror = function (e) { var er = e && e.error || 'error'; if (er === 'aborted' || er === 'no-speech') return; app.setState({ listenErr: er, lastErr: er }); };
 rec.onend = function () { recOn = false; rec = null; recEndT = Date.now(); app.setState({ listening: false }); };
 rec.start(); recOn = true; app.setState({ recStarts: ((app.state || {}).recStarts || 0) + 1 }); if (!ckStart[ck]) ckStart[ck] = Date.now();
 app.setState({ listening: true, listenErr: null });
@@ -193,8 +196,8 @@ var st = app.state || {};
 if (!SR || recOn || !st.listenOn || st.demo || st.listenErr === 'not-allowed') return;
 unlockAudio();
 var want = lastVals && lastVals.listenCk;
-startRec(want || 'warmup');
-if (!want) setTimeout(function () { if (recCk === 'warmup') stopRec(); }, 4000);
+/* 지금 들어야 하는 순간일 때만 켜요 (버튼 누를 때마다 켜지 않게) */
+if (want) startRec(want);
 };
 document.addEventListener('click', function () { setTimeout(gestureKick, 0); }, true);
 document.addEventListener('touchend', gestureKick, true);
@@ -202,15 +205,16 @@ var homeTimer = null;
 /* 오른쪽 아래(시작 화면은 위) 다시 확인 버튼: 페이지를 새로 여는 게 아니라 지금 위치를 바로 다시 맞춰요
    GPS 새로 받기 + 실시간 열차 바로 조회 + 안내방송 1분 듣기 */
 var syncT = 0;
-app.props.onSync = function () {
+app.props.onSync = function (auto) {
 var st = app.state || {};
 syncT = Date.now();
 app.setState({ syncing: true });
-try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {}
+if (auto !== true) try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {}
 setTimeout(function () { app.setState({ syncing: false }); }, 6000);
 try { navigator.geolocation.getCurrentPosition(function (pos) { app.applyGeo({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy || 9999, speed: pos.coords.speed, t: pos.timestamp || Date.now() }); }, function () {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 8000 }); } catch (e) {}
 if (st.mode === 'ride') { rtLast = 0; pollTrains(); } else pollHome(true);
-if (SR && st.listenOn !== false && st.listenErr !== 'not-allowed') { unlockAudio(); if (recOn) recCk = 'sync'; else startRec('sync'); }
+/* 자동으로 다시 맞출 때는 화면을 누른 게 아니라서 마이크는 켤 수 없어요(아이폰 제한) */
+if (auto !== true && SR && st.listenOn !== false && st.listenErr !== 'not-allowed') { unlockAudio(); if (recOn) recCk = 'sync'; else startRec('sync'); }
 };
 app.props.onHomeListen = function (on) {
 unlockAudio();
@@ -304,7 +308,14 @@ navigator.geolocation.watchPosition(function (pos) {
 app.applyGeo({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy || 9999, speed: pos.coords.speed, t: pos.timestamp || Date.now() });
 }, function (err) { app.setState({ geoErr: err && err.code ? err.code : 'err' }); }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
 };
-document.addEventListener('visibilitychange', function () { if (!document.hidden) { app.tick(); schedule(); } });
+var hiddenAt = 0;
+document.addEventListener('visibilitychange', function () {
+if (document.hidden) { hiddenAt = Date.now(); return; }
+var away = hiddenAt ? (Date.now() - hiddenAt) / 1000 : 0; hiddenAt = 0;
+/* 15초 넘게 다른 앱에 있다 돌아오면 바로 다시 맞춰요 */
+if (away > 15 && (app.state || {}).mode === 'ride') { app.resume(away); if (app.props.onSync) app.props.onSync(true); }
+app.tick(); schedule();
+});
 window.addEventListener('resize', layout);
 window.addEventListener('orientationchange', layout);
 layout();
