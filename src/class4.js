@@ -761,7 +761,7 @@ out.hereTag = waiting ? '탑승 전' : (frac > 0 ? '달리는 중' : (i >= last 
 out.playLabel = i >= last ? '도착했어요' : waiting ? '열차 탔어요' : (live ? (playing ? '시간 추정 끄기' : '시간으로 추정하기') : (playing ? '잠깐 멈추기' : '자동으로 달리기'));
 out.resetLabel = live || st.demo ? '종료' : '처음부터';
 /* 실제로 따라가는 중엔 '시간 추정' 버튼을 숨기고 다음 역 버튼을 넓혀요 */
-var hideToggle = live && !waiting && i < last;
+var hideToggle = (live && !waiting && i < last) || (!!st.demo && i < last);
 out.toggleDisp = hideToggle ? 'none' : 'flex';
 out.nextGrow = hideToggle ? 1 : 0;
 var fixAge = st.fixT ? Math.round((Date.now() - st.fixT) / 1000) : null;
@@ -806,7 +806,7 @@ else self.setState({ mode: 'dir', from: 'confirm' });
 };
 out.onPick = function () { self.setState({ mode: 'pick', from: mode, pickFor: 'dest', q: '' }); };
 out.onPickOrigin = function () { self.setState({ mode: 'pick', from: 'confirm', pickFor: 'origin', q: '' }); };
-out.onNext = function () { self._dwell = 0; var tx2 = live ? xferAfter(route, i) : -1; self.setState({ i: Math.min(i + 1, last), f: 0, playing: live ? true : false, boarded: live ? !(tx2 === i + 1) : st.boarded, trainNo: null }); };
+out.onNext = function () { self._dwell = 0; var tx2 = live ? xferAfter(route, i) : -1; self.setState({ i: Math.min(i + 1, last), f: 0, playing: live || !!st.demo, boarded: live ? !(tx2 === i + 1) : st.boarded, trainNo: null }); };
 out.onReset = function () { if (live && st.mode === 'ride') { self._autoOff = Date.now(); self._trail = []; } self.setState(Object.assign({ mode: 'confirm', origin: null, dest: null, route: null, i: 0, f: 0, demo: false, fixT: null, boarded: false, ckDone: {}, trainNo: null, heardT: null }, clear)); };
 return out;
 }
