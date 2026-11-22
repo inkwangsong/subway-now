@@ -205,6 +205,29 @@ fetch(RT_URL + (RT_URL.indexOf('?') < 0 ? '?' : '&') + 'line=' + encodeURICompon
 .catch(function () { rtBusy = false; app.setState({ rtErr: 'network' }); });
 };
 setInterval(pollTrains, 30000);
+/* 시작 화면: 대략적인 위치(실내·지하)일 때 근처 노선의 열차들을 30초마다 보고 같이 움직이는 열차를 찾아요.
+   집에 오래 켜 두면 하루 조회 한도를 다 쓰지 않게, 위치가 크게 바뀌지 않으면 15분 뒤 멈춰요 */
+var homeBusy = false, homeAnchor = null;
+var pollHome = function () {
+var st = app.state || {}, geo = st.geo;
+if (!RT_URL || homeBusy || document.hidden || st.demo || (st.mode || 'confirm') !== 'confirm' || !geo || !(geo.acc > 60)) return;
+var now = Date.now();
+if (!homeAnchor || Math.sqrt(Math.pow((geo.lon - homeAnchor.lon) * COS, 2) + Math.pow(geo.lat - homeAnchor.lat, 2)) * 111000 > 1000) homeAnchor = { lat: geo.lat, lon: geo.lon, t: now };
+if (now - homeAnchor.t > 900000) return;
+var lines = app.homeLines();
+if (!lines.length) return;
+homeBusy = true;
+var left = lines.length;
+lines.forEach(function (li) {
+fetch(RT_URL + (RT_URL.indexOf('?') < 0 ? '?' : '&') + 'line=' + encodeURIComponent(NET[li].name), { cache: 'no-store' })
+.then(function (r) { return r.json(); })
+.then(function (j) { if (j && j.rows) app.applyHomeTrains(li, j.rows); })
+.catch(function () {})
+.then(function () { if (--left === 0) homeBusy = false; });
+});
+};
+setInterval(pollHome, 30000);
+setTimeout(pollHome, 4000);
 
 var lastVals = null;
 setInterval(function () { if (lastVals) manageListen(lastVals); }, 1000);

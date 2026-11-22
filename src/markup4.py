@@ -346,13 +346,7 @@ input::placeholder{{color:{SUB}}}
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: {{{{locPin}}}}"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>
 <span class="{{{{locDots}}}}" style="font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{pillText}}}}</span>
 </div>
-<sc-if value="{{{{ isLive }}}}" hint-placeholder-val="{{{{ false }}}}">
-<button onClick="{{{{ onHomeListen }}}}" style="{ACRYL}; border-radius: 16px; height: 32px; box-sizing: border-box; padding: 0 12px 0 9px; display: flex; align-items: center; gap: 6px; color: {{{{hlFg}}}}">
-<span style="display: {{{{hlDot}}}}; width: 8px; height: 8px; border-radius: 4px; background: #E8453C; animation: sn-pulse 1s ease-in-out infinite"></span>
-<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display: {{{{hlMic}}}}"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><line x1="12" y1="18" x2="12" y2="21"></line></svg>
-<span class="{{{{hlDots}}}}" style="font-size: 13px; font-weight: 700; white-space: nowrap">{{{{hlLabel}}}}</span>
-</button>
-</sc-if>
+
 <div style="font-size: 34px; font-weight: 700; letter-spacing: -1.2px; line-height: 1.2; color: {NAVY}; padding-left: 4px">{{{{hello}}}}</div>
 </div>
 </sc-if>

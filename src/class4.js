@@ -111,6 +111,64 @@ this._trail = [];
 return { mode: 'ride', origin: o, dest: null, route: route, i: 0, f: Math.max(0, Math.min(0.95, Math.abs(on.s - k0))), boarded: true, playing: true, auto: true, fixT: now, ckDone: {}, trainNo: null, q: '', from: null, pickFor: null };
 }
 /* 안내방송 반영: "이번 역은 문정" → 문정으로 가는 중(곧 도착), "다음 역은 가락시장" → 방금 문정을 떠남 */
+/* 시작 화면 실시간 열차 맞추기: 사용자가 아무것도 안 해도, 대략적인 내 위치를 따라
+   같이 움직이는 열차를 서울시 실시간 열차 정보에서 찾아내면 그 열차에 탄 걸로 봐요 */
+homeLines() {
+var st = this.state || {}, geo = st.geo, G = this._G;
+if (!G || !geo || Date.now() - (geo.t || 0) > 120000 || !(geo.acc < 1500)) return [];
+var R = Math.max(1500, geo.acc), best = {};
+for (var pk in G.pos) {
+var q = G.pos[pk], d = Math.sqrt(Math.pow((q[0] - geo.lon) * COS, 2) + Math.pow(q[1] - geo.lat, 2)) * 111000;
+var li = +pk.split('|')[1];
+if (d < R && (best[li] === undefined || d < best[li])) best[li] = d;
+}
+return Object.keys(best).sort(function (a, b) { return best[a] - best[b]; }).slice(0, 3).map(Number);
+}
+applyHomeTrains(li, rows) {
+var st = this.state || {}, geo = st.geo, G = this._G;
+if ((st.mode || 'confirm') !== 'confirm' || !geo || !G || !rows) return;
+var now = Date.now(), cs = NET[li].chains, cand = this._cand || (this._cand = {});
+rows.forEach(function (r) {
+for (var ci = 0; ci < cs.length; ci++) {
+var s = cs[ci].s, k = -1, tq = -1;
+for (var q = 0; q < s.length; q++) { if (stnNorm(s[q]) === stnNorm(r.stn)) k = q; if (stnNorm(s[q]) === stnNorm(r.term)) tq = q; }
+if (k < 0 || tq < 0 || tq === k || cs[ci].loop) continue;
+var dir = tq > k ? 1 : -1, code = String(r.st);
+var off = code === '0' ? -0.2 : code === '1' ? 0 : code === '2' ? 0.1 : -0.8;
+var lag = r.t ? (now - new Date(String(r.t).replace(' ', 'T') + '+09:00').getTime()) / 1000 : 0;
+if (lag > 5 && lag < 600) off = Math.min(off + lag / 110, 0.92);
+var sp = Math.max(0, Math.min(s.length - 1, k + dir * off)), a0 = Math.floor(sp), a1 = Math.min(s.length - 1, a0 + 1), u = sp - a0;
+var pa = G.pos[s[a0] + '|' + li], pb = G.pos[s[a1] + '|' + li];
+if (!pa || !pb) continue;
+var lon = pa[0] + (pb[0] - pa[0]) * u, lat = pa[1] + (pb[1] - pa[1]) * u;
+var d = Math.sqrt(Math.pow((lon - geo.lon) * COS, 2) + Math.pow(lat - geo.lat, 2)) * 111000;
+var key = li + ':' + r.no, c = cand[key] || (cand[key] = { li: li, ci: ci, dir: dir, no: String(r.no), h: [] });
+c.h = c.h.filter(function (x) { return now - x.t < 240000; });
+c.h.push({ t: now, d: d, s: sp, lat: geo.lat, lon: geo.lon, acc: geo.acc });
+break;
+}
+});
+/* 판정: 최근 4분 동안 3번 넘게 내 위치 가까이 있었고, 그동안 열차도 나도 한 정거장쯤 같이 움직였어야 해요 */
+var ok = [];
+for (var key2 in cand) {
+var c2 = cand[key2], h = c2.h.filter(function (x) { return now - x.t < 240000; });
+if (h.length < 3) continue;
+var near = h.every(function (x) { return x.d < Math.max(600, x.acc * 1.5); });
+var moved = Math.abs(h[h.length - 1].s - h[0].s) >= 0.8;
+var me = Math.sqrt(Math.pow((h[h.length - 1].lon - h[0].lon) * COS, 2) + Math.pow(h[h.length - 1].lat - h[0].lat, 2)) * 111000;
+if (near && moved && me >= 350) ok.push({ c: c2, avg: h.reduce(function (a, x) { return a + x.d; }, 0) / h.length, last: h[h.length - 1] });
+}
+if (!ok.length) return;
+ok.sort(function (a, b) { return a.avg - b.avg; });
+/* 비슷하게 맞는 열차가 둘이면(같은 방향에 붙어 오는 열차 등) 아직 고르지 않아요 */
+if (ok.length > 1 && ok[1].avg - ok[0].avg < 150) return;
+var w = ok[0], ch = NET[w.c.li].chains[w.c.ci], sNow = w.last.s, k0 = w.c.dir > 0 ? Math.floor(sNow) : Math.ceil(sNow);
+k0 = Math.max(0, Math.min(ch.s.length - 1, k0));
+var o = { n: ch.s[k0], l: w.c.li, ci: w.c.ci, toFirst: w.c.dir < 0 }, route = freeRoute(o);
+if (route.length < 2) return;
+this._cand = {};
+this.setState({ mode: 'ride', origin: o, dest: null, route: route, i: 0, f: Math.max(0, Math.min(0.95, Math.abs(sNow - k0))), boarded: true, playing: true, auto: true, trainNo: w.c.no, trainT: now, trainMiss: 0, fixT: now, ckDone: {}, q: '', from: null, pickFor: null });
+}
 /* 시작 화면에서 안내방송 듣기: "이번 역은 X" + "다음 역은 Y"로 노선·방향까지 알아내요 */
 applyHeardHome(text) {
 var st = this.state || {}, G = this._G || (this._G = buildNet());
@@ -763,7 +821,7 @@ var homeHeardOn = live && st.homeHeard && st.homeHeardT && Date.now() - st.homeH
 var locBusy = live && !geo && !st.geoErr && !homeHeardOn;
 if (homeHeardOn) out.pillText = '방송으로 확인 · ' + st.homeHeard + '역 · 다음 역을 기다려요';
 if (locBusy) out.pillText = '현재 위치 찾는 중';
-out.noOriginMsg = locBusy ? '위치를 찾고 있어요. 열차 안이면 안내방송으로 찾기를 눌러 보세요.' : '탑승을 자동으로 못 잡았어요. 안내방송으로 찾기를 누르거나 출발역을 골라 주세요.';
+out.noOriginMsg = locBusy ? '위치를 찾고 있어요. 열차 안이면 같이 움직이는 열차를 찾아서 알아서 시작해요.' : '아직 위치를 못 잡았어요. 잡히면 알아서 시작해요. 급하면 출발역을 골라 주세요.';
 out.locSpin = locBusy ? 'inline-block' : 'none'; out.locPin = locBusy ? 'none' : 'block'; out.locDots = locBusy ? 'sn-dots' : '';
 var hl = !!st.homeListening;
 out.hlLabel = hl ? '안내방송 듣는 중' : '안내방송으로 찾기';
