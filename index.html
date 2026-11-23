@@ -984,7 +984,7 @@ if (lines && lines.indexOf(x.li) < 0) continue;
 var pairs = [], used = {};
 mev.forEach(function (e) {
 var want = e.type === 'stop' ? 'arr' : 'dep', best = null;
-x.ev.forEach(function (q, qi) { if (q.kind !== want || used[qi]) return; var d = q.t - e.t; if (Math.abs(d) <= 90000 && (!best || Math.abs(d) < Math.abs(best.d))) best = { d: d, qi: qi, q: q }; });
+x.ev.forEach(function (q, qi) { if (q.kind !== want || used[qi]) return; var d = q.t - e.t; if (Math.abs(d) <= 60000 && (!best || Math.abs(d) < Math.abs(best.d))) best = { d: d, qi: qi, q: q }; });
 pairs.push(best ? { e: e, q: best.q, d: best.d / 1000 } : { e: e, q: null });
 if (best) used[best.qi] = 1;
 });
@@ -1002,18 +1002,19 @@ if (P.e.type === 'depart' && Q.e.type === 'stop' && !adj(x.li, P.q.stn, Q.q.stn)
 if (bad || m < need) continue;
 dts.sort(function (a, b) { return a - b; });
 var med = dts[Math.floor(dts.length / 2)], spread = dts[dts.length - 1] - dts[0];
-if (spread > 45 || Math.abs(med) > 75) continue;
+if (spread > 40 || Math.abs(med) > 60) continue;
 /* 마지막으로 잡힌 내 위치에서 너무 먼 열차는 빼요 (시간이 지날수록 넓게: 1분에 1km) */
 if (geo && G) {
 var first = null; pairs.forEach(function (P2) { if (P2.q && !first) first = P2; });
 var pq = first && G.pos[first.q.stn + '|' + x.li];
 if (pq) { var dm = Math.sqrt(Math.pow((pq[0] - geo.lon) * COS, 2) + Math.pow(pq[1] - geo.lat, 2)) * 111000, allow = Math.max(1500, geo.acc * 1.5) + Math.max(0, (first.e.t - geo.t) / 60000) * 1000; if (dm > allow) continue; }
 }
-res.push({ x: x, m: m, q: spread + Math.abs(med) / 2 });
+/* 점수: 맞은 개수는 조금, 시각 차이가 작고 일정한 것을 크게 봐요 (앞차·뒤차도 역 주기가 비슷해 개수만으론 섞여요) */
+res.push({ x: x, m: m, sc: m * 10 - spread - Math.abs(med) * 1.2 });
 }
 if (!res.length) return null;
-res.sort(function (a, b) { return (b.m - a.m) || (a.q - b.q); });
-if (res[1] && res[1].m === res[0].m && res[1].q - res[0].q < 15) return null;
+res.sort(function (a, b) { return b.sc - a.sc; });
+if (res[1] && res[0].sc - res[1].sc < 12) return null;
 res[0].x._m = res[0].m;
 return res[0].x;
 }
