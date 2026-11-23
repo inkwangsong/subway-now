@@ -1126,27 +1126,6 @@ break;
 }
 });
 /* 판정: 최근 4분 동안 3번 넘게 내 위치 가까이 있었고, 그동안 열차도 나도 한 정거장쯤 같이 움직였어야 해요 */
-/* 움직임 센서가 방금 '출발'을 느꼈으면: 가장 가까운 역을 막 떠난 열차가 하나뿐일 때 바로 그 열차로 정해요 */
-if (st.motionDepartT && now - st.motionDepartT < 120000 && this._near && this._near.m < 700) {
-var S0 = stnNorm(this._near.name), left = [];
-rows.forEach(function (r) {
-for (var ci = 0; ci < cs.length; ci++) {
-var s = cs[ci].s, k = -1, tq = -1;
-for (var q = 0; q < s.length; q++) { if (stnNorm(s[q]) === stnNorm(r.stn)) k = q; if (stnNorm(s[q]) === stnNorm(r.term)) tq = q; }
-if (k < 0 || cs[ci].loop || tq < 0 || tq === k) continue;
-var dir = tq > k ? 1 : -1, code = String(r.st), prevIdx = k - dir;
-var fromS = (stnNorm(s[k]) === S0 && code === '2') || (prevIdx >= 0 && prevIdx < s.length && stnNorm(s[prevIdx]) === S0 && (code === '3' || code === '0'));
-if (fromS) left.push({ li: li, ci: ci, dir: dir, no: String(r.no), k: stnNorm(s[k]) === S0 ? k : prevIdx });
-break;
-}
-});
-var pool = (this._left || []).filter(function (x) { return x.li !== li; }).concat(left);
-this._left = pool;
-if (pool.length === 1) {
-var w0 = pool[0], ch0 = NET[w0.li].chains[w0.ci], o0 = { n: ch0.s[w0.k], l: w0.li, ci: w0.ci, toFirst: w0.dir < 0 }, r0 = freeRoute(o0);
-if (r0.length >= 2) { this._left = []; this._cand = {}; this.setState({ mode: 'ride', origin: o0, dest: null, route: r0, i: 0, f: 0.1, boarded: true, playing: true, auto: true, trainNo: w0.no, trainT: now, trainMiss: 0, lastDepartT: st.motionDepartT, ckDone: {}, q: '', from: null, pickFor: null }); return; }
-}
-}
 var ok = [];
 for (var key2 in cand) {
 var c2 = cand[key2], h = c2.h.filter(function (x) { return now - x.t < 240000; });
