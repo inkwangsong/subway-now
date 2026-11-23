@@ -385,9 +385,10 @@ setInterval(pollTrains, 30000);
 var homeBusy = false, homeAnchor = null;
 var pollHome = function (force) {
 var st = app.state || {}, geo = st.geo;
-if (!RT_URL || homeBusy || document.hidden || st.demo || (st.mode || 'confirm') !== 'confirm' || !geo || !(force === true || geo.acc > 60)) return;
+var moving = st.motionT && Date.now() - st.motionT < 600000;
+if (!RT_URL || homeBusy || document.hidden || st.demo || (st.mode || 'confirm') !== 'confirm' || !geo || !(force === true || moving || geo.acc > 60)) return;
 var now = Date.now();
-if (force === true) homeAnchor = null;
+if (force === true || moving) homeAnchor = null;
 if (!homeAnchor || Math.sqrt(Math.pow((geo.lon - homeAnchor.lon) * COS, 2) + Math.pow(geo.lat - homeAnchor.lat, 2)) * 111000 > 1000) homeAnchor = { lat: geo.lat, lon: geo.lon, t: now };
 if (now - homeAnchor.t > 900000) return;
 var lines = app.homeLines();
