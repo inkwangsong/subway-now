@@ -173,7 +173,7 @@ matchTrain(lines, opts) {
 opts = opts || {};
 var now = Date.now(), G = this._G, st = this.state || {};
 var mev = (this._mev || []).filter(function (e) { return now - e.t < 600000 && (e.type === 'stop' || e.type === 'depart'); }).sort(function (a, b) { return a.t - b.t; });
-var need = opts.need || 3;
+var need = opts.need || 4;
 if (mev.length < need) return null;
 var adj = function (li, a, b) {
 var cs = NET[li].chains, A = stnNorm(a), B = stnNorm(b);
@@ -212,7 +212,9 @@ if (geo && G) {
 var t1 = mev[0].t, at = null;
 x.ev.forEach(function (q) { if (q.t <= t1 + 60000 && (!at || q.t > at.t)) at = q; });
 if (!at) x.ev.forEach(function (q) { if (!at || q.t < at.t) at = q; });
-var pq = at && G.pos[at.stn + '|' + x.li];
+/* 실시간 정보 역 이름(예: 몽촌토성(평화의문))을 지도 이름으로 맞춰 찾아요 */
+var pq = null;
+if (at) { var an = stnNorm(at.stn); for (var pk2 in G.pos) { var sp = pk2.split('|'); if (+sp[1] === x.li && stnNorm(sp[0]) === an) { pq = G.pos[pk2]; break; } } }
 if (pq) { var dm = Math.sqrt(Math.pow((pq[0] - geo.lon) * COS, 2) + Math.pow(pq[1] - geo.lat, 2)) * 111000, allow = Math.min(2500, Math.max(900, geo.acc * 1.5) + Math.max(0, (t1 - geo.t) / 60000) * 80); if (dm > allow) continue; }
 }
 /* 점수: 맞은 개수는 조금, 시각 차이가 작고 일정한 것을 크게 봐요 (앞차·뒤차도 역 주기가 비슷해 개수만으론 섞여요) */
