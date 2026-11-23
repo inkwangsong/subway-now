@@ -169,30 +169,56 @@ else hit.t = Math.min(hit.t, t);
 });
 for (var k in tr) { tr[k].ev = tr[k].ev.filter(function (e) { return now - e.t < 900000; }); if (!tr[k].ev.length && now - (tr[k].lastT || 0) > 900000) delete tr[k]; }
 }
-matchTrain(lines) {
-var now = Date.now(), mev = (this._mev || []).filter(function (e) { return now - e.t < 600000 && (e.type === 'stop' || e.type === 'depart'); });
-if (mev.length < 2) return null;
+matchTrain(lines, opts) {
+opts = opts || {};
+var now = Date.now(), G = this._G, st = this.state || {};
+var mev = (this._mev || []).filter(function (e) { return now - e.t < 600000 && (e.type === 'stop' || e.type === 'depart'); }).sort(function (a, b) { return a.t - b.t; });
+var need = opts.need || 3;
+if (mev.length < need) return null;
+var adj = function (li, a, b) {
+var cs = NET[li].chains, A = stnNorm(a), B = stnNorm(b);
+for (var c = 0; c < cs.length; c++) { var s = cs[c].s, ia = -1, ib = -1; for (var q = 0; q < s.length; q++) { var n = stnNorm(s[q]); if (n === A) ia = q; if (n === B) ib = q; } if (ia >= 0 && ib >= 0 && (Math.abs(ia - ib) === 1 || (cs[c].loop && Math.abs(ia - ib) === s.length - 1))) return true; }
+return false;
+};
+var geo = st.geo && now - (st.geo.t || 0) < 1800000 ? st.geo : null;
 var tr = this._traj || {}, res = [];
 for (var k in tr) {
 var x = tr[k];
 if (lines && lines.indexOf(x.li) < 0) continue;
-/* 실시간 정보 시각은 실제보다 일정하게 앞서거나 늦을 수 있어서, 차이 자체보다 '차이가 일정한지'를 봐요.
-   같은 열차라면 차이들이 45초 안에 모이고, 앞차·뒤차는 배차 간격(2~6분)만큼 통째로 밀려 있어요 */
-var dts = [], used = {};
+var pairs = [], used = {};
 mev.forEach(function (e) {
 var want = e.type === 'stop' ? 'arr' : 'dep', best = null;
-x.ev.forEach(function (q, qi) { if (q.kind !== want || used[qi]) return; var d = q.t - e.t; if (Math.abs(d) <= 90000 && (!best || Math.abs(d) < Math.abs(best.d))) best = { d: d, qi: qi }; });
-if (best) { dts.push(best.d / 1000); used[best.qi] = 1; }
+x.ev.forEach(function (q, qi) { if (q.kind !== want || used[qi]) return; var d = q.t - e.t; if (Math.abs(d) <= 90000 && (!best || Math.abs(d) < Math.abs(best.d))) best = { d: d, qi: qi, q: q }; });
+pairs.push(best ? { e: e, q: best.q, d: best.d / 1000 } : { e: e, q: null });
+if (best) used[best.qi] = 1;
 });
-if (dts.length < 2) continue;
+/* 역이 이어지는지: 정차→출발은 같은 역, 출발→정차는 바로 옆 역이어야 해요. 어긋나면 이 열차가 아니에요 */
+var bad = false, m = 0, dts = [];
+for (var z = 0; z < pairs.length; z++) {
+var P = pairs[z]; if (!P.q) continue;
+m++; dts.push(P.d);
+var Q = pairs[z + 1];
+if (Q && Q.q) {
+if (P.e.type === 'stop' && Q.e.type === 'depart' && stnNorm(P.q.stn) !== stnNorm(Q.q.stn)) bad = true;
+if (P.e.type === 'depart' && Q.e.type === 'stop' && !adj(x.li, P.q.stn, Q.q.stn)) bad = true;
+}
+}
+if (bad || m < need) continue;
 dts.sort(function (a, b) { return a - b; });
 var med = dts[Math.floor(dts.length / 2)], spread = dts[dts.length - 1] - dts[0];
 if (spread > 45 || Math.abs(med) > 75) continue;
-res.push({ x: x, m: dts.length, q: spread + Math.abs(med) / 2 });
+/* 마지막으로 잡힌 내 위치에서 너무 먼 열차는 빼요 (시간이 지날수록 넓게: 1분에 1km) */
+if (geo && G) {
+var first = null; pairs.forEach(function (P2) { if (P2.q && !first) first = P2; });
+var pq = first && G.pos[first.q.stn + '|' + x.li];
+if (pq) { var dm = Math.sqrt(Math.pow((pq[0] - geo.lon) * COS, 2) + Math.pow(pq[1] - geo.lat, 2)) * 111000, allow = Math.max(1500, geo.acc * 1.5) + Math.max(0, (first.e.t - geo.t) / 60000) * 1000; if (dm > allow) continue; }
+}
+res.push({ x: x, m: m, q: spread + Math.abs(med) / 2 });
 }
 if (!res.length) return null;
 res.sort(function (a, b) { return (b.m - a.m) || (a.q - b.q); });
 if (res[1] && res[1].m === res[0].m && res[1].q - res[0].q < 15) return null;
+res[0].x._m = res[0].m;
 return res[0].x;
 }
 /* 맞는 열차를 찾았으면 그 열차가 있는 역으로 바로 맞춰요 (안내하던 길 밖이면 그 역에서 길을 다시 찾아요) */
@@ -202,14 +228,14 @@ if (!x) return false;
 var mode = st.mode || 'confirm', S = stnNorm(x.lastStn), dep = x.lastSt === '2' || x.lastSt === '3';
 if (mode === 'ride' && route) {
 var last = route.length - 1, i = Math.min(st.i || 0, last), k = -1;
-for (var q = Math.max(0, i - 2); q <= last; q++) if (route[q].l === x.li || (q < last && route[q + 1].l === x.li)) { if (stnNorm(route[q].n) === S) { k = q; break; } }
+for (var q = Math.max(0, i - 2); q <= Math.min(last, i + 3); q++) if (route[q].l === x.li || (q < last && route[q + 1].l === x.li)) { if (stnNorm(route[q].n) === S) { k = q; break; } }
 if (k >= 0) {
 if (st.trainNo === x.no && Math.abs(k - i) < 1) return false;
 this._acc = 0; this._lastT = 0;
 this.setState({ trainNo: x.no, trainT: now, trainMiss: 0, boarded: true, playing: true, i: k, f: dep ? 0.08 : 0, matchedT: now, resyncT: null });
 return true;
 }
-if (st.dest) return this.reroute(x.lastStn, x.li, { boarded: true, playing: true, trainNo: x.no, trainT: now, f: dep ? 0.08 : 0, matchedT: now });
+if (st.dest && (x._m || 0) >= 3) return this.reroute(x.lastStn, x.li, { boarded: true, playing: true, trainNo: x.no, trainT: now, f: dep ? 0.08 : 0, matchedT: now });
 return false;
 }
 if (mode === 'confirm') {
@@ -457,7 +483,7 @@ if (!route || st.mode !== 'ride' || !rows) return;
 var last = route.length - 1, i = Math.min(st.i || 0, last);
 if (i >= last) return;
 this.recordRows(route[i + 1].l, rows);
-if (this.useMatched(this.matchTrain([route[i + 1].l]))) return;
+if (this.useMatched(this.matchTrain([route[i + 1].l], { need: 2 }))) return;
 if (!st.boarded) { this.watchBoarding(rows, route, i); return; }
 var L = route[i + 1].l, lo = i, hi = i + 1;
 while (lo > 0 && route[lo].l === L) lo--;
