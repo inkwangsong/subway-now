@@ -159,11 +159,13 @@ var code = String(r.st), kind = code === '1' || code === '0' ? 'arr' : code === 
 var key = li + ':' + r.no, x = tr[key] || (tr[key] = { li: li, no: String(r.no), ev: [] });
 x.term = r.term; x.ud = r.ud; x.lastStn = r.stn; x.lastSt = code; x.lastT = t;
 if (!kind) return;
-if (code === '0') t += 15000;
+/* 실제 데이터: 상태가 그대로여도 시각은 15~30초마다 새로 찍혀요 → 같은 역·같은 상태는 가장 이른 시각을 써요.
+   진입(0) 뒤 도착(1)까지 보통 30초라, 진입만 봤으면 +30초를 도착으로 잡아요 */
+if (code === '0') t += 30000;
 var hit = null;
 x.ev.forEach(function (e) { if (e.kind === kind && e.stn === r.stn && Math.abs(e.t - t) < 300000) hit = e; });
 if (!hit) x.ev.push({ kind: kind, stn: r.stn, t: t });
-else if (code === '1' || code === '2') hit.t = Math.min(hit.t, t);
+else hit.t = Math.min(hit.t, t);
 });
 for (var k in tr) { tr[k].ev = tr[k].ev.filter(function (e) { return now - e.t < 900000; }); if (!tr[k].ev.length && now - (tr[k].lastT || 0) > 900000) delete tr[k]; }
 }
@@ -174,17 +176,23 @@ var tr = this._traj || {}, res = [];
 for (var k in tr) {
 var x = tr[k];
 if (lines && lines.indexOf(x.li) < 0) continue;
-var m = 0, sum = 0, used = {};
+/* 실시간 정보 시각은 실제보다 일정하게 앞서거나 늦을 수 있어서, 차이 자체보다 '차이가 일정한지'를 봐요.
+   같은 열차라면 차이들이 45초 안에 모이고, 앞차·뒤차는 배차 간격(2~6분)만큼 통째로 밀려 있어요 */
+var dts = [], used = {};
 mev.forEach(function (e) {
 var want = e.type === 'stop' ? 'arr' : 'dep', best = null;
-x.ev.forEach(function (q, qi) { if (q.kind !== want || used[qi]) return; var d = Math.abs(q.t - e.t); if (d <= 45000 && (!best || d < best.d)) best = { d: d, qi: qi }; });
-if (best) { m++; sum += best.d; used[best.qi] = 1; }
+x.ev.forEach(function (q, qi) { if (q.kind !== want || used[qi]) return; var d = q.t - e.t; if (Math.abs(d) <= 90000 && (!best || Math.abs(d) < Math.abs(best.d))) best = { d: d, qi: qi }; });
+if (best) { dts.push(best.d / 1000); used[best.qi] = 1; }
 });
-if (m >= 2) res.push({ x: x, m: m, avg: sum / m / 1000 });
+if (dts.length < 2) continue;
+dts.sort(function (a, b) { return a - b; });
+var med = dts[Math.floor(dts.length / 2)], spread = dts[dts.length - 1] - dts[0];
+if (spread > 45 || Math.abs(med) > 75) continue;
+res.push({ x: x, m: dts.length, q: spread + Math.abs(med) / 2 });
 }
 if (!res.length) return null;
-res.sort(function (a, b) { return (b.m - a.m) || (a.avg - b.avg); });
-if (res[1] && res[1].m === res[0].m && res[1].avg - res[0].avg < 12) return null;
+res.sort(function (a, b) { return (b.m - a.m) || (a.q - b.q); });
+if (res[1] && res[1].m === res[0].m && res[1].q - res[0].q < 15) return null;
 return res[0].x;
 }
 /* 맞는 열차를 찾았으면 그 열차가 있는 역으로 바로 맞춰요 (안내하던 길 밖이면 그 역에서 길을 다시 찾아요) */
