@@ -1003,11 +1003,13 @@ if (bad || m < need) continue;
 dts.sort(function (a, b) { return a - b; });
 var med = dts[Math.floor(dts.length / 2)], spread = dts[dts.length - 1] - dts[0];
 if (spread > 40 || Math.abs(med) > 60) continue;
-/* 마지막으로 잡힌 내 위치에서 너무 먼 열차는 빼요 (시간이 지날수록 넓게: 1분에 1km) */
+/* 탄 역 확인: 첫 움직임(출발·정차) 때 그 열차가 있던 역이, 마지막으로 잡힌 내 위치에서 걸어갈 만한 거리여야 해요 */
 if (geo && G) {
-var first = null; pairs.forEach(function (P2) { if (P2.q && !first) first = P2; });
-var pq = first && G.pos[first.q.stn + '|' + x.li];
-if (pq) { var dm = Math.sqrt(Math.pow((pq[0] - geo.lon) * COS, 2) + Math.pow(pq[1] - geo.lat, 2)) * 111000, allow = Math.max(1500, geo.acc * 1.5) + Math.max(0, (first.e.t - geo.t) / 60000) * 1000; if (dm > allow) continue; }
+var t1 = mev[0].t, at = null;
+x.ev.forEach(function (q) { if (q.t <= t1 + 60000 && (!at || q.t > at.t)) at = q; });
+if (!at) x.ev.forEach(function (q) { if (!at || q.t < at.t) at = q; });
+var pq = at && G.pos[at.stn + '|' + x.li];
+if (pq) { var dm = Math.sqrt(Math.pow((pq[0] - geo.lon) * COS, 2) + Math.pow(pq[1] - geo.lat, 2)) * 111000, allow = Math.min(2500, Math.max(900, geo.acc * 1.5) + Math.max(0, (t1 - geo.t) / 60000) * 80); if (dm > allow) continue; }
 }
 /* 점수: 맞은 개수는 조금, 시각 차이가 작고 일정한 것을 크게 봐요 (앞차·뒤차도 역 주기가 비슷해 개수만으론 섞여요) */
 res.push({ x: x, m: m, sc: m * 10 - spread - Math.abs(med) * 1.2 });
