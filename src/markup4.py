@@ -370,6 +370,16 @@ input::placeholder{{color:{SUB}}}
 <sc-if value="{{{{ isConfirm }}}}" hint-placeholder-val="{{{{ false }}}}">
 <div style="position: absolute; left: 16px; right: 16px; bottom: 20px; display: flex; flex-direction: column; gap: 10px">
 
+<sc-if value="{{{{ hasAmbig }}}}" hint-placeholder-val="{{{{ false }}}}">
+<div style="border-radius: 22px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; background: #F6B545; border: 1px solid #FFE3A6; box-shadow: 0 0 22px rgba(246,181,69,0.6), 0 14px 26px rgba(90,58,20,0.25)">
+<div style="font-size: 16px; font-weight: 700; color: #2B2118">지하철 타셨죠? 어느 쪽으로 가요?</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{{{ ambig }}}}" as="a" hint-placeholder-count="2">
+<button onClick="{{{{ a.pick }}}}" style="min-height: 48px; border-radius: 14px; border: 0; background: rgba(255,255,255,0.85); color: #2B2118; font-size: 14px; font-weight: 700; padding: 6px 10px">{{{{a.label}}}}</button>
+</sc-for>
+</div>
+</div>
+</sc-if>
 <sc-if value="{{{{ hasOrigin }}}}" hint-placeholder-val="{{{{ true }}}}">
 <div style="display: flex; flex-direction: column; gap: 10px">
 <div style="{ACRYL}; border-radius: 24px; padding: 6px; display: flex; align-items: stretch">

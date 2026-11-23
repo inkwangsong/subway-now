@@ -222,7 +222,9 @@ res.push({ x: x, m: m, sc: m * 10 - spread - Math.abs(med) * 1.2 });
 }
 if (!res.length) return null;
 res.sort(function (a, b) { return b.sc - a.sc; });
-if (res[1] && res[0].sc - res[1].sc < 12) return null;
+/* 비슷하게 맞는 열차가 둘이면(같은 역에서 반대 방향으로 떠난 열차 등) 고르지 않고 후보로 남겨요 */
+if (res[1] && res[0].sc - res[1].sc < 12) { this._ambig = [res[0].x, res[1].x]; return null; }
+this._ambig = null;
 res[0].x._m = res[0].m;
 return res[0].x;
 }
@@ -313,6 +315,12 @@ if (!geo) { this.recordRows(li, rows); this.useMatched(this.matchTrain(null)); r
 var now = Date.now(), cs = NET[li].chains, cand = this._cand || (this._cand = {});
 this.recordRows(li, rows);
 if (this.useMatched(this.matchTrain(null))) return;
+/* 방향만 헷갈리면 한 번만 물어봐요: "지하철 타셨죠? 어느 쪽으로 가요?" */
+if (this._ambig) {
+var A2 = this._ambig, self2 = this;
+var lab = function (x) { var cs2 = NET[x.li].chains, S2 = stnNorm(x.lastStn), nx = ''; cs2.forEach(function (c) { var s2 = c.s, a2 = -1, t2 = -1; s2.forEach(function (n2, z2) { if (stnNorm(n2) === S2) a2 = z2; if (stnNorm(n2) === stnNorm(x.term)) t2 = z2; }); if (a2 >= 0 && t2 >= 0 && t2 !== a2 && !nx) nx = s2[a2 + (t2 > a2 ? 1 : -1)] || ''; }); return NET[x.li].name + ' · ' + (nx ? nx + ' 쪽' : x.term + ' 방면'); };
+this.setState({ ambigT: now, ambig: A2.map(function (x) { return { label: lab(x), pick: function () { self2._ambig = null; self2.setState({ ambig: null }); self2.useMatched(x); } }; }) });
+}
 rows.forEach(function (r) {
 for (var ci = 0; ci < cs.length; ci++) {
 var s = cs[ci].s, k = -1, tq = -1;
@@ -1124,6 +1132,8 @@ out.diag = live ? ['마이크 ' + (this.props.srOk ? (st.listening ? '듣는 중
 '위치 ' + (geo ? '오차 ' + Math.round(geo.acc) + 'm ' + ago(geo.t) : (st.geoErr ? '오류:' + st.geoErr : '없음')),
 '센서 ' + (st.motionErr ? '오류:' + st.motionErr : (st.mdbg || '꺼짐')),
 '실시간 ' + (this.props.rtUrl ? (st.rtErr ? '오류:' + String(st.rtErr).slice(0, 20) : '응답 ' + ago(st.rtOkT)) : '연결 안 됨')].join(' · ') : '';
+out.hasAmbig = !!(live && (st.mode || 'confirm') === 'confirm' && st.ambig && st.ambigT && Date.now() - st.ambigT < 180000);
+out.ambig = out.hasAmbig ? st.ambig : [];
 out.hasDiag = !!out.diag && !!this.props.debug;
 out.onRefresh = function () { if (self.props.onSync) self.props.onSync(); };
 out.syncAnim = st.syncing ? 'sn-spin 0.9s linear infinite' : 'none';
