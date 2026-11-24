@@ -92,7 +92,8 @@ else localStorage.removeItem(RIDE_KEY);
 
 try { if (localStorage.getItem(LISTEN_KEY) !== '0') app.state = Object.assign({}, app.state, { listenOn: true }); } catch (e) { app.state = Object.assign({}, app.state, { listenOn: true }); }
 /* 실시간 열차 위치 중계 주소: 주소 끝에 ?rt=https://... 를 붙여 한 번 열면 저장돼요 */
-var RT_URL = (window.SUBWAY_RT_URL || '');
+/* 중계 주소는 공개 주소라 기본으로 넣어 둬요. 홈 화면 앱은 사파리와 저장 공간이 따로라, ?rt= 를 사파리에서만 열면 홈 화면 앱엔 실시간 정보가 안 들어갔어요 */
+var RT_URL = (window.SUBWAY_RT_URL || 'https://subway-now-plum.vercel.app/api/trains');
 try { var qrt = new URLSearchParams(location.search).get('rt'); if (qrt) localStorage.setItem(RT_KEY, qrt); RT_URL = localStorage.getItem(RT_KEY) || RT_URL; } catch (e) {}
 setInterval(function () { var t = todNow(); if (t !== app.props.tod) { app.props.tod = t; schedule(); } }, 60000);
 /* 위치 신호가 끊겨도 '몇 분 전' 표시가 흐르도록 가끔 다시 그려요 */
