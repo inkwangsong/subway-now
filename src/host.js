@@ -404,6 +404,22 @@ fetch(RT_URL + (RT_URL.indexOf('?') < 0 ? '?' : '&') + 'line=' + encodeURICompon
 });
 };
 setInterval(pollHome, 30000);
+/* 자동 업데이트: 새 버전이 올라오면 (타고 가는 중이 아닐 때) 알아서 새로 열어요.
+   홈 화면 앱은 예전 화면을 오래 들고 있어서, 고친 게 안 보이던 문제를 막아요 */
+var checkUpdate = function () {
+if (typeof BUILD === 'undefined' || document.hidden) return;
+fetch(location.pathname + '?u=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
+var m = t.match(/var BUILD = '([0-9a-f]+)'/);
+if (!m || m[1] === BUILD) return;
+var st = app.state || {};
+if (st.mode === 'ride' && st.boarded) return;
+try { localStorage.setItem('subway-now:updatedTo', m[1]); } catch (e) {}
+location.replace(location.pathname + '?v=' + m[1]);
+}).catch(function () {});
+};
+setTimeout(checkUpdate, 3000);
+setInterval(checkUpdate, 600000);
+document.addEventListener('visibilitychange', function () { if (!document.hidden) setTimeout(checkUpdate, 1500); });
 /* ===== 지도 손으로 움직이기 =====
    한 손가락: 끌어서 이동 · 두 손가락: 벌리고 오므려 확대/축소 · 두 번 톡: 원래대로 · 마우스 휠: 확대/축소.
    화면을 늘리는 게 아니라 지도 자체를 그 위치·배율로 다시 그려서, 옮긴 곳까지 건물·노선이 채워져요 */

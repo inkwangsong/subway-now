@@ -10,6 +10,9 @@ font=re.search(r'<link[^>]+>',helmet).group(0)
 logic=(open(B+'helpers4.js',encoding='utf-8').read()+open(B+'class4.js',encoding='utf-8').read()).replace('__NET__',open(B+'net3.json',encoding='utf-8').read())
 preact=open('/home/claude/subway-web/node_modules/preact/dist/preact.min.umd.js',encoding='utf-8').read().split('//# sourceMappingURL')[0]
 host=open(B+'host.js',encoding='utf-8').read()
+import hashlib
+BUILD=hashlib.sha1((m+logic+host).encode('utf-8')).hexdigest()[:10]
+host='var BUILD = '+repr(BUILD)+';\n'+host
 assert '</script' not in logic and '</script' not in host and '</template' not in body
 html=f'''<!doctype html>
 <html lang="ko">
