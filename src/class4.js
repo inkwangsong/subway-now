@@ -1150,8 +1150,15 @@ var since = arrOk ? (nowA - st.arr.at) / 1000 : 0;
 if (arrOk && isRide && !st.boarded && i < last) { var NX = stnNorm(route[i + 1].n), LX = route[i + 1].l; groups = groups.filter(function (g) { return g.li === LX && stnNorm(g.toward) === NX; }); }
 var arrRows = groups.slice(0, 4).map(function (g) {
 var tr = g.trains.map(function (t) { return Math.max(0, t.eta - since); }), L = NET[g.li];
-return { short: L.short, bg: L.color, fg: fgFor(L.color), dir: g.dest + '행', toward: g.toward ? g.toward + ' 방면' : '', first: fmtEta(tr[0]), clock: tr[0] >= 30 ? fmtClock(nowA + tr[0] * 1000) + ' 도착' : '', second: tr[1] !== undefined ? '다음 ' + Math.max(1, Math.round(tr[1] / 60)) + '분 후' : '' };
+return { eta: tr[0], li: g.li, towardN: stnNorm(g.toward || ''), short: L.short, bg: L.color, fg: fgFor(L.color), dir: g.dest + '행', toward: g.toward ? g.toward + ' 방면' : '', first: fmtEta(tr[0]), clock: tr[0] >= 30 ? fmtClock(nowA + tr[0] * 1000) + ' 도착' : '', second: tr[1] !== undefined ? '다음 ' + Math.max(1, Math.round(tr[1] / 60)) + '분 후' : '' };
 });
+/* 역에 도착했을 때 위치 칩: '탈 준비하세요' 대신 다음 열차와 남은 시간 (평소 가는 방향이 있으면 그 방향) */
+if (live && mode === 'confirm' && nearOn && arrRows.length) {
+var pref = null;
+if (usualPath && usualPath.length > 1) { var UN = stnNorm(usualPath[1].n), UL = usualPath[1].l; arrRows.forEach(function (r) { if (r.li === UL && r.towardN === UN) pref = r; }); }
+if (!pref) arrRows.forEach(function (r) { if (!pref || r.eta < pref.eta) pref = r; });
+out.pillText = '지금 ' + nm.name + '역 · ' + pref.dir + ' ' + (pref.first === '곧 도착' ? '곧 도착' : pref.first + ' 후') + (pref.clock ? ' (' + pref.clock.replace(' 도착', '') + ')' : '');
+}
 out.arrRows = arrRows; out.hasArr = live && mode === 'confirm' && arrRows.length > 0;
 out.arrTitle = arrStn ? arrStn + '역 다음 열차' : '';
 out.arrNote = arrOk ? '서울시 실시간 도착 정보 기준 · 8호선 등은 열차 위치로 추정' : '';
