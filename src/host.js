@@ -451,7 +451,7 @@ document.addEventListener('visibilitychange', function () {
 if (document.hidden) { hiddenAt = Date.now(); return; }
 var away = hiddenAt ? (Date.now() - hiddenAt) / 1000 : 0; hiddenAt = 0;
 /* 15초 넘게 다른 앱에 있다 돌아오면 바로 다시 맞춰요 */
-if (away > 15 && (app.state || {}).mode === 'ride') { app.resume(away); if (app.props.onSync) app.props.onSync(true); }
+if (away > 15 && (app.state || {}).mode === 'ride') { if (away > 60) app.setState({ fixNote: '화면이 꺼져 있던 ' + Math.round(away / 60) + '분 동안은 알림을 못 드렸어요. 지금 위치로 다시 맞췄어요', fixNoteT: Date.now() }); app.resume(away); if (app.props.onSync) app.props.onSync(true); }
 app.tick(); schedule();
 });
 window.addEventListener('resize', layout);

@@ -1105,7 +1105,7 @@ for (var q = Math.max(0, i - 2); q <= Math.min(last, i + 3); q++) if (route[q].l
 if (k >= 0) {
 if (st.trainNo === x.no && Math.abs(k - i) < 1) return false;
 this._acc = 0; this._lastT = 0;
-this.setState({ trainNo: x.no, trainT: now, trainMiss: 0, boarded: true, playing: true, i: k, f: dep ? 0.08 : 0, matchedT: now, resyncT: null });
+this.setState({ trainNo: x.no, trainT: now, trainMiss: 0, trainOk: true, lockP: k, boarded: true, playing: true, i: k, f: dep ? 0.08 : 0, matchedT: now, resyncT: null });
 return true;
 }
 if (st.dest && (x._m || 0) >= 3) return this.reroute(x.lastStn, x.li, { boarded: true, playing: true, trainNo: x.no, trainT: now, f: dep ? 0.08 : 0, matchedT: now });
@@ -1374,7 +1374,11 @@ var mine = null;
 rows.forEach(function (r) { if (String(r.no) === String(st.trainNo)) mine = r; });
 var mp = mine ? posOf(mine) : null;
 if (mp === null) { patch = { trainMiss: (st.trainMiss || 0) + 1 }; if (patch.trainMiss >= 4) patch.trainNo = null; }
-else if (mp >= cur - 0.3 || resync) patch = { trainT: Date.now(), trainMiss: 0, resyncT: null, i: Math.max(0, Math.floor(mp)), f: mp - Math.floor(mp) };
+/* 따라가던 열차가 내 위치보다 반 정거장 넘게 뒤에 있으면, 열차를 잘못 잡은 거예요 (뒤차).
+   위치를 뒤로 되돌리지 않고 그 열차를 놓아요 (야탑으로 되돌아가던 문제) */
+/* 확인된 열차(한 정거장 넘게 같이 움직인 걸 본 열차, 또는 출발·정차 시각이 맞은 열차)만 위치를 뒤로 돌릴 수 있어요 */
+else if (mp < cur - 0.6 && !st.trainOk) patch = { trainNo: null, trainMiss: 0, badTrain: String(st.trainNo), badT: Date.now() };
+else if (mp >= cur - 0.3 || resync || st.trainOk) { patch = { trainT: Date.now(), trainMiss: 0, resyncT: null, i: Math.max(0, Math.floor(mp)), f: mp - Math.floor(mp) }; if (st.lockP !== undefined && st.lockP !== null && mp - st.lockP >= 1) patch.trainOk = true; }
 else patch = { trainT: Date.now(), trainMiss: 0 };
 } else {
 var best = null;
@@ -1386,8 +1390,9 @@ if (!resync || !gq || !G2) return (p > cur ? (p - cur) * 1.6 : cur - p);
 var k = Math.max(0, Math.min(last, Math.round(p))), q = G2.pos[route[k].n + '|' + route[k].l];
 return q ? Math.sqrt(Math.pow((q[0] - gq.lon) * COS, 2) + Math.pow(q[1] - gq.lat, 2)) * 111 : (p > cur ? (p - cur) * 1.6 : cur - p);
 };
-rows.forEach(function (r) { var p = posOf(r); if (p === null || !dirOk(r) || (st.badTrain && String(r.no) === st.badTrain && Date.now() - (st.badT || 0) < 600000)) return; var d = score(p); if ((resync ? (p >= cur - 1.5 && p <= cur + 4) : d <= 0.75) && (!best || d < best.d)) best = { r: r, p: p, d: d }; });
-if (best) { var bp = resync ? best.p : Math.max(best.p, cur - 0.1); patch = { resyncT: null, trainNo: String(best.r.no), trainT: Date.now(), trainMiss: 0, i: Math.max(0, Math.floor(bp)), f: bp - Math.floor(bp) }; }
+rows.forEach(function (r) { var p = posOf(r); if (p === null || !dirOk(r) || (st.badTrain && String(r.no) === st.badTrain && Date.now() - (st.badT || 0) < 600000)) return; var d = score(p); /* 처음 잡을 때 내 위치보다 뒤(0.3 넘게)에 있는 열차는 뒤차라서 고르지 않아요 */
+if ((resync ? (p >= cur - 1.5 && p <= cur + 4) : (p >= cur - 0.3 && p <= cur + 0.75)) && (!best || d < best.d)) best = { r: r, p: p, d: d }; });
+if (best) { var bp = Math.max(0, resync ? best.p : Math.max(best.p, cur - 0.1)); patch = { resyncT: null, trainNo: String(best.r.no), trainT: Date.now(), trainMiss: 0, trainOk: false, lockP: best.p, i: Math.max(0, Math.floor(bp)), f: bp - Math.floor(bp) }; }
 }
 if (patch) {
 if (patch.i !== undefined && patch.i >= last) { patch.i = last; patch.f = 0; }
@@ -2597,7 +2602,7 @@ document.addEventListener('visibilitychange', function () {
 if (document.hidden) { hiddenAt = Date.now(); return; }
 var away = hiddenAt ? (Date.now() - hiddenAt) / 1000 : 0; hiddenAt = 0;
 /* 15초 넘게 다른 앱에 있다 돌아오면 바로 다시 맞춰요 */
-if (away > 15 && (app.state || {}).mode === 'ride') { app.resume(away); if (app.props.onSync) app.props.onSync(true); }
+if (away > 15 && (app.state || {}).mode === 'ride') { if (away > 60) app.setState({ fixNote: '화면이 꺼져 있던 ' + Math.round(away / 60) + '분 동안은 알림을 못 드렸어요. 지금 위치로 다시 맞췄어요', fixNoteT: Date.now() }); app.resume(away); if (app.props.onSync) app.props.onSync(true); }
 app.tick(); schedule();
 });
 window.addEventListener('resize', layout);
