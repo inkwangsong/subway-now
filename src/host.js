@@ -500,6 +500,8 @@ afterRender(vals);
 lastVals = vals;
 manageListen(vals);
 if (RT_URL && (app.state || {}).mode === 'ride' && Date.now() - rtLast > 30000) pollTrains();
+/* 가장 가까운 역이 바뀌거나 처음 잡히면 기다리지 않고 바로 다음 열차를 받아와요 */
+if (vals.arrStn && !arrBusy && (!(app.state || {}).arr || app.state.arr.stn !== vals.arrStn)) setTimeout(pollArr, 0);
 };
 var schedule = function () { if (!queued) { queued = true; (window.requestAnimationFrame || setTimeout)(draw); } };
 DCLogic.onChange = schedule;

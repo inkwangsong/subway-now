@@ -430,6 +430,7 @@ input::placeholder{{color:{SUB}}}
 <span style="flex-shrink: 0; font-size: 18px; font-weight: 700; color: {BLUE}; font-variant-numeric: tabular-nums">{{{{r.first}}}}</span>
 </div>
 </sc-for>
+<div style="display: {{{{arrLoadShow}}}}; font-size: 14px; font-weight: 600; color: {SUB}" class="sn-dots">{{{{arrLoading}}}}</div>
 <div style="font-size: 10.5px; font-weight: 500; color: {SUB}">{{{{arrNote}}}}</div>
 </div>
 </sc-if>
@@ -479,6 +480,7 @@ input::placeholder{{color:{SUB}}}
 <span style="flex-shrink: 0; font-size: 18px; font-weight: 700; color: {BLUE}; font-variant-numeric: tabular-nums">{{{{r.first}}}}</span>
 </div>
 </sc-for>
+<div style="display: {{{{arrLoadShow}}}}; font-size: 14px; font-weight: 600; color: {SUB}" class="sn-dots">{{{{arrLoading}}}}</div>
 <div style="font-size: 10.5px; font-weight: 500; color: {SUB}">{{{{arrNote}}}}</div>
 </div>
 </sc-if>

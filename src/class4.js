@@ -1185,7 +1185,9 @@ if (usualPath && usualPath.length > 1) { var UN = stnNorm(usualPath[1].n), UL = 
 if (!pref) arrRows.forEach(function (r) { if (!pref || r.eta < pref.eta) pref = r; });
 out.pillText = '지금 ' + nm.name + '역 · ' + pref.dir + ' ' + (pref.first === '곧 도착' ? '곧 도착' : pref.first + ' 후') + (pref.clock ? ' (' + pref.clock.replace(' 도착', '') + ')' : '');
 }
-out.arrRows = arrRows; out.hasArr = live && mode === 'confirm' && arrRows.length > 0;
+out.arrRows = arrRows; out.hasArr = live && mode === 'confirm' && !!arrStn;
+out.arrLoading = out.hasArr && !arrRows.length ? (arrOk ? '지금은 이 역에 다가오는 열차 정보가 없어요' : '다음 열차 불러오는 중…') : '';
+out.arrLoadShow = out.arrLoading ? 'block' : 'none';
 out.arrTitle = arrStn ? arrStn + '역 다음 열차' + (walkSec ? ' · 걸어서 약 ' + Math.round(walkSec / 60) + '분' : '') : '';
 out.arrNote = arrOk ? '서울시 실시간 도착 정보 기준 · 8호선 등은 열차 위치로 추정' : '';
 if (live && isRide && !st.boarded && i < last && arrRows.length && bannerLabel !== '경로 다시 찾음') banner = banner + ' · 다음 열차 ' + arrRows[0].first + (arrRows[0].clock ? ' (' + arrRows[0].clock + ')' : '');
