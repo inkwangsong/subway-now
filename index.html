@@ -326,6 +326,15 @@ input::placeholder{color:var(--sub)}
 <sc-for list="{{ lmLights }}" as="l" hint-placeholder-count="0">
 <div style="position: absolute; left: {{l.x}}; top: {{l.y}}; width: {{l.s}}; height: {{l.s}}; transform: translate(-50%, -50%); border-radius: 50%; background: #FFE08A; box-shadow: 0 0 9px 4px rgba(255,214,120,0.8)"></div>
 </sc-for>
+<sc-for list="{{ lmHits }}" as="h" hint-placeholder-count="0">
+<div onClick="{{ h.pick }}" aria-label="{{h.label}}" role="button" style="position: absolute; left: {{h.x}}; top: {{h.y}}; width: {{h.w}}; height: {{h.h}}; transform: translateX(-50%); cursor: pointer"></div>
+</sc-for>
+<sc-if value="{{ hasLmTip }}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: {{lmTip.x}}; top: {{lmTip.y}}; transform: translate(-50%, -100%); pointer-events: none; display: flex; flex-direction: column; align-items: center">
+<div style="background: #1F3A5F; color: #FFFFFF; font-size: 14px; font-weight: 700; white-space: nowrap; padding: 6px 12px; border-radius: 12px; box-shadow: 0 8px 18px rgba(20,36,70,0.35)">{{lmTip.name}}</div>
+<div style="width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 7px solid #1F3A5F"></div>
+</div>
+</sc-if>
 </div>
 </div>
 </sc-if>
@@ -1842,7 +1851,7 @@ stadium: function (o) { o.shadow(40, 28); o.fr(14, 0, 0, 37, 27, 41, 30, 0, 12, 
 hat: function (o) { o.shadow(32, 24); o.box(0, 0, 58, 40, 0, 10, '#D8CBB0', '#E4D9C2'); o.fr(12, 0, 0, 24, 24, 21, 21, 10, 13, 0, '#BFAF8E'); o.fr(12, 0, 0, 21, 21, 6, 6, 13, 22, 0, '#CDBE9F', '#DDD0B4'); },
 block: function (o) { o.shadow(34, 20); o.box(0, 0, 60, 34, 0, 18, '#7FAAD3', '#E9EEF3'); o.box(-8, 0, 30, 20, 18, 28, '#93B9DD', '#F4F7FA'); }
 };
-var lmFaces = [], lmLightPts = [];
+var lmFaces = [], lmLightPts = [], lmHits = [];
 var lmList = [];
 LANDMARKS.forEach(function (lm) {
 var g = GR(lm.at);
@@ -1859,6 +1868,9 @@ var o = mkObj(it.g[0], it.g[1], m, function (d, c) { lmFaces.push({ d: d, c: c }
 MODELS[it.lm.kind](o);
 var tip = S(it.g[0], it.g[1], m * ({ tower: 110, needle: 80, gold: 80 }[it.lm.kind] || 16));
 if (tip) lmLightPts.push({ x: tip[0] + 'px', y: tip[1] + 'px', s: '5px' });
+/* 랜드마크를 톡 하면 이름이 떠요: 모형을 덮는 투명한 터치 영역 */
+var topY = tip ? Math.min(tip[1], it.xy[1] - 24) : it.xy[1] - 40, wHit = Math.max(48, 70 * m * it.xy[2]);
+lmHits.push({ name: it.lm.name, x: it.xy[0] + 'px', y: (topY - 8) + 'px', w: Math.round(wHit) + 'px', h: Math.round(it.xy[1] - topY + 22) + 'px', tx: it.xy[0], ty: topY - 10 });
 });
 /* 같은 색이 이어지는 면은 한 칸에 묶어 그려요 */
 var slots = [];
@@ -1897,6 +1909,13 @@ patches.push({ x: pq[0] + 'px', y: pq[1] + 'px', w: Math.round(pr * 2) + 'px', h
 out.patches = patches;
 out.trees = props;
 out.lmLights = showMap && TM.night ? lmLightPts : [];
+var tipOn = st.lmTip && st.lmTipT && Date.now() - st.lmTipT < 3500, tipHit = null;
+out.lmHits = showMap ? lmHits.map(function (h) {
+if (tipOn && h.name === st.lmTip) tipHit = h;
+return { x: h.x, y: h.y, w: h.w, h: h.h, label: h.name, pick: function () { self.setState({ lmTip: h.name, lmTipT: Date.now() }); setTimeout(function () { self.setState({ lmTipT: (self.state || {}).lmTipT }); }, 3600); } };
+}) : [];
+out.hasLmTip = !!tipHit;
+out.lmTip = tipHit ? { name: tipHit.name, x: tipHit.tx + 'px', y: tipHit.ty + 'px' } : { name: '', x: '0px', y: '0px' };
 out.lights = showMap && TM.night ? bLights : [];
 out.lmLabels = [];  /* 명소는 그림만 보여주고 이름표는 달지 않아요 */
 out.th = TM;

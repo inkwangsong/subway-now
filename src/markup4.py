@@ -310,6 +310,15 @@ input::placeholder{{color:{SUB}}}
 <sc-for list="{{{{ lmLights }}}}" as="l" hint-placeholder-count="0">
 <div style="position: absolute; left: {{{{l.x}}}}; top: {{{{l.y}}}}; width: {{{{l.s}}}}; height: {{{{l.s}}}}; transform: translate(-50%, -50%); border-radius: 50%; background: #FFE08A; box-shadow: 0 0 9px 4px rgba(255,214,120,0.8)"></div>
 </sc-for>
+<sc-for list="{{{{ lmHits }}}}" as="h" hint-placeholder-count="0">
+<div onClick="{{{{ h.pick }}}}" aria-label="{{{{h.label}}}}" role="button" style="position: absolute; left: {{{{h.x}}}}; top: {{{{h.y}}}}; width: {{{{h.w}}}}; height: {{{{h.h}}}}; transform: translateX(-50%); cursor: pointer"></div>
+</sc-for>
+<sc-if value="{{{{ hasLmTip }}}}" hint-placeholder-val="{{{{ false }}}}">
+<div style="position: absolute; left: {{{{lmTip.x}}}}; top: {{{{lmTip.y}}}}; transform: translate(-50%, -100%); pointer-events: none; display: flex; flex-direction: column; align-items: center">
+<div style="background: #1F3A5F; color: #FFFFFF; font-size: 14px; font-weight: 700; white-space: nowrap; padding: 6px 12px; border-radius: 12px; box-shadow: 0 8px 18px rgba(20,36,70,0.35)">{{{{lmTip.name}}}}</div>
+<div style="width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 7px solid #1F3A5F"></div>
+</div>
+</sc-if>
 </div>
 </div>
 </sc-if>
