@@ -230,20 +230,24 @@ var lname = SUBWAY_ID[String(r.line)]; if (!lname) return;
 var li = lineIdxByName(lname); if (li < 0) return;
 var head = String(r.head || ''), m = head.match(/^(.*?)행\s*-\s*(.*?)방면/), dest = m ? m[1].trim() : (r.term || ''), toward = m ? m[2].trim() : '';
 var code = String(r.code), at = r.at || '', msg = String(r.msg || '');
+/* 급행: 서울시 정보는 일반·급행을 따로 2대씩 줘요. 급행은 서는 역이 적어서 더 빨리 와요 */
+var exp = /급행/.test(head) || /1$/.test(String(r.ord || ''));
 var recT = r.t ? new Date(String(r.t).replace(' ', 'T') + '+09:00').getTime() : now, age = Math.max(0, (now - recT) / 1000);
 var eta = null;
+/* 5분 넘게 갱신이 없는 열차 정보는 이미 지나갔거나 멈춘 기록이라 빼요 */
+if (age > 300) return;
 if (stnNorm(at) === S) { if (code === '2') return; eta = code === '1' ? 0 : 20; }
 else if (+r.sec > 0) eta = +r.sec - age;
 else {
 var run = runSecBetween(li, at, stn);
 if (run === null) { var mm = msg.match(/(\d+)분/), ss = msg.match(/(\d+)초/); if (mm || ss) eta = (mm ? +mm[1] * 60 : 0) + (ss ? +ss[1] : 0) - age; }
-else eta = run + (code === '0' || code === '4' ? 30 : code === '1' || code === '5' ? 20 : code === '2' || code === '3' ? -10 : 0) - age;
+else eta = run * (exp ? 0.8 : 1) + (code === '0' || code === '4' ? 30 : code === '1' || code === '5' ? 20 : code === '2' || code === '3' ? -10 : 0) - age;
 }
 if (eta === null) return;
 eta = Math.max(0, eta);
 var key = li + '|' + toward;
 var g = groups[key] || (groups[key] = { li: li, dest: dest, toward: toward, trains: [] });
-g.trains.push({ eta: eta, no: r.no, at: at });
+g.trains.push({ eta: eta, no: r.no, at: at, exp: exp });
 });
 return Object.keys(groups).map(function (k) { var g = groups[k]; g.trains.sort(function (a, b) { return a.eta - b.eta; }); return g; }).sort(function (a, b) { return (a.li - b.li) || (a.trains[0].eta - b.trains[0].eta); });
 }

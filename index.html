@@ -443,7 +443,7 @@ input::placeholder{color:var(--sub)}
 <span style="flex-shrink: 0; min-width: 22px; height: 22px; box-sizing: border-box; padding: 0 7px; border-radius: 11px; background: {{r.bg}}; color: {{r.fg}}; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{r.short}}</span>
 <span style="flex: 1 1 0; min-width: 0; font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.dir}}<span style="font-size: 12px; font-weight: 500; color: var(--sub); margin-left: 6px">{{r.toward}}</span></span>
 </div>
-<div style="display: flex; align-items: flex-end; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-left: 30px; padding-bottom: 2px">
+<div style="display: flex; align-items: flex-end; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-left: 30px; padding-right: 16px; padding-bottom: 2px">
 <sc-for list="{{ r.trains }}" as="t" hint-placeholder-count="3">
 <div style="flex-shrink: 0; display: flex; align-items: flex-end">
 <span style="display: {{t.sepShow}}; align-self: center; width: 14px; height: 1px; margin: 0 8px; background: var(--card-line)"></span>
@@ -506,7 +506,7 @@ input::placeholder{color:var(--sub)}
 <span style="flex-shrink: 0; min-width: 22px; height: 22px; box-sizing: border-box; padding: 0 7px; border-radius: 11px; background: {{r.bg}}; color: {{r.fg}}; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{r.short}}</span>
 <span style="flex: 1 1 0; min-width: 0; font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.dir}}<span style="font-size: 12px; font-weight: 500; color: var(--sub); margin-left: 6px">{{r.toward}}</span></span>
 </div>
-<div style="display: flex; align-items: flex-end; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-left: 30px; padding-bottom: 2px">
+<div style="display: flex; align-items: flex-end; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-left: 30px; padding-right: 16px; padding-bottom: 2px">
 <sc-for list="{{ r.trains }}" as="t" hint-placeholder-count="3">
 <div style="flex-shrink: 0; display: flex; align-items: flex-end">
 <span style="display: {{t.sepShow}}; align-self: center; width: 14px; height: 1px; margin: 0 8px; background: var(--card-line)"></span>
@@ -968,20 +968,24 @@ var lname = SUBWAY_ID[String(r.line)]; if (!lname) return;
 var li = lineIdxByName(lname); if (li < 0) return;
 var head = String(r.head || ''), m = head.match(/^(.*?)행\s*-\s*(.*?)방면/), dest = m ? m[1].trim() : (r.term || ''), toward = m ? m[2].trim() : '';
 var code = String(r.code), at = r.at || '', msg = String(r.msg || '');
+/* 급행: 서울시 정보는 일반·급행을 따로 2대씩 줘요. 급행은 서는 역이 적어서 더 빨리 와요 */
+var exp = /급행/.test(head) || /1$/.test(String(r.ord || ''));
 var recT = r.t ? new Date(String(r.t).replace(' ', 'T') + '+09:00').getTime() : now, age = Math.max(0, (now - recT) / 1000);
 var eta = null;
+/* 5분 넘게 갱신이 없는 열차 정보는 이미 지나갔거나 멈춘 기록이라 빼요 */
+if (age > 300) return;
 if (stnNorm(at) === S) { if (code === '2') return; eta = code === '1' ? 0 : 20; }
 else if (+r.sec > 0) eta = +r.sec - age;
 else {
 var run = runSecBetween(li, at, stn);
 if (run === null) { var mm = msg.match(/(\d+)분/), ss = msg.match(/(\d+)초/); if (mm || ss) eta = (mm ? +mm[1] * 60 : 0) + (ss ? +ss[1] : 0) - age; }
-else eta = run + (code === '0' || code === '4' ? 30 : code === '1' || code === '5' ? 20 : code === '2' || code === '3' ? -10 : 0) - age;
+else eta = run * (exp ? 0.8 : 1) + (code === '0' || code === '4' ? 30 : code === '1' || code === '5' ? 20 : code === '2' || code === '3' ? -10 : 0) - age;
 }
 if (eta === null) return;
 eta = Math.max(0, eta);
 var key = li + '|' + toward;
 var g = groups[key] || (groups[key] = { li: li, dest: dest, toward: toward, trains: [] });
-g.trains.push({ eta: eta, no: r.no, at: at });
+g.trains.push({ eta: eta, no: r.no, at: at, exp: exp });
 });
 return Object.keys(groups).map(function (k) { var g = groups[k]; g.trains.sort(function (a, b) { return a.eta - b.eta; }); return g; }).sort(function (a, b) { return (a.li - b.li) || (a.trains[0].eta - b.trains[0].eta); });
 }
@@ -2223,12 +2227,19 @@ var est = false, gapS = (LINE_GAP[L.name] || 6) * 60;
 if (walkSec && ci < 0 && tr.length) { var e2 = tr[tr.length - 1]; while (e2 < walkSec) e2 += gapS; tr.push(e2); ci = tr.length - 1; est = true; }
 var catchTxt = walkSec && ci >= 0 ? (est ? '약 ' : '') + fmtClock(nowA + tr[ci] * 1000) + ' 열차' + (est ? '(예상)' : '') + ' · ' + Math.max(0, Math.round((tr[ci] - walkSec) / 60)) + '분 안에 나가면 타요' : '';
 /* 다음 열차 5대: 실시간으로 나온 2대 뒤는 배차 간격으로 예상해요 */
-var five = [], nReal = g.trains.length, e3 = tr.length ? tr[Math.min(nReal, tr.length) - 1] : 0;
-for (var z2 = 0; z2 < Math.min(nReal, tr.length); z2++) five.push({ eta: tr[z2], est: false });
-while (five.length && five.length < 5) { e3 += gapS; five.push({ eta: e3, est: true }); }
+/* 일반 열차는 실시간 2대 뒤를 배차 간격으로 채우고, 멀리 있는 급행은 그 사이 제자리에 끼워요
+   (예전엔 급행을 일반 열차 바로 뒤로 붙여서 2분 간격·20분 공백처럼 이상하게 보였어요) */
+var nReal = g.trains.length, five = [], lastN = null;
+for (var z2 = 0; z2 < Math.min(nReal, tr.length); z2++) { var ex = !!g.trains[z2].exp; five.push({ eta: tr[z2], est: false, exp: ex }); if (!ex) lastN = tr[z2]; }
+if (lastN === null && five.length) lastN = five[0].eta;
+var e3 = lastN;
+while (five.length && five.filter(function (x) { return !x.exp; }).length < 5 && five.length < 9) { e3 += gapS; five.push({ eta: e3, est: true, exp: false }); }
+five.sort(function (a, b) { return a.eta - b.eta; });
+/* 예상 일반 열차와 1분 안으로 겹치는 건 실제 급행이 그 자리예요 */
+five = five.filter(function (x, n) { return !(x.est && five.some(function (y) { return y.exp && Math.abs(y.eta - x.eta) < 90; })); }).slice(0, 5);
 var trains5 = five.map(function (x, n) {
 var first = n === 0, catchable = walkSec && x.eta >= walkSec && (ci < 0 || Math.abs(x.eta - tr[ci]) < 1);
-return { label: first ? fmtEta(x.eta) : (x.est ? '약 ' : '') + Math.max(1, Math.round(x.eta / 60)) + '분', clock: fmtClock(nowA + x.eta * 1000) + (x.est ? ' 예상' : ''),
+return { label: first ? fmtEta(x.eta) : (x.est ? '약 ' : '') + Math.max(1, Math.round(x.eta / 60)) + '분', clock: fmtClock(nowA + x.eta * 1000) + (x.exp ? ' 급행' : (x.est ? ' 예상' : '')),
 sepShow: first ? 'none' : 'block', size: first ? '18px' : '14px', color: first ? 'var(--blue)' : (x.est ? 'var(--sub)' : 'var(--ink)'), mark: catchable ? 'underline' : 'none' };
 });
 return { trains: trains5, catchShow: catchTxt ? 'block' : 'none', catchTxt: catchTxt, catchEta: ci >= 0 ? tr[ci] : null, eta: tr[0], li: g.li, towardN: stnNorm(g.toward || ''), short: L.short, bg: L.color, fg: fgFor(L.color), dir: g.dest + '행', toward: g.toward ? g.toward + ' 방면' : '', first: fmtEta(tr[0]), clock: tr[0] >= 30 ? fmtClock(nowA + tr[0] * 1000) + ' 도착' : '', second: tr[1] !== undefined ? '다음 ' + Math.max(1, Math.round(tr[1] / 60)) + '분 후' : '' };
@@ -2391,7 +2402,7 @@ return out;
 
 </script>
 <script>
-var BUILD = 'ad595eb4d7';
+var BUILD = 'a1309d3176';
 /* 화면 그리기: 시안과 같은 템플릿({{값}}, sc-if, sc-for)을 읽어서 화면으로 바꿔요 */
 (function () {
 'use strict';

@@ -1229,12 +1229,19 @@ var est = false, gapS = (LINE_GAP[L.name] || 6) * 60;
 if (walkSec && ci < 0 && tr.length) { var e2 = tr[tr.length - 1]; while (e2 < walkSec) e2 += gapS; tr.push(e2); ci = tr.length - 1; est = true; }
 var catchTxt = walkSec && ci >= 0 ? (est ? '약 ' : '') + fmtClock(nowA + tr[ci] * 1000) + ' 열차' + (est ? '(예상)' : '') + ' · ' + Math.max(0, Math.round((tr[ci] - walkSec) / 60)) + '분 안에 나가면 타요' : '';
 /* 다음 열차 5대: 실시간으로 나온 2대 뒤는 배차 간격으로 예상해요 */
-var five = [], nReal = g.trains.length, e3 = tr.length ? tr[Math.min(nReal, tr.length) - 1] : 0;
-for (var z2 = 0; z2 < Math.min(nReal, tr.length); z2++) five.push({ eta: tr[z2], est: false });
-while (five.length && five.length < 5) { e3 += gapS; five.push({ eta: e3, est: true }); }
+/* 일반 열차는 실시간 2대 뒤를 배차 간격으로 채우고, 멀리 있는 급행은 그 사이 제자리에 끼워요
+   (예전엔 급행을 일반 열차 바로 뒤로 붙여서 2분 간격·20분 공백처럼 이상하게 보였어요) */
+var nReal = g.trains.length, five = [], lastN = null;
+for (var z2 = 0; z2 < Math.min(nReal, tr.length); z2++) { var ex = !!g.trains[z2].exp; five.push({ eta: tr[z2], est: false, exp: ex }); if (!ex) lastN = tr[z2]; }
+if (lastN === null && five.length) lastN = five[0].eta;
+var e3 = lastN;
+while (five.length && five.filter(function (x) { return !x.exp; }).length < 5 && five.length < 9) { e3 += gapS; five.push({ eta: e3, est: true, exp: false }); }
+five.sort(function (a, b) { return a.eta - b.eta; });
+/* 예상 일반 열차와 1분 안으로 겹치는 건 실제 급행이 그 자리예요 */
+five = five.filter(function (x, n) { return !(x.est && five.some(function (y) { return y.exp && Math.abs(y.eta - x.eta) < 90; })); }).slice(0, 5);
 var trains5 = five.map(function (x, n) {
 var first = n === 0, catchable = walkSec && x.eta >= walkSec && (ci < 0 || Math.abs(x.eta - tr[ci]) < 1);
-return { label: first ? fmtEta(x.eta) : (x.est ? '약 ' : '') + Math.max(1, Math.round(x.eta / 60)) + '분', clock: fmtClock(nowA + x.eta * 1000) + (x.est ? ' 예상' : ''),
+return { label: first ? fmtEta(x.eta) : (x.est ? '약 ' : '') + Math.max(1, Math.round(x.eta / 60)) + '분', clock: fmtClock(nowA + x.eta * 1000) + (x.exp ? ' 급행' : (x.est ? ' 예상' : '')),
 sepShow: first ? 'none' : 'block', size: first ? '18px' : '14px', color: first ? 'var(--blue)' : (x.est ? 'var(--sub)' : 'var(--ink)'), mark: catchable ? 'underline' : 'none' };
 });
 return { trains: trains5, catchShow: catchTxt ? 'block' : 'none', catchTxt: catchTxt, catchEta: ci >= 0 ? tr[ci] : null, eta: tr[0], li: g.li, towardN: stnNorm(g.toward || ''), short: L.short, bg: L.color, fg: fgFor(L.color), dir: g.dest + '행', toward: g.toward ? g.toward + ' 방면' : '', first: fmtEta(tr[0]), clock: tr[0] >= 30 ? fmtClock(nowA + tr[0] * 1000) + ' 도착' : '', second: tr[1] !== undefined ? '다음 ' + Math.max(1, Math.round(tr[1] / 60)) + '분 후' : '' };
