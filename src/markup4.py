@@ -621,10 +621,27 @@ input::placeholder{{color:{SUB}}}
 <div style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; padding: 56px 16px 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; z-index: 6">
 <div style="{ACRYL}; border-radius: 22px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px">
 <div style="font-size: 24px; font-weight: 700; letter-spacing: -0.8px; color: {NAVY}">안내 목소리</div>
-<div style="font-size: 14px; font-weight: 500; line-height: 1.6; color: {INK}">내 목소리나 소중한 사람의 목소리를 녹음해 두면, 알림 때 기계 음성 대신 그 목소리가 나와요. 녹음은 이 폰에만 저장돼요.</div>
+<div style="font-size: 14px; font-weight: 500; line-height: 1.6; color: {INK}">내 목소리나 소중한 사람의 목소리를 녹음해 두면, 알림 때 기계 음성 대신 그 목소리가 나와요.</div>
 </div>
 <div style="display: {{{{voiceErrShow}}}}; font-size: 13px; font-weight: 600; color: #E8453C; padding: 0 8px">{{{{voiceErr}}}}</div>
 <div style="flex-grow: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px">
+<div style="flex-shrink: 0; {ACRYL}; border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 16px; font-weight: 700">AI 목소리 · 모든 안내를 이 목소리로</div>
+<div style="font-size: 12px; font-weight: 500; line-height: 1.6; color: {SUB}">1분쯤 아래 글을 읽어 녹음하면 그 목소리를 AI가 배워서, 역 이름이 들어간 모든 안내를 그 목소리로 말해요. 녹음은 목소리를 만들 때만 ElevenLabs로 보내져요.</div>
+<div style="font-size: 13px; font-weight: 600; color: {BLUE}">{{{{aiStatus}}}}</div>
+<div style="display: {{{{aiScriptShow}}}}; font-size: 15px; font-weight: 600; line-height: 1.8; color: {INK}; background: var(--tile); border-radius: 14px; padding: 12px 14px">다음은 서현역입니다. 내리실 문은 오른쪽입니다. 오늘 하루도 정말 수고 많았어요. 지하철에서 잠깐 졸아도 괜찮아요, 내릴 때가 되면 제가 깨워 줄게요. 다음 역에서 갈아타요. 수인분당선, 신분당선, 이호선, 팔호선. 천천히, 조심해서 내리세요. 사랑해요, 오늘도 잘 다녀와요.</div>
+<button onClick="{{{{ onAiConsent }}}}" style="display: {{{{aiNotReadyFlex}}}}; align-items: center; gap: 8px; border: 0; background: transparent; padding: 2px 0; color: {INK}; text-align: left">
+<span style="flex-shrink: 0; width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--blue); background: {{{{aiConsentBg}}}}; color: #FFFFFF; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{{{aiConsentMark}}}}</span>
+<span style="font-size: 13px; font-weight: 600">내 목소리이거나, 목소리 주인에게 동의를 받았어요</span>
+</button>
+<div style="display: {{{{aiErrShow}}}}; font-size: 13px; font-weight: 600; color: #E8453C">{{{{aiErr}}}}</div>
+<div style="display: flex; gap: 8px">
+<button onClick="{{{{ onAiRec }}}}" style="flex-grow: 1; height: 46px; border-radius: 14px; border: 0; background: {{{{aiRecBg}}}}; color: #FFFFFF; font-size: 14px; font-weight: 700">{{{{aiRecLabel}}}}</button>
+<button onClick="{{{{ onAiTry }}}}" style="display: {{{{aiReadyFlex}}}}; height: 46px; border-radius: 14px; {TILE}; color: {INK}; font-size: 14px; font-weight: 700; padding: 0 14px; align-items: center">들어보기</button>
+<button onClick="{{{{ onAiDel }}}}" style="display: {{{{aiReadyFlex}}}}; height: 46px; border-radius: 14px; {TILE}; color: {SUB}; font-size: 14px; font-weight: 700; padding: 0 14px; align-items: center">지우기</button>
+</div>
+</div>
+<div style="flex-shrink: 0; font-size: 12px; font-weight: 700; color: {SUB}; padding: 6px 8px 0">또는 상황별로 직접 녹음 · 녹음한 그대로 나오고, 이 폰에만 저장돼요</div>
 <sc-for list="{{{{ voiceRows }}}}" as="v" hint-placeholder-count="5">
 <div style="flex-shrink: 0; border-radius: 20px; background: var(--row); border: 1px solid var(--card-line); box-shadow: var(--row-shadow); padding: 12px 12px 12px 18px; display: flex; align-items: center; gap: 8px">
 <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">

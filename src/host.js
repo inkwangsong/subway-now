@@ -156,7 +156,7 @@ var VDB = null, clipUrl = {};
 app.props.voiceClips = {};
 var vdb = function (cb) {
 if (VDB) return cb(VDB);
-try { var rq = indexedDB.open('subway-now-voice', 1); rq.onupgradeneeded = function () { rq.result.createObjectStore('clips'); }; rq.onsuccess = function () { VDB = rq.result; cb(VDB); }; rq.onerror = function () {}; } catch (e) {}
+try { var rq = indexedDB.open('subway-now-voice', 2); rq.onupgradeneeded = function () { var d = rq.result; if (!d.objectStoreNames.contains('clips')) d.createObjectStore('clips'); if (!d.objectStoreNames.contains('tts')) d.createObjectStore('tts'); }; rq.onsuccess = function () { VDB = rq.result; cb(VDB); }; rq.onerror = function () {}; } catch (e) {}
 };
 var loadClips = function () {
 vdb(function (db) {
@@ -195,6 +195,83 @@ mr.start(); app.setState({ recKey: key, voiceErr: '' });
 setTimeout(function () { if (VREC && VREC.mr === mr && mr.state === 'recording') mr.stop(); }, 8000);
 }).catch(function () { app.setState({ voiceErr: '마이크를 쓸 수 없어요. 마이크 권한을 허용해 주세요', recKey: '' }); });
 };
+/* ===== AI 목소리 (목소리 복제) =====
+   1분쯤 녹음하면 ElevenLabs가 그 목소리를 만들어 줘요. 그 뒤로는 역 이름이 들어간 어떤 문장이든 그 목소리로 말해요.
+   만든 문장 소리는 폰에 저장해 두고 다시 써요 (지하에서 끊겨도 미리 받아 둔 건 나와요) */
+var AIV_KEY = 'subway-now:aiVoice';
+var AIV = (function () { try { return JSON.parse(localStorage.getItem(AIV_KEY) || 'null'); } catch (e) { return null; } })();
+app.props.aiVoice = AIV;
+var apiBase = function () { return RT_URL.replace(/\/api\/trains.*$/, ''); };
+var ttsMem = {};
+var ttsKey = function (t) { return (AIV ? AIV.voice : '') + '|' + t; };
+var getTts = function (text) {
+return new Promise(function (ok, no) {
+if (!AIV || !text) return no();
+var k = ttsKey(text);
+if (ttsMem[k]) return ok(ttsMem[k]);
+vdb(function (db) {
+try {
+var rq = db.transaction('tts', 'readonly').objectStore('tts').get(k);
+rq.onsuccess = function () {
+if (rq.result) { ttsMem[k] = URL.createObjectURL(rq.result); return ok(ttsMem[k]); }
+fetch(apiBase() + '/api/voice?do=tts&voice=' + encodeURIComponent(AIV.voice) + '&text=' + encodeURIComponent(text)).then(function (r) { if (!r.ok) throw 0; return r.blob(); }).then(function (b) {
+try { db.transaction('tts', 'readwrite').objectStore('tts').put(b, k); } catch (e) {}
+ttsMem[k] = URL.createObjectURL(b); ok(ttsMem[k]);
+}).catch(no);
+};
+rq.onerror = no;
+} catch (e) { no(); }
+});
+});
+};
+/* AI 목소리로 말하기: 4초 안에 준비 안 되면 기본 음성으로 */
+var sayAI = function (text) {
+if (!AIV) return say(text);
+var done = false, t = setTimeout(function () { if (!done) { done = true; say(text); } }, 4000);
+getTts(text).then(function (u) { if (done) return; done = true; clearTimeout(t); try { if (TTS) TTS.cancel(); var a = new Audio(u); ttsUntil = Date.now() + 9000; a.play().catch(function () { say(text); }); } catch (e) { say(text); } }, function () { if (!done) { done = true; clearTimeout(t); say(text); } });
+};
+var AIREC = null;
+app.props.onAiRec = function () {
+var st = app.state || {};
+if (AIREC && AIREC.mr.state === 'recording') { AIREC.mr.stop(); return; }
+if (!st.aiConsent) { app.setState({ aiErr: '먼저 목소리 주인의 동의를 받았는지 확인해 주세요' }); return; }
+if (!navigator.mediaDevices || !window.MediaRecorder) { app.setState({ aiErr: '이 브라우저는 녹음을 못 해요' }); return; }
+navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: true } }).then(function (stream) {
+var chunks = [], mr = new MediaRecorder(stream), t0 = Date.now();
+AIREC = { mr: mr, t0: t0 };
+mr.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+mr.onstop = function () {
+stream.getTracks().forEach(function (tk) { tk.stop(); });
+var secs = (Date.now() - t0) / 1000; AIREC = null; clearInterval(tick);
+if (secs < 20) { app.setState({ aiRecT: 0, aiErr: '20초 넘게 읽어 주세요 (1분 정도면 가장 좋아요)' }); return; }
+var mime = mr.mimeType || 'audio/mp4', blob = new Blob(chunks, { type: mime });
+app.setState({ aiRecT: 0, aiBusy: true, aiErr: '' });
+var fr = new FileReader();
+fr.onload = function () {
+var b64 = String(fr.result).split(',')[1];
+fetch(apiBase() + '/api/voice?do=clone', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ name: (st.aiName || '지금역 목소리'), mime: mime, audio: b64 }) })
+.then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+.then(function (x) {
+if (!x.ok || !x.j.voice) { app.setState({ aiBusy: false, aiErr: '목소리를 못 만들었어요: ' + (x.j && x.j.err || '서버 오류') }); return; }
+AIV = { voice: x.j.voice, at: Date.now() }; try { localStorage.setItem(AIV_KEY, JSON.stringify(AIV)); } catch (e) {}
+app.props.aiVoice = AIV; app.setState({ aiBusy: false, aiErr: '' });
+sayAI('안녕하세요. 이제 이 목소리로 역을 알려드릴게요.');
+}).catch(function () { app.setState({ aiBusy: false, aiErr: '서버에 연결하지 못했어요' }); });
+};
+fr.readAsDataURL(blob);
+};
+mr.start(1000); app.setState({ aiRecT: t0, aiErr: '' });
+var tick = setInterval(function () { schedule(); if (Date.now() - t0 > 90000 && mr.state === 'recording') mr.stop(); }, 500);
+}).catch(function () { app.setState({ aiErr: '마이크를 쓸 수 없어요. 마이크 권한을 허용해 주세요' }); });
+};
+app.props.onAiTry = function () { unlockAudio(); sayAI('다음은 서현역이에요. 이번에 내리시면 돼요.'); };
+app.props.onAiDel = function () { AIV = null; try { localStorage.removeItem(AIV_KEY); } catch (e) {} app.props.aiVoice = null; app.setState({ aiErr: '' }); };
+/* 도착역이 정해지면 내릴 때 말할 문장을 미리 받아 둬요 */
+var lastPre = '';
+var prefetchAI = function (st) {
+if (!AIV || !st.dest || st.dest === lastPre) return; lastPre = st.dest;
+[SAY('내릴 준비', {}, st), SAY('도착', {}, st)].forEach(function (t) { if (t) getTts(t).catch(function () {}); });
+};
 var CLIP_FOR = { '곧 환승': 'xferSoon', '환승': 'xfer', '내릴 준비': 'alightSoon', '도착': 'arrive' };
 var SAY = function (label, vals, st) {
 var dest = st.dest || '';
@@ -216,6 +293,7 @@ if (!on && wake) { wake.release(); wake = null; }
 };
 var afterRender = function (vals) {
 var st = app.state || {}, riding = st.mode === 'ride';
+if (riding) prefetchAI(st);
 saveRide();
 /* 탑승이 (버튼 없이) 잡히는 순간 진동 + 소리로 알려요 */
 var onNow = riding && !!st.boarded && !st.demo;
@@ -226,7 +304,7 @@ var key = riding ? vals.bannerLabel + '|' + vals.banner : '';
 if (key !== lastAlert) {
 lastAlert = key;
 var n = riding && vals.banner ? ALERT[vals.bannerLabel] : 0;
-if (n) { beep(n); try { if (navigator.vibrate) navigator.vibrate(n > 2 ? [300, 120, 300, 120, 300] : [200, 100, 200]); } catch (e) {} setTimeout(function () { if (!playClip(CLIP_FOR[vals.bannerLabel])) say(SAY(vals.bannerLabel, vals, st)); }, n >= 3 ? 2600 : 1300); }
+if (n) { beep(n); try { if (navigator.vibrate) navigator.vibrate(n > 2 ? [300, 120, 300, 120, 300] : [200, 100, 200]); } catch (e) {} setTimeout(function () { if (!playClip(CLIP_FOR[vals.bannerLabel])) sayAI(SAY(vals.bannerLabel, vals, st)); }, n >= 3 ? 2600 : 1300); }
 }
 if (vals.isArrived && !wasArrived && !st.demo && st.route && st.dest) {
 var hist = readHist(), hk = st.route[0].n + '>' + st.dest;

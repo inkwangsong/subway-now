@@ -1079,6 +1079,20 @@ onPlay: function () { if (self.props.onPlayClip) self.props.onPlayClip(v[0]); },
 onDel: function () { if (self.props.onDelClip) self.props.onDelClip(v[0]); } };
 });
 out.voiceErr = st.voiceErr || '';
+/* AI 목소리 */
+var aiv = this.props.aiVoice, recSec = st.aiRecT ? Math.round((Date.now() - st.aiRecT) / 1000) : 0;
+out.aiReady = !!aiv; out.aiNotReady = !aiv; out.aiReadyFlex = aiv ? 'flex' : 'none'; out.aiNotReadyFlex = aiv ? 'none' : 'flex';
+out.aiStatus = st.aiBusy ? '목소리를 만드는 중이에요… (10~30초)' : (st.aiRecT ? '녹음 중 ' + recSec + '초 · 아래 글을 편하게 두 번쯤 읽고 다시 누르세요' : (aiv ? '준비됐어요 · 모든 안내를 이 목소리로 말해요' : '아직 없어요'));
+out.aiRecLabel = st.aiRecT ? '멈추고 만들기' : (aiv ? '다시 만들기' : '1분 녹음하고 만들기');
+out.aiRecBg = st.aiRecT ? '#E8453C' : 'linear-gradient(180deg, #2F5890, #1F3A5F)';
+out.aiScriptShow = st.aiRecT ? 'block' : 'none';
+out.aiErr = st.aiErr || ''; out.aiErrShow = st.aiErr ? 'block' : 'none';
+out.aiConsentMark = st.aiConsent ? '✓' : '';
+out.aiConsentBg = st.aiConsent ? 'var(--blue)' : 'transparent';
+out.onAiConsent = function () { self.setState({ aiConsent: !st.aiConsent, aiErr: '' }); };
+out.onAiRec = function () { if (self.props.onAiRec) self.props.onAiRec(); };
+out.onAiTry = function () { if (self.props.onAiTry) self.props.onAiTry(); };
+out.onAiDel = function () { if (self.props.onAiDel) self.props.onAiDel(); };
 out.voiceErrShow = st.voiceErr ? 'block' : 'none';
 out.onVoice = function () { self.setState({ mode: 'voice', from: mode }); };
 out.onVoiceBack = function () { if (self.props.onRecToggle && st.recKey) self.props.onRecToggle(st.recKey); self.setState({ mode: st.from && st.from !== 'voice' ? st.from : 'confirm', from: null, recKey: '' }); };
