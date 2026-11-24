@@ -1177,7 +1177,7 @@ while (five.length && five.length < 5) { e3 += gapS; five.push({ eta: e3, est: t
 var trains5 = five.map(function (x, n) {
 var first = n === 0, catchable = walkSec && x.eta >= walkSec && (ci < 0 || Math.abs(x.eta - tr[ci]) < 1);
 return { label: first ? fmtEta(x.eta) : (x.est ? '약 ' : '') + Math.max(1, Math.round(x.eta / 60)) + '분', clock: fmtClock(nowA + x.eta * 1000) + (x.est ? ' 예상' : ''),
-bg: first ? L.color : 'var(--tile)', fg: first ? fgFor(L.color) : 'var(--ink)', line: catchable ? 'var(--blue)' : 'transparent' };
+sepShow: first ? 'none' : 'block', size: first ? '18px' : '14px', color: first ? 'var(--blue)' : (x.est ? 'var(--sub)' : 'var(--ink)'), mark: catchable ? 'underline' : 'none' };
 });
 return { trains: trains5, catchShow: catchTxt ? 'block' : 'none', catchTxt: catchTxt, catchEta: ci >= 0 ? tr[ci] : null, eta: tr[0], li: g.li, towardN: stnNorm(g.toward || ''), short: L.short, bg: L.color, fg: fgFor(L.color), dir: g.dest + '행', toward: g.toward ? g.toward + ' 방면' : '', first: fmtEta(tr[0]), clock: tr[0] >= 30 ? fmtClock(nowA + tr[0] * 1000) + ' 도착' : '', second: tr[1] !== undefined ? '다음 ' + Math.max(1, Math.round(tr[1] / 60)) + '분 후' : '' };
 });

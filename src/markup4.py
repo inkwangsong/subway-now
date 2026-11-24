@@ -425,11 +425,14 @@ input::placeholder{{color:{SUB}}}
 <span style="flex-shrink: 0; min-width: 22px; height: 22px; box-sizing: border-box; padding: 0 7px; border-radius: 11px; background: {{{{r.bg}}}}; color: {{{{r.fg}}}}; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{{{r.short}}}}</span>
 <span style="flex: 1 1 0; min-width: 0; font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{r.dir}}}}<span style="font-size: 12px; font-weight: 500; color: {SUB}; margin-left: 6px">{{{{r.toward}}}}</span></span>
 </div>
-<div style="display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-left: 30px; padding-bottom: 2px">
+<div style="display: flex; align-items: flex-end; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-left: 30px; padding-bottom: 2px">
 <sc-for list="{{{{ r.trains }}}}" as="t" hint-placeholder-count="3">
-<div style="flex-shrink: 0; min-width: 66px; box-sizing: border-box; border-radius: 12px; padding: 6px 10px; background: {{{{t.bg}}}}; color: {{{{t.fg}}}}; border: 1px solid {{{{t.line}}}}; display: flex; flex-direction: column; gap: 1px">
-<span style="font-size: 15px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums">{{{{t.label}}}}</span>
-<span style="font-size: 11px; font-weight: 600; white-space: nowrap; opacity: 0.8">{{{{t.clock}}}}</span>
+<div style="flex-shrink: 0; display: flex; align-items: flex-end">
+<span style="display: {{{{t.sepShow}}}}; align-self: center; width: 14px; height: 1px; margin: 0 8px; background: var(--card-line)"></span>
+<div style="display: flex; flex-direction: column; gap: 1px">
+<span style="font-size: {{{{t.size}}}}; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; color: {{{{t.color}}}}; text-decoration: {{{{t.mark}}}}; text-underline-offset: 4px">{{{{t.label}}}}</span>
+<span style="font-size: 11px; font-weight: 500; white-space: nowrap; color: {SUB}">{{{{t.clock}}}}</span>
+</div>
 </div>
 </sc-for>
 </div>
@@ -481,11 +484,14 @@ input::placeholder{{color:{SUB}}}
 <span style="flex-shrink: 0; min-width: 22px; height: 22px; box-sizing: border-box; padding: 0 7px; border-radius: 11px; background: {{{{r.bg}}}}; color: {{{{r.fg}}}}; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{{{r.short}}}}</span>
 <span style="flex: 1 1 0; min-width: 0; font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{r.dir}}}}<span style="font-size: 12px; font-weight: 500; color: {SUB}; margin-left: 6px">{{{{r.toward}}}}</span></span>
 </div>
-<div style="display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-left: 30px; padding-bottom: 2px">
+<div style="display: flex; align-items: flex-end; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-left: 30px; padding-bottom: 2px">
 <sc-for list="{{{{ r.trains }}}}" as="t" hint-placeholder-count="3">
-<div style="flex-shrink: 0; min-width: 66px; box-sizing: border-box; border-radius: 12px; padding: 6px 10px; background: {{{{t.bg}}}}; color: {{{{t.fg}}}}; border: 1px solid {{{{t.line}}}}; display: flex; flex-direction: column; gap: 1px">
-<span style="font-size: 15px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums">{{{{t.label}}}}</span>
-<span style="font-size: 11px; font-weight: 600; white-space: nowrap; opacity: 0.8">{{{{t.clock}}}}</span>
+<div style="flex-shrink: 0; display: flex; align-items: flex-end">
+<span style="display: {{{{t.sepShow}}}}; align-self: center; width: 14px; height: 1px; margin: 0 8px; background: var(--card-line)"></span>
+<div style="display: flex; flex-direction: column; gap: 1px">
+<span style="font-size: {{{{t.size}}}}; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; color: {{{{t.color}}}}; text-decoration: {{{{t.mark}}}}; text-underline-offset: 4px">{{{{t.label}}}}</span>
+<span style="font-size: 11px; font-weight: 500; white-space: nowrap; color: {SUB}">{{{{t.clock}}}}</span>
+</div>
 </div>
 </sc-for>
 </div>

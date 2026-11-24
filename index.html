@@ -443,11 +443,14 @@ input::placeholder{color:var(--sub)}
 <span style="flex-shrink: 0; min-width: 22px; height: 22px; box-sizing: border-box; padding: 0 7px; border-radius: 11px; background: {{r.bg}}; color: {{r.fg}}; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{r.short}}</span>
 <span style="flex: 1 1 0; min-width: 0; font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.dir}}<span style="font-size: 12px; font-weight: 500; color: var(--sub); margin-left: 6px">{{r.toward}}</span></span>
 </div>
-<div style="display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-left: 30px; padding-bottom: 2px">
+<div style="display: flex; align-items: flex-end; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-left: 30px; padding-bottom: 2px">
 <sc-for list="{{ r.trains }}" as="t" hint-placeholder-count="3">
-<div style="flex-shrink: 0; min-width: 66px; box-sizing: border-box; border-radius: 12px; padding: 6px 10px; background: {{t.bg}}; color: {{t.fg}}; border: 1px solid {{t.line}}; display: flex; flex-direction: column; gap: 1px">
-<span style="font-size: 15px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums">{{t.label}}</span>
-<span style="font-size: 11px; font-weight: 600; white-space: nowrap; opacity: 0.8">{{t.clock}}</span>
+<div style="flex-shrink: 0; display: flex; align-items: flex-end">
+<span style="display: {{t.sepShow}}; align-self: center; width: 14px; height: 1px; margin: 0 8px; background: var(--card-line)"></span>
+<div style="display: flex; flex-direction: column; gap: 1px">
+<span style="font-size: {{t.size}}; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; color: {{t.color}}; text-decoration: {{t.mark}}; text-underline-offset: 4px">{{t.label}}</span>
+<span style="font-size: 11px; font-weight: 500; white-space: nowrap; color: var(--sub)">{{t.clock}}</span>
+</div>
 </div>
 </sc-for>
 </div>
@@ -501,11 +504,14 @@ input::placeholder{color:var(--sub)}
 <span style="flex-shrink: 0; min-width: 22px; height: 22px; box-sizing: border-box; padding: 0 7px; border-radius: 11px; background: {{r.bg}}; color: {{r.fg}}; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{r.short}}</span>
 <span style="flex: 1 1 0; min-width: 0; font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.dir}}<span style="font-size: 12px; font-weight: 500; color: var(--sub); margin-left: 6px">{{r.toward}}</span></span>
 </div>
-<div style="display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-left: 30px; padding-bottom: 2px">
+<div style="display: flex; align-items: flex-end; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-left: 30px; padding-bottom: 2px">
 <sc-for list="{{ r.trains }}" as="t" hint-placeholder-count="3">
-<div style="flex-shrink: 0; min-width: 66px; box-sizing: border-box; border-radius: 12px; padding: 6px 10px; background: {{t.bg}}; color: {{t.fg}}; border: 1px solid {{t.line}}; display: flex; flex-direction: column; gap: 1px">
-<span style="font-size: 15px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums">{{t.label}}</span>
-<span style="font-size: 11px; font-weight: 600; white-space: nowrap; opacity: 0.8">{{t.clock}}</span>
+<div style="flex-shrink: 0; display: flex; align-items: flex-end">
+<span style="display: {{t.sepShow}}; align-self: center; width: 14px; height: 1px; margin: 0 8px; background: var(--card-line)"></span>
+<div style="display: flex; flex-direction: column; gap: 1px">
+<span style="font-size: {{t.size}}; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; color: {{t.color}}; text-decoration: {{t.mark}}; text-underline-offset: 4px">{{t.label}}</span>
+<span style="font-size: 11px; font-weight: 500; white-space: nowrap; color: var(--sub)">{{t.clock}}</span>
+</div>
 </div>
 </sc-for>
 </div>
@@ -2093,7 +2099,7 @@ while (five.length && five.length < 5) { e3 += gapS; five.push({ eta: e3, est: t
 var trains5 = five.map(function (x, n) {
 var first = n === 0, catchable = walkSec && x.eta >= walkSec && (ci < 0 || Math.abs(x.eta - tr[ci]) < 1);
 return { label: first ? fmtEta(x.eta) : (x.est ? '약 ' : '') + Math.max(1, Math.round(x.eta / 60)) + '분', clock: fmtClock(nowA + x.eta * 1000) + (x.est ? ' 예상' : ''),
-bg: first ? L.color : 'var(--tile)', fg: first ? fgFor(L.color) : 'var(--ink)', line: catchable ? 'var(--blue)' : 'transparent' };
+sepShow: first ? 'none' : 'block', size: first ? '18px' : '14px', color: first ? 'var(--blue)' : (x.est ? 'var(--sub)' : 'var(--ink)'), mark: catchable ? 'underline' : 'none' };
 });
 return { trains: trains5, catchShow: catchTxt ? 'block' : 'none', catchTxt: catchTxt, catchEta: ci >= 0 ? tr[ci] : null, eta: tr[0], li: g.li, towardN: stnNorm(g.toward || ''), short: L.short, bg: L.color, fg: fgFor(L.color), dir: g.dest + '행', toward: g.toward ? g.toward + ' 방면' : '', first: fmtEta(tr[0]), clock: tr[0] >= 30 ? fmtClock(nowA + tr[0] * 1000) + ' 도착' : '', second: tr[1] !== undefined ? '다음 ' + Math.max(1, Math.round(tr[1] / 60)) + '분 후' : '' };
 });
@@ -2249,7 +2255,7 @@ return out;
 
 </script>
 <script>
-var BUILD = '22de411a3e';
+var BUILD = '5a8b0f619e';
 /* 화면 그리기: 시안과 같은 템플릿({{값}}, sc-if, sc-for)을 읽어서 화면으로 바꿔요 */
 (function () {
 'use strict';
