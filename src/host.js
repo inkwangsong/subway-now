@@ -154,6 +154,16 @@ ttsUntil = Date.now() + 1500 + text.length * 200;
    마이크로 짧게(최대 8초) 녹음해서 이 폰 안(IndexedDB)에만 저장해요. 서버로 보내지 않아요 */
 var VDB = null, clipUrl = {};
 app.props.voiceClips = {};
+/* 목소리 목록: 여러 사람 목소리를 따로 저장하고, 하나를 골라 쓰고, 언제든 지울 수 있어요 */
+var VP_KEY = 'subway-now:voices', VA_KEY = 'subway-now:voiceActive';
+var VP = (function () { try { return JSON.parse(localStorage.getItem(VP_KEY) || '[]') || []; } catch (e) { return []; } })();
+var VA = (function () { try { return localStorage.getItem(VA_KEY) || ''; } catch (e) { return ''; } })();
+var vpGet = function (id) { for (var k = 0; k < VP.length; k++) if (VP[k].id === id) return VP[k]; return null; };
+var editId = function () { var st = app.state || {}; return st.vEdit && vpGet(st.vEdit) ? st.vEdit : (vpGet(VA) ? VA : ''); };
+var vpSave = function () { try { localStorage.setItem(VP_KEY, JSON.stringify(VP)); localStorage.setItem(VA_KEY, VA); } catch (e) {} app.props.voiceProfiles = VP.map(function (p) { return { id: p.id, name: p.name, ai: !!p.ai }; }); app.props.voiceActive = VA; if (typeof refreshAIV === 'function') refreshAIV(); schedule(); };
+/* 예전 버전에서 만든 AI 목소리·녹음은 '내 목소리'로 옮겨요 */
+(function () { try { var old = JSON.parse(localStorage.getItem('subway-now:aiVoice') || 'null'); if (old && old.voice && !VP.length) { VP.push({ id: 'p1', name: '내 목소리', ai: old.voice }); VA = 'p1'; } localStorage.removeItem('subway-now:aiVoice'); } catch (e) {} })();
+app.props.voiceProfiles = []; app.props.voiceActive = VA;
 var vdb = function (cb) {
 if (VDB) return cb(VDB);
 try { var rq = indexedDB.open('subway-now-voice', 2); rq.onupgradeneeded = function () { var d = rq.result; if (!d.objectStoreNames.contains('clips')) d.createObjectStore('clips'); if (!d.objectStoreNames.contains('tts')) d.createObjectStore('tts'); }; rq.onsuccess = function () { VDB = rq.result; cb(VDB); }; rq.onerror = function () {}; } catch (e) {}
@@ -161,22 +171,27 @@ try { var rq = indexedDB.open('subway-now-voice', 2); rq.onupgradeneeded = funct
 var loadClips = function () {
 vdb(function (db) {
 try { var tx = db.transaction('clips', 'readonly'), os = tx.objectStore('clips'), rq = os.openCursor(), m = {};
-rq.onsuccess = function () { var c = rq.result; if (c) { m[c.key] = true; if (clipUrl[c.key]) URL.revokeObjectURL(clipUrl[c.key]); clipUrl[c.key] = URL.createObjectURL(c.value); c.continue(); } else { app.props.voiceClips = m; schedule(); } };
+var moved = [];
+rq.onsuccess = function () { var c = rq.result; if (c) { if (String(c.key).indexOf(':') < 0) moved.push([c.key, c.value]); m[c.key] = true; if (clipUrl[c.key]) URL.revokeObjectURL(clipUrl[c.key]); clipUrl[c.key] = URL.createObjectURL(c.value); c.continue(); } else {
+if (moved.length) { if (!vpGet('p1')) { VP.push({ id: 'p1', name: '내 목소리', ai: null }); if (!VA) VA = 'p1'; } var tw = db.transaction('clips', 'readwrite'), ow = tw.objectStore('clips'); moved.forEach(function (x) { ow.put(x[1], 'p1:' + x[0]); ow.delete(x[0]); }); tw.oncomplete = function () { vpSave(); loadClips(); }; return; }
+app.props.voiceClips = m; vpSave(); } };
 } catch (e) {}
 });
 };
 loadClips();
-var playClip = function (key) {
-var u = clipUrl[key]; if (!u) return false;
+var playClip = function (key, pid) {
+var u = clipUrl[(pid === undefined ? VA : pid) + ':' + key]; if (!u) return false;
 try { if (TTS) TTS.cancel(); var a = new Audio(u); a.volume = 1; ttsUntil = Date.now() + 9000; a.play().catch(function () {}); return true; } catch (e) { return false; }
 };
 var VREC = null;
-app.props.onPlayClip = function (key) { unlockAudio(); playClip(key); };
-app.props.onDelClip = function (key) {
+app.props.onPlayClip = function (key) { unlockAudio(); playClip(key, editId()); };
+app.props.onDelClip = function (k0) {
+var key = editId() + ':' + k0;
 vdb(function (db) { try { var tx = db.transaction('clips', 'readwrite'); tx.objectStore('clips').delete(key); tx.oncomplete = function () { if (clipUrl[key]) { URL.revokeObjectURL(clipUrl[key]); delete clipUrl[key]; } loadClips(); }; } catch (e) {} });
 };
 app.props.onRecToggle = function (key) {
-var st = app.state || {};
+var st = app.state || {}, pid = editId();
+if (!pid) { app.setState({ voiceErr: '먼저 목소리를 추가해 주세요' }); return; }
 if (VREC && VREC.mr && VREC.mr.state === 'recording') { var same = VREC.key === key; try { VREC.mr.stop(); } catch (e) {} if (same) return; }
 if (st.recKey === key) { app.setState({ recKey: '' }); return; }
 if (!navigator.mediaDevices || !window.MediaRecorder) { app.setState({ voiceErr: '이 브라우저는 녹음을 못 해요. 사파리에서 열어 주세요' }); return; }
@@ -189,7 +204,7 @@ stream.getTracks().forEach(function (t) { t.stop(); });
 var blob = new Blob(chunks, { type: mr.mimeType || 'audio/mp4' });
 VREC = null; app.setState({ recKey: '' });
 if (blob.size < 2000) return;
-vdb(function (db) { try { var tx = db.transaction('clips', 'readwrite'); tx.objectStore('clips').put(blob, key); tx.oncomplete = function () { loadClips(); setTimeout(function () { playClip(key); }, 300); }; } catch (e) {} });
+vdb(function (db) { try { var tx = db.transaction('clips', 'readwrite'); tx.objectStore('clips').put(blob, pid + ':' + key); tx.oncomplete = function () { loadClips(); setTimeout(function () { playClip(key, pid); }, 300); }; } catch (e) {} });
 };
 mr.start(); app.setState({ recKey: key, voiceErr: '' });
 setTimeout(function () { if (VREC && VREC.mr === mr && mr.state === 'recording') mr.stop(); }, 8000);
@@ -198,23 +213,23 @@ setTimeout(function () { if (VREC && VREC.mr === mr && mr.state === 'recording')
 /* ===== AI 목소리 (목소리 복제) =====
    1분쯤 녹음하면 ElevenLabs가 그 목소리를 만들어 줘요. 그 뒤로는 역 이름이 들어간 어떤 문장이든 그 목소리로 말해요.
    만든 문장 소리는 폰에 저장해 두고 다시 써요 (지하에서 끊겨도 미리 받아 둔 건 나와요) */
-var AIV_KEY = 'subway-now:aiVoice';
-var AIV = (function () { try { return JSON.parse(localStorage.getItem(AIV_KEY) || 'null'); } catch (e) { return null; } })();
-app.props.aiVoice = AIV;
+var AIV = null;
+var refreshAIV = function () { var p = vpGet(VA); AIV = p && p.ai ? { voice: p.ai } : null; };
+refreshAIV();
 var apiBase = function () { return RT_URL.replace(/\/api\/trains.*$/, ''); };
 var ttsMem = {};
-var ttsKey = function (t) { return (AIV ? AIV.voice : '') + '|' + t; };
-var getTts = function (text) {
+var getTts = function (text, voice) {
+voice = voice || (AIV && AIV.voice);
 return new Promise(function (ok, no) {
-if (!AIV || !text) return no();
-var k = ttsKey(text);
+if (!voice || !text) return no();
+var k = voice + '|' + text;
 if (ttsMem[k]) return ok(ttsMem[k]);
 vdb(function (db) {
 try {
 var rq = db.transaction('tts', 'readonly').objectStore('tts').get(k);
 rq.onsuccess = function () {
 if (rq.result) { ttsMem[k] = URL.createObjectURL(rq.result); return ok(ttsMem[k]); }
-fetch(apiBase() + '/api/voice?do=tts&voice=' + encodeURIComponent(AIV.voice) + '&text=' + encodeURIComponent(text)).then(function (r) { if (!r.ok) throw 0; return r.blob(); }).then(function (b) {
+fetch(apiBase() + '/api/voice?do=tts&voice=' + encodeURIComponent(voice) + '&text=' + encodeURIComponent(text)).then(function (r) { if (!r.ok) throw 0; return r.blob(); }).then(function (b) {
 try { db.transaction('tts', 'readwrite').objectStore('tts').put(b, k); } catch (e) {}
 ttsMem[k] = URL.createObjectURL(b); ok(ttsMem[k]);
 }).catch(no);
@@ -225,15 +240,18 @@ rq.onerror = no;
 });
 };
 /* AI 목소리로 말하기: 4초 안에 준비 안 되면 기본 음성으로 */
-var sayAI = function (text) {
-if (!AIV) return say(text);
+var sayAI = function (text, voice) {
+voice = voice || (AIV && AIV.voice);
+if (!voice) return say(text);
 var done = false, t = setTimeout(function () { if (!done) { done = true; say(text); } }, 4000);
-getTts(text).then(function (u) { if (done) return; done = true; clearTimeout(t); try { if (TTS) TTS.cancel(); var a = new Audio(u); ttsUntil = Date.now() + 9000; a.play().catch(function () { say(text); }); } catch (e) { say(text); } }, function () { if (!done) { done = true; clearTimeout(t); say(text); } });
+getTts(text, voice).then(function (u) { if (done) return; done = true; clearTimeout(t); try { if (TTS) TTS.cancel(); var a = new Audio(u); ttsUntil = Date.now() + 9000; a.play().catch(function () { say(text); }); } catch (e) { say(text); } }, function () { if (!done) { done = true; clearTimeout(t); say(text); } });
 };
 var AIREC = null;
 app.props.onAiRec = function () {
 var st = app.state || {};
 if (AIREC && AIREC.mr.state === 'recording') { AIREC.mr.stop(); return; }
+var pid = editId();
+if (!pid) { app.setState({ aiErr: '먼저 목소리를 추가해 주세요' }); return; }
 if (!st.aiConsent) { app.setState({ aiErr: '먼저 목소리 주인의 동의를 받았는지 확인해 주세요' }); return; }
 if (!navigator.mediaDevices || !window.MediaRecorder) { app.setState({ aiErr: '이 브라우저는 녹음을 못 해요' }); return; }
 navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: true } }).then(function (stream) {
@@ -249,13 +267,12 @@ app.setState({ aiRecT: 0, aiBusy: true, aiErr: '' });
 var fr = new FileReader();
 fr.onload = function () {
 var b64 = String(fr.result).split(',')[1];
-fetch(apiBase() + '/api/voice?do=clone', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ name: (st.aiName || '지금역 목소리'), mime: mime, audio: b64 }) })
+fetch(apiBase() + '/api/voice?do=clone', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ name: '지금역 · ' + ((vpGet(pid) || {}).name || '목소리'), mime: mime, audio: b64 }) })
 .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
 .then(function (x) {
 if (!x.ok || !x.j.voice) { app.setState({ aiBusy: false, aiErr: '목소리를 못 만들었어요: ' + (x.j && x.j.err || '서버 오류') }); return; }
-AIV = { voice: x.j.voice, at: Date.now() }; try { localStorage.setItem(AIV_KEY, JSON.stringify(AIV)); } catch (e) {}
-app.props.aiVoice = AIV; app.setState({ aiBusy: false, aiErr: '' });
-sayAI('안녕하세요. 이제 이 목소리로 역을 알려드릴게요.');
+var pp = vpGet(pid); if (pp) { var oldAi = pp.ai; pp.ai = x.j.voice; if (oldAi) delVoiceServer(oldAi); } vpSave(); app.setState({ aiBusy: false, aiErr: '' });
+sayAI('안녕하세요. 이제 이 목소리로 역을 알려드릴게요.', x.j.voice);
 }).catch(function () { app.setState({ aiBusy: false, aiErr: '서버에 연결하지 못했어요' }); });
 };
 fr.readAsDataURL(blob);
@@ -264,8 +281,26 @@ mr.start(1000); app.setState({ aiRecT: t0, aiErr: '' });
 var tick = setInterval(function () { schedule(); if (Date.now() - t0 > 90000 && mr.state === 'recording') mr.stop(); }, 500);
 }).catch(function () { app.setState({ aiErr: '마이크를 쓸 수 없어요. 마이크 권한을 허용해 주세요' }); });
 };
-app.props.onAiTry = function () { unlockAudio(); sayAI('다음은 서현역이에요. 이번에 내리시면 돼요.'); };
-app.props.onAiDel = function () { AIV = null; try { localStorage.removeItem(AIV_KEY); } catch (e) {} app.props.aiVoice = null; app.setState({ aiErr: '' }); };
+app.props.onAiTry = function () { unlockAudio(); var p = vpGet(editId()); sayAI('다음은 서현역이에요. 이번에 내리시면 돼요.', p && p.ai); };
+/* 지우기: 폰에 저장된 문장 소리와 ElevenLabs에 만든 목소리까지 모두 지워요 */
+var purgeTts = function (voice) { vdb(function (db) { try { var os = db.transaction('tts', 'readwrite').objectStore('tts'), rq = os.openCursor(); rq.onsuccess = function () { var c = rq.result; if (!c) return; if (String(c.key).indexOf(voice + '|') === 0) c.delete(); c.continue(); }; } catch (e) {} }); for (var k in ttsMem) if (k.indexOf(voice + '|') === 0) { URL.revokeObjectURL(ttsMem[k]); delete ttsMem[k]; } };
+var delVoiceServer = function (voice) { purgeTts(voice); try { fetch(apiBase() + '/api/voice?do=delete', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ voice: voice }) }).catch(function () {}); } catch (e) {} };
+app.props.onAiDel = function () { var p = vpGet(editId()); if (p && p.ai) { delVoiceServer(p.ai); p.ai = null; } vpSave(); app.setState({ aiErr: '' }); };
+app.props.onVpAdd = function (name) {
+try { var inp = document.getElementById('vpname'); if (inp && inp.value) name = inp.value; if (inp) inp.value = ''; } catch (e) {}
+name = String(name || '').trim().slice(0, 20) || ('목소리 ' + (VP.length + 1));
+var id = 'p' + Date.now().toString(36); VP.push({ id: id, name: name, ai: null }); if (!VA) VA = id;
+vpSave(); app.setState({ vEdit: id, vpName: '', voiceErr: '', aiErr: '', aiConsent: false });
+};
+app.props.onVpSelect = function (id) { VA = id && vpGet(id) ? id : ''; lastPre = ''; vpSave(); };
+app.props.onVpRename = function (id, name) { var p = vpGet(id); if (p && String(name || '').trim()) { p.name = String(name).trim().slice(0, 20); vpSave(); } };
+app.props.onVpDelete = function (id) {
+var p = vpGet(id); if (!p) return;
+if (p.ai) delVoiceServer(p.ai);
+vdb(function (db) { try { var os = db.transaction('clips', 'readwrite').objectStore('clips'), rq = os.openCursor(); rq.onsuccess = function () { var c = rq.result; if (!c) { loadClips(); return; } if (String(c.key).indexOf(id + ':') === 0) { if (clipUrl[c.key]) { URL.revokeObjectURL(clipUrl[c.key]); delete clipUrl[c.key]; } c.delete(); } c.continue(); }; } catch (e) {} });
+VP = VP.filter(function (x) { return x.id !== id; }); if (VA === id) VA = '';
+vpSave(); var st = app.state || {}; app.setState({ vEdit: st.vEdit === id ? '' : st.vEdit, vpDelAsk: '' });
+};
 /* 도착역이 정해지면 내릴 때 말할 문장을 미리 받아 둬요 */
 var lastPre = '';
 var prefetchAI = function (st) {
@@ -540,20 +575,23 @@ fetch(RT_URL + (RT_URL.indexOf('?') < 0 ? '?' : '&') + 'line=' + encodeURICompon
 setInterval(pollHome, 30000);
 /* 자동 업데이트: 새 버전이 올라오면 (타고 가는 중이 아닐 때) 알아서 새로 열어요.
    홈 화면 앱은 예전 화면을 오래 들고 있어서, 고친 게 안 보이던 문제를 막아요 */
+var pendingBuild = '';
 var checkUpdate = function () {
 if (typeof BUILD === 'undefined' || document.hidden) return;
 fetch(location.pathname + '?u=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
 var m = t.match(/var BUILD = '([0-9a-f]+)'/);
 if (!m || m[1] === BUILD) return;
-var st = app.state || {};
-if (st.mode === 'ride' && st.boarded) return;
-try { localStorage.setItem('subway-now:updatedTo', m[1]); } catch (e) {}
-location.replace(location.pathname + '?v=' + m[1]);
+/* 보고 있는 화면이 갑자기 바뀌지 않게, 새 버전은 앱을 잠깐 내렸을 때(다른 앱으로 갈 때) 조용히 받아 둬요 */
+pendingBuild = m[1];
 }).catch(function () {});
 };
 setTimeout(checkUpdate, 3000);
 setInterval(checkUpdate, 600000);
-document.addEventListener('visibilitychange', function () { if (!document.hidden) setTimeout(checkUpdate, 1500); });
+document.addEventListener('visibilitychange', function () {
+if (!document.hidden) { setTimeout(checkUpdate, 1500); return; }
+var st = app.state || {};
+if (pendingBuild && !(st.mode === 'ride' && st.boarded)) { try { localStorage.setItem('subway-now:updatedTo', pendingBuild); } catch (e) {} location.replace(location.pathname + '?v=' + pendingBuild); }
+});
 /* ===== 지도 손으로 움직이기 =====
    한 손가락: 끌어서 이동 · 두 손가락: 벌리고 오므려 확대/축소 · 두 번 톡: 원래대로 · 마우스 휠: 확대/축소.
    화면을 늘리는 게 아니라 지도 자체를 그 위치·배율로 다시 그려서, 옮긴 곳까지 건물·노선이 채워져요 */

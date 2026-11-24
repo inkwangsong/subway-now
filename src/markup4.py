@@ -417,7 +417,7 @@ input::placeholder{{color:{SUB}}}
 </button>
 </div>
 <sc-if value="{{{{ hasArr }}}}" hint-placeholder-val="{{{{ false }}}}">
-<div style="{ACRYL}; border-radius: 22px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="{ACRYL}; border-radius: 22px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; min-height: {{{{arrMinH}}}}; box-sizing: border-box">
 <div style="font-size: 11px; font-weight: 700; letter-spacing: 1px; color: {SUB}">{{{{arrTitle}}}}</div>
 <sc-for list="{{{{ arrRows }}}}" as="r" hint-placeholder-count="2">
 <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0">
@@ -478,7 +478,7 @@ input::placeholder{{color:{SUB}}}
 <sc-if value="{{{{ noOrigin }}}}" hint-placeholder-val="{{{{ false }}}}">
 <div style="display: flex; flex-direction: column; gap: 10px">
 <sc-if value="{{{{ hasArr }}}}" hint-placeholder-val="{{{{ false }}}}">
-<div style="{ACRYL}; border-radius: 22px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="{ACRYL}; border-radius: 22px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; min-height: {{{{arrMinH}}}}; box-sizing: border-box">
 <div style="font-size: 11px; font-weight: 700; letter-spacing: 1px; color: {SUB}">{{{{arrTitle}}}}</div>
 <sc-for list="{{{{ arrRows }}}}" as="r" hint-placeholder-count="2">
 <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0">
@@ -626,6 +626,32 @@ input::placeholder{{color:{SUB}}}
 <div style="display: {{{{voiceErrShow}}}}; font-size: 13px; font-weight: 600; color: #E8453C; padding: 0 8px">{{{{voiceErr}}}}</div>
 <div style="flex-grow: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px">
 <div style="flex-shrink: 0; {ACRYL}; border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 16px; font-weight: 700">목소리 목록</div>
+<sc-for list="{{{{ vpRows }}}}" as="r" hint-placeholder-count="2">
+<div style="border-radius: 16px; border: 1.5px solid {{{{r.rowLine}}}}; background: var(--row); padding: 10px 10px 10px 12px; display: flex; align-items: center; gap: 10px">
+<button onClick="{{{{ r.onUse }}}}" aria-label="이 목소리 쓰기" style="flex-shrink: 0; width: 22px; height: 22px; border-radius: 11px; border: 2px solid {{{{r.ring}}}}; background: transparent; padding: 0; display: flex; align-items: center; justify-content: center"><span style="width: 10px; height: 10px; border-radius: 5px; background: {{{{r.dot}}}}"></span></button>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{r.name}}}} <span style="display: {{{{r.badgeShow}}}}; margin-left: 4px; font-size: 11px; font-weight: 700; color: #FFFFFF; background: var(--blue); border-radius: 8px; padding: 1px 6px; vertical-align: 2px">{{{{r.badge}}}}</span></span>
+<span style="font-size: 12px; font-weight: 500; color: {{{{r.infoColor}}}}">{{{{r.info}}}}</span>
+</div>
+<button onClick="{{{{ r.onUse }}}}" style="display: {{{{r.useShow}}}}; height: 34px; border-radius: 12px; {TILE}; color: {INK}; font-size: 12px; font-weight: 700; padding: 0 10px; align-items: center; flex-shrink: 0">쓰기</button>
+<button onClick="{{{{ r.onEdit }}}}" style="display: {{{{r.editShow}}}}; height: 34px; border-radius: 12px; {TILE}; color: {INK}; font-size: 12px; font-weight: 700; padding: 0 10px; align-items: center; flex-shrink: 0">편집</button>
+<button onClick="{{{{ r.onDel }}}}" aria-label="목소리 지우기" style="display: {{{{r.delShow}}}}; width: 34px; height: 34px; border-radius: 12px; {TILE}; color: {SUB}; padding: 0; align-items: center; justify-content: center; flex-shrink: 0"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 20 7"></polyline><path d="M9 7V4h6v3"></path><path d="M6 7l1 13h10l1-13"></path></svg></button>
+<div style="display: {{{{r.askShow}}}}; gap: 6px; flex-shrink: 0">
+<button onClick="{{{{ r.onDelYes }}}}" style="height: 34px; border-radius: 12px; border: 0; background: #E8453C; color: #FFFFFF; font-size: 12px; font-weight: 700; padding: 0 10px">지우기</button>
+<button onClick="{{{{ r.onDelNo }}}}" style="height: 34px; border-radius: 12px; {TILE}; color: {INK}; font-size: 12px; font-weight: 700; padding: 0 10px">취소</button>
+</div>
+</div>
+</sc-for>
+<div style="display: flex; gap: 8px">
+<label for="vpname" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">새 목소리 이름</label>
+<input id="vpname" value="{{{{ vpName }}}}" onChange="{{{{ onVpName }}}}" placeholder="이름 (예: 엄마, 내 목소리)" autocomplete="off" style="flex-grow: 1; min-width: 0; height: 42px; box-sizing: border-box; border-radius: 14px; background: var(--field); border: 1.5px solid var(--card-line); color: {INK}; font-size: 15px; font-weight: 600; padding: 0 14px">
+<button onClick="{{{{ onVpAdd }}}}" style="flex-shrink: 0; height: 42px; border-radius: 14px; border: 0; background: linear-gradient(180deg, #2F5890, #1F3A5F); color: #FFFFFF; font-size: 14px; font-weight: 700; padding: 0 14px">+ 추가</button>
+</div>
+</div>
+<sc-if value="{{{{ hasEdit }}}}" hint-placeholder-val="{{{{ false }}}}">
+<div style="flex-shrink: 0; align-self: flex-start; {ACRYL}; border-radius: 14px; font-size: 15px; font-weight: 700; color: {INK}; padding: 8px 14px; margin-top: 6px">{{{{editTitle}}}}</div>
+<div style="flex-shrink: 0; {ACRYL}; border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
 <div style="font-size: 16px; font-weight: 700">AI 목소리 · 모든 안내를 이 목소리로</div>
 <div style="font-size: 12px; font-weight: 500; line-height: 1.6; color: {SUB}">1분쯤 아래 글을 읽어 녹음하면 그 목소리를 AI가 배워서, 역 이름이 들어간 모든 안내를 그 목소리로 말해요. 녹음은 목소리를 만들 때만 ElevenLabs로 보내져요.</div>
 <div style="font-size: 13px; font-weight: 600; color: {BLUE}">{{{{aiStatus}}}}</div>
@@ -654,6 +680,7 @@ input::placeholder{{color:{SUB}}}
 <button onClick="{{{{ v.onRec }}}}" style="height: 40px; border-radius: 14px; border: 0; background: {{{{v.recBg}}}}; color: {{{{v.recFg}}}}; font-size: 13px; font-weight: 700; padding: 0 12px; flex-shrink: 0">{{{{v.recLabel}}}}</button>
 </div>
 </sc-for>
+</sc-if>
 </div>
 <button onClick="{{{{ onVoiceBack }}}}" style="flex-shrink: 0; height: 54px; border-radius: 18px; {ACRYL}; color: {INK}; font-size: 15px; font-weight: 600">다 했어요</button>
 </div>

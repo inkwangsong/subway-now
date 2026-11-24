@@ -1,6 +1,7 @@
 // 지금 어느 역 — 목소리 복제 중계 (ElevenLabs)
 // 환경 변수 ELEVEN_KEY 에 ElevenLabs API 키를 넣어요. 키는 여기에만 있고 웹앱에는 없어요.
 //  POST /api/voice?do=clone  {name, mime, audio(base64)}  → {voice}
+//  POST /api/voice?do=delete {voice}                    → ElevenLabs에서 목소리 완전히 삭제
 //  GET  /api/voice?do=tts&voice=<id>&text=<문장>          → audio/mpeg (같은 문장은 서버에서 캐시)
 const ALLOW = ['https://inkwangsong.github.io'];
 
@@ -30,6 +31,14 @@ module.exports = async (req, res) => {
       const j = await r.json().catch(() => ({}));
       if (!r.ok) return res.status(r.status).json({ err: (j.detail && (j.detail.message || j.detail.status)) || ('clone ' + r.status) });
       return res.status(200).json({ voice: j.voice_id });
+    }
+    if (act === 'delete' && req.method === 'POST') {
+      if (origin && !ALLOW.includes(origin)) return res.status(403).json({ err: 'origin' });
+      let body = req.body; if (typeof body === 'string') body = JSON.parse(body);
+      const voice = String(body.voice || '').replace(/[^0-9A-Za-z]/g, '').slice(0, 40);
+      if (!voice) return res.status(400).json({ err: 'voice' });
+      const r = await fetch('https://api.elevenlabs.io/v1/voices/' + voice, { method: 'DELETE', headers: { 'xi-api-key': key } });
+      return res.status(r.ok || r.status === 404 ? 200 : r.status).json({ ok: r.ok || r.status === 404 });
     }
     if (act === 'tts') {
       const voice = String(req.query.voice || '').replace(/[^0-9A-Za-z]/g, '').slice(0, 40);

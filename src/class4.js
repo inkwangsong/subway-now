@@ -1069,6 +1069,27 @@ var VOICE_KEYS = [
 ['arrive', '도착', '예) 다 왔어요, 내려요']
 ];
 var clips = this.props.voiceClips || {}, recKey = st.recKey || '';
+/* 목소리 목록 */
+var VPS = this.props.voiceProfiles || [], VACT = this.props.voiceActive || '';
+var vEdit = st.vEdit && VPS.some(function (p) { return p.id === st.vEdit; }) ? st.vEdit : (VPS.some(function (p) { return p.id === VACT; }) ? VACT : '');
+var editP = null; VPS.forEach(function (p) { if (p.id === vEdit) editP = p; });
+var clipCount = function (id) { var n = 0; for (var ck in clips) if (ck.indexOf(id + ':') === 0) n++; return n; };
+out.vpRows = [{ id: '', name: '기본 음성', info: '휴대폰에 있는 목소리로 말해요' }].concat(VPS.map(function (p) { var n = clipCount(p.id); return { id: p.id, name: p.name, info: [p.ai ? 'AI 목소리 있음' : 'AI 목소리 없음', n ? '상황별 녹음 ' + n + '개' : ''].filter(Boolean).join(' · ') }; })).map(function (r) {
+var act = r.id === VACT, ask = !!r.id && st.vpDelAsk === r.id;
+return { name: r.name, info: ask ? '정말 지울까요? 녹음과 AI 목소리가 모두 사라지고 되돌릴 수 없어요' : r.info, infoColor: ask ? '#E8453C' : 'var(--sub)',
+dot: act ? 'var(--blue)' : 'transparent', ring: act ? 'var(--blue)' : 'var(--sub)', rowLine: r.id && r.id === vEdit ? 'var(--blue)' : 'var(--card-line)',
+useShow: act ? 'none' : 'flex', editShow: r.id && !ask ? 'flex' : 'none', delShow: r.id && !ask ? 'flex' : 'none', askShow: ask ? 'flex' : 'none', badge: act ? '사용 중' : '', badgeShow: act ? 'inline-block' : 'none',
+onUse: function () { if (self.props.onVpSelect) self.props.onVpSelect(r.id); },
+onEdit: function () { self.setState({ vEdit: r.id, vpDelAsk: '', aiErr: '', voiceErr: '', aiConsent: false }); },
+onDel: function () { self.setState({ vpDelAsk: r.id }); },
+onDelYes: function () { if (self.props.onVpDelete) self.props.onVpDelete(r.id); },
+onDelNo: function () { self.setState({ vpDelAsk: '' }); } };
+});
+out.vpName = st.vpName || '';
+out.onVpName = function (e) { self.setState({ vpName: e.target.value }); };
+out.onVpAdd = function () { if (self.props.onVpAdd) self.props.onVpAdd(st.vpName || ''); };
+out.hasEdit = !!editP; out.editTitle = editP ? '‘' + editP.name + '’ 목소리 꾸미기' : '';
+clips = (function () { var m = {}; for (var ck2 in clips) if (ck2.indexOf(vEdit + ':') === 0) m[ck2.slice(vEdit.length + 1)] = true; return m; })();
 out.voiceRows = VOICE_KEYS.map(function (v) {
 var has = !!clips[v[0]], rec = recKey === v[0];
 return { title: v[1], hint: v[2], status: rec ? '녹음 중… 다시 누르면 끝나요 (최대 8초)' : (has ? '녹음됨 · 이 목소리로 알려줘요' : '아직 없어요 · 기본 음성으로 알려줘요'),
@@ -1080,7 +1101,7 @@ onDel: function () { if (self.props.onDelClip) self.props.onDelClip(v[0]); } };
 });
 out.voiceErr = st.voiceErr || '';
 /* AI 목소리 */
-var aiv = this.props.aiVoice, recSec = st.aiRecT ? Math.round((Date.now() - st.aiRecT) / 1000) : 0;
+var aiv = editP && editP.ai, recSec = st.aiRecT ? Math.round((Date.now() - st.aiRecT) / 1000) : 0;
 out.aiReady = !!aiv; out.aiNotReady = !aiv; out.aiReadyFlex = aiv ? 'flex' : 'none'; out.aiNotReadyFlex = aiv ? 'none' : 'flex';
 out.aiStatus = st.aiBusy ? '목소리를 만드는 중이에요… (10~30초)' : (st.aiRecT ? '녹음 중 ' + recSec + '초 · 아래 글을 편하게 두 번쯤 읽고 다시 누르세요' : (aiv ? '준비됐어요 · 모든 안내를 이 목소리로 말해요' : '아직 없어요'));
 out.aiRecLabel = st.aiRecT ? '멈추고 만들기' : (aiv ? '다시 만들기' : '1분 녹음하고 만들기');
@@ -1231,8 +1252,14 @@ if (usualPath && usualPath.length > 1) { var UN = stnNorm(usualPath[1].n), UL = 
 if (!pref) arrRows.forEach(function (r) { if (!pref || r.eta < pref.eta) pref = r; });
 out.pillText = '지금 ' + nm.name + '역 · ' + pref.dir + ' ' + (pref.first === '곧 도착' ? '곧 도착' : pref.first + ' 후') + (pref.clock ? ' (' + pref.clock.replace(' 도착', '') + ')' : '');
 }
-out.arrRows = arrRows; out.hasArr = live && mode === 'confirm' && !!arrStn;
-out.arrLoading = out.hasArr && !arrRows.length ? (arrOk ? '지금은 이 역에 다가오는 열차 정보가 없어요' : '다음 열차 불러오는 중') : '';
+/* 카드는 처음부터 자리를 잡아 두고 내용만 채워요 (화면이 덜컹거리지 않게) */
+out.arrRows = arrRows; out.hasArr = live && mode === 'confirm';
+if (out.hasArr && !arrStn) out.arrTitle = '가까운 역 다음 열차';
+/* 그 역에 오는 방향 수(노선마다 양방향, 종점은 한 방향)만큼 미리 높이를 잡아서, 정보가 들어와도 화면이 밀리지 않게 */
+var slots = 2;
+if (arrStn && G.linesAt[arrStn]) { slots = 0; G.linesAt[arrStn].forEach(function (li) { NET[li].chains.forEach(function (ch) { var k = ch.s.indexOf(arrStn); if (k < 0) return; if (ch.loop) slots += 2; else slots += (k > 0 ? 1 : 0) + (k < ch.s.length - 1 ? 1 : 0); }); }); slots = Math.max(1, Math.min(4, slots)); }
+out.arrMinH = (34 + slots * 66 + 18) + 'px';
+out.arrLoading = out.hasArr && !arrRows.length ? (!arrStn ? '가까운 역 찾는 중' : (arrOk ? '지금은 이 역에 다가오는 열차 정보가 없어요' : '다음 열차 불러오는 중')) : '';
 out.arrLoadShow = out.arrLoading ? 'block' : 'none';
 out.arrTitle = arrStn ? arrStn + '역 다음 열차' + (walkSec ? ' · 걸어서 약 ' + Math.round(walkSec / 60) + '분' : '') : '';
 out.arrNote = arrOk ? '서울시 실시간 도착 정보 기준 · 8호선 등은 열차 위치로 추정' : '';
