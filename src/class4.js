@@ -1152,7 +1152,11 @@ out.diag = live ? ['마이크 ' + (this.props.srOk ? (st.listening ? '듣는 중
 '센서 ' + (st.motionErr ? '오류:' + st.motionErr : (st.mdbg || '꺼짐')),
 '실시간 ' + (this.props.rtUrl ? (st.rtErr ? '오류:' + String(st.rtErr).slice(0, 20) : '응답 ' + ago(st.rtOkT)) : '연결 안 됨')].join(' · ') : '';
 /* 다음 열차: 출발역을 고르면(또는 탑승 대기 중이면) 노선·방향별 도착까지 남은 시간과 시각 */
-var arrStn = live && mode === 'confirm' && origin ? origin.n : (live && isRide && !st.boarded && i < last ? c.n : null);
+/* 시작 화면: 출발역을 골랐으면 그 역, 아니면 지금 가장 가까운 역(3km 안)의 다음 열차를 보여줘요 */
+var nearForArr = nmAny && nmAny.m < 3000 ? nmAny : null;
+var arrStn = live && mode === 'confirm' && st.origin ? st.origin.n : (live && mode === 'confirm' && nearForArr ? nearForArr.name : (live && mode === 'confirm' && origin ? origin.n : (live && isRide && !st.boarded && i < last ? c.n : null)));
+/* 걸어서 걸리는 시간: 직선거리 × 1.3 을 분속 75m로, 개찰구·승강장까지 2분 더 (역 150m 안이면 0) */
+var walkSec = live && mode === 'confirm' && nearForArr && arrStn === nearForArr.name && !nearOn ? Math.round((nearForArr.m * 1.3 / 75 + 2) * 60) : 0;
 out.arrStn = arrStn || '';
 var arrOk = !!(arrStn && st.arr && st.arr.stn === arrStn && Date.now() - st.arr.at < 120000);
 var nowA = Date.now(), groups = arrOk ? arrivalGroups(arrStn, st.arr.rows, st.arr.at) : [];
@@ -1160,9 +1164,21 @@ var since = arrOk ? (nowA - st.arr.at) / 1000 : 0;
 if (arrOk && isRide && !st.boarded && i < last) { var NX = stnNorm(route[i + 1].n), LX = route[i + 1].l; groups = groups.filter(function (g) { return g.li === LX && stnNorm(g.toward) === NX; }); }
 var arrRows = groups.slice(0, 4).map(function (g) {
 var tr = g.trains.map(function (t) { return Math.max(0, t.eta - since); }), L = NET[g.li];
-return { eta: tr[0], li: g.li, towardN: stnNorm(g.toward || ''), short: L.short, bg: L.color, fg: fgFor(L.color), dir: g.dest + '행', toward: g.toward ? g.toward + ' 방면' : '', first: fmtEta(tr[0]), clock: tr[0] >= 30 ? fmtClock(nowA + tr[0] * 1000) + ' 도착' : '', second: tr[1] !== undefined ? '다음 ' + Math.max(1, Math.round(tr[1] / 60)) + '분 후' : '' };
+/* 걸어가서 탈 수 있는 첫 열차 */
+var ci = -1; for (var z = 0; z < tr.length; z++) if (tr[z] >= walkSec) { ci = z; break; }
+/* 실시간 정보는 다음 2대까지만 나와서, 그 뒤는 배차 간격으로 예상해요 */
+var est = false, gapS = (LINE_GAP[L.name] || 6) * 60;
+if (walkSec && ci < 0 && tr.length) { var e2 = tr[tr.length - 1]; while (e2 < walkSec) e2 += gapS; tr.push(e2); ci = tr.length - 1; est = true; }
+var catchTxt = walkSec && ci >= 0 ? (est ? '약 ' : '') + fmtClock(nowA + tr[ci] * 1000) + ' 열차' + (est ? '(예상)' : '') + ' · ' + Math.max(0, Math.round((tr[ci] - walkSec) / 60)) + '분 안에 나가면 타요' : '';
+return { catchShow: catchTxt ? 'block' : 'none', catchTxt: catchTxt, catchEta: ci >= 0 ? tr[ci] : null, eta: tr[0], li: g.li, towardN: stnNorm(g.toward || ''), short: L.short, bg: L.color, fg: fgFor(L.color), dir: g.dest + '행', toward: g.toward ? g.toward + ' 방면' : '', first: fmtEta(tr[0]), clock: tr[0] >= 30 ? fmtClock(nowA + tr[0] * 1000) + ' 도착' : '', second: tr[1] !== undefined ? '다음 ' + Math.max(1, Math.round(tr[1] / 60)) + '분 후' : '' };
 });
 /* 역에 도착했을 때 위치 칩: '탈 준비하세요' 대신 다음 열차와 남은 시간 (평소 가는 방향이 있으면 그 방향) */
+if (live && mode === 'confirm' && !nearOn && walkSec && arrRows.length) {
+var pref2 = null;
+if (usualPath && usualPath.length > 1) { var UN2 = stnNorm(usualPath[1].n), UL2 = usualPath[1].l; arrRows.forEach(function (r) { if (r.li === UL2 && r.towardN === UN2) pref2 = r; }); }
+if (!pref2) arrRows.forEach(function (r) { if (r.catchEta !== null && (!pref2 || pref2.catchEta === null || r.catchEta < pref2.catchEta)) pref2 = r; });
+if (pref2 && pref2.catchEta !== null) out.pillText = arrStn + '역 걸어서 ' + Math.round(walkSec / 60) + '분 · ' + pref2.dir + ' ' + fmtClock(nowA + pref2.catchEta * 1000) + ' (' + Math.max(0, Math.round((pref2.catchEta - walkSec) / 60)) + '분 여유)';
+}
 if (live && mode === 'confirm' && nearOn && arrRows.length) {
 var pref = null;
 if (usualPath && usualPath.length > 1) { var UN = stnNorm(usualPath[1].n), UL = usualPath[1].l; arrRows.forEach(function (r) { if (r.li === UL && r.towardN === UN) pref = r; }); }
@@ -1170,7 +1186,7 @@ if (!pref) arrRows.forEach(function (r) { if (!pref || r.eta < pref.eta) pref = 
 out.pillText = '지금 ' + nm.name + '역 · ' + pref.dir + ' ' + (pref.first === '곧 도착' ? '곧 도착' : pref.first + ' 후') + (pref.clock ? ' (' + pref.clock.replace(' 도착', '') + ')' : '');
 }
 out.arrRows = arrRows; out.hasArr = live && mode === 'confirm' && arrRows.length > 0;
-out.arrTitle = arrStn ? arrStn + '역 다음 열차' : '';
+out.arrTitle = arrStn ? arrStn + '역 다음 열차' + (walkSec ? ' · 걸어서 약 ' + Math.round(walkSec / 60) + '분' : '') : '';
 out.arrNote = arrOk ? '서울시 실시간 도착 정보 기준 · 8호선 등은 열차 위치로 추정' : '';
 if (live && isRide && !st.boarded && i < last && arrRows.length && bannerLabel !== '경로 다시 찾음') banner = banner + ' · 다음 열차 ' + arrRows[0].first + (arrRows[0].clock ? ' (' + arrRows[0].clock + ')' : '');
 out.banner = banner;

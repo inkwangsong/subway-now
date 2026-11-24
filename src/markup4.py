@@ -425,6 +425,7 @@ input::placeholder{{color:{SUB}}}
 <span style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column">
 <span style="font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{r.dir}}}}<span style="font-size: 12px; font-weight: 500; color: {SUB}; margin-left: 6px">{{{{r.toward}}}}</span></span>
 <span style="font-size: 12px; font-weight: 500; color: {SUB}">{{{{r.clock}}}} {{{{r.second}}}}</span>
+<span style="display: {{{{r.catchShow}}}}; font-size: 12px; font-weight: 700; color: {BLUE}">{{{{r.catchTxt}}}}</span>
 </span>
 <span style="flex-shrink: 0; font-size: 18px; font-weight: 700; color: {BLUE}; font-variant-numeric: tabular-nums">{{{{r.first}}}}</span>
 </div>
@@ -464,6 +465,23 @@ input::placeholder{{color:{SUB}}}
 
 <sc-if value="{{{{ noOrigin }}}}" hint-placeholder-val="{{{{ false }}}}">
 <div style="display: flex; flex-direction: column; gap: 10px">
+<sc-if value="{{{{ hasArr }}}}" hint-placeholder-val="{{{{ false }}}}">
+<div style="{ACRYL}; border-radius: 22px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 11px; font-weight: 700; letter-spacing: 1px; color: {SUB}">{{{{arrTitle}}}}</div>
+<sc-for list="{{{{ arrRows }}}}" as="r" hint-placeholder-count="2">
+<div style="display: flex; align-items: center; gap: 8px; min-width: 0">
+<span style="flex-shrink: 0; min-width: 22px; height: 22px; box-sizing: border-box; padding: 0 7px; border-radius: 11px; background: {{{{r.bg}}}}; color: {{{{r.fg}}}}; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{{{r.short}}}}</span>
+<span style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column">
+<span style="font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{r.dir}}}}<span style="font-size: 12px; font-weight: 500; color: {SUB}; margin-left: 6px">{{{{r.toward}}}}</span></span>
+<span style="font-size: 12px; font-weight: 500; color: {SUB}">{{{{r.clock}}}} {{{{r.second}}}}</span>
+<span style="display: {{{{r.catchShow}}}}; font-size: 12px; font-weight: 700; color: {BLUE}">{{{{r.catchTxt}}}}</span>
+</span>
+<span style="flex-shrink: 0; font-size: 18px; font-weight: 700; color: {BLUE}; font-variant-numeric: tabular-nums">{{{{r.first}}}}</span>
+</div>
+</sc-for>
+<div style="font-size: 10.5px; font-weight: 500; color: {SUB}">{{{{arrNote}}}}</div>
+</div>
+</sc-if>
 <div style="{ACRYL}; border-radius: 24px; padding: 16px 20px; font-size: 14px; font-weight: 500; line-height: 1.6; color: {INK}">{{{{noOriginMsg}}}}</div>
 <button onClick="{{{{ onPickOrigin }}}}" style="height: 60px; border-radius: 20px; {PRIMARY}; color: #FFFFFF; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 12px; padding: 0 20px">
 {search_icon('#FFFFFF')}
