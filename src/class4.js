@@ -1170,7 +1170,16 @@ var ci = -1; for (var z = 0; z < tr.length; z++) if (tr[z] >= walkSec) { ci = z;
 var est = false, gapS = (LINE_GAP[L.name] || 6) * 60;
 if (walkSec && ci < 0 && tr.length) { var e2 = tr[tr.length - 1]; while (e2 < walkSec) e2 += gapS; tr.push(e2); ci = tr.length - 1; est = true; }
 var catchTxt = walkSec && ci >= 0 ? (est ? '약 ' : '') + fmtClock(nowA + tr[ci] * 1000) + ' 열차' + (est ? '(예상)' : '') + ' · ' + Math.max(0, Math.round((tr[ci] - walkSec) / 60)) + '분 안에 나가면 타요' : '';
-return { catchShow: catchTxt ? 'block' : 'none', catchTxt: catchTxt, catchEta: ci >= 0 ? tr[ci] : null, eta: tr[0], li: g.li, towardN: stnNorm(g.toward || ''), short: L.short, bg: L.color, fg: fgFor(L.color), dir: g.dest + '행', toward: g.toward ? g.toward + ' 방면' : '', first: fmtEta(tr[0]), clock: tr[0] >= 30 ? fmtClock(nowA + tr[0] * 1000) + ' 도착' : '', second: tr[1] !== undefined ? '다음 ' + Math.max(1, Math.round(tr[1] / 60)) + '분 후' : '' };
+/* 다음 열차 5대: 실시간으로 나온 2대 뒤는 배차 간격으로 예상해요 */
+var five = [], nReal = g.trains.length, e3 = tr.length ? tr[Math.min(nReal, tr.length) - 1] : 0;
+for (var z2 = 0; z2 < Math.min(nReal, tr.length); z2++) five.push({ eta: tr[z2], est: false });
+while (five.length && five.length < 5) { e3 += gapS; five.push({ eta: e3, est: true }); }
+var trains5 = five.map(function (x, n) {
+var first = n === 0, catchable = walkSec && x.eta >= walkSec && (ci < 0 || Math.abs(x.eta - tr[ci]) < 1);
+return { label: first ? fmtEta(x.eta) : (x.est ? '약 ' : '') + Math.max(1, Math.round(x.eta / 60)) + '분', clock: fmtClock(nowA + x.eta * 1000) + (x.est ? ' 예상' : ''),
+bg: first ? L.color : 'var(--tile)', fg: first ? fgFor(L.color) : 'var(--ink)', line: catchable ? 'var(--blue)' : 'transparent' };
+});
+return { trains: trains5, catchShow: catchTxt ? 'block' : 'none', catchTxt: catchTxt, catchEta: ci >= 0 ? tr[ci] : null, eta: tr[0], li: g.li, towardN: stnNorm(g.toward || ''), short: L.short, bg: L.color, fg: fgFor(L.color), dir: g.dest + '행', toward: g.toward ? g.toward + ' 방면' : '', first: fmtEta(tr[0]), clock: tr[0] >= 30 ? fmtClock(nowA + tr[0] * 1000) + ' 도착' : '', second: tr[1] !== undefined ? '다음 ' + Math.max(1, Math.round(tr[1] / 60)) + '분 후' : '' };
 });
 /* 역에 도착했을 때 위치 칩: '탈 준비하세요' 대신 다음 열차와 남은 시간 (평소 가는 방향이 있으면 그 방향) */
 if (live && mode === 'confirm' && !nearOn && walkSec && arrRows.length) {
@@ -1186,7 +1195,7 @@ if (!pref) arrRows.forEach(function (r) { if (!pref || r.eta < pref.eta) pref = 
 out.pillText = '지금 ' + nm.name + '역 · ' + pref.dir + ' ' + (pref.first === '곧 도착' ? '곧 도착' : pref.first + ' 후') + (pref.clock ? ' (' + pref.clock.replace(' 도착', '') + ')' : '');
 }
 out.arrRows = arrRows; out.hasArr = live && mode === 'confirm' && !!arrStn;
-out.arrLoading = out.hasArr && !arrRows.length ? (arrOk ? '지금은 이 역에 다가오는 열차 정보가 없어요' : '다음 열차 불러오는 중…') : '';
+out.arrLoading = out.hasArr && !arrRows.length ? (arrOk ? '지금은 이 역에 다가오는 열차 정보가 없어요' : '다음 열차 불러오는 중') : '';
 out.arrLoadShow = out.arrLoading ? 'block' : 'none';
 out.arrTitle = arrStn ? arrStn + '역 다음 열차' + (walkSec ? ' · 걸어서 약 ' + Math.round(walkSec / 60) + '분' : '') : '';
 out.arrNote = arrOk ? '서울시 실시간 도착 정보 기준 · 8호선 등은 열차 위치로 추정' : '';
