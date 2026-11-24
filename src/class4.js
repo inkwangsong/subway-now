@@ -1059,6 +1059,29 @@ var ob = origin ? (oLine !== null ? { b1: badge(oLine), b2: NOBADGE, b3: NOBADGE
 out.isConfirm = mode === 'confirm';
 out.isPick = mode === 'pick';
 out.isDir = mode === 'dir';
+/* 안내 목소리 녹음 화면: 내 목소리나 소중한 사람 목소리로 알림을 들려줘요 */
+out.isVoice = mode === 'voice';
+var VOICE_KEYS = [
+['board', '열차에 탔을 때', '예) 잘 다녀와요, 오늘도 화이팅'],
+['xferSoon', '갈아타기 한 정거장 전', '예) 다음 역에서 갈아타요'],
+['xfer', '갈아탈 역에 도착', '예) 지금 내려서 갈아타요'],
+['alightSoon', '내리기 한 정거장 전', '예) 다음 역에서 내려요, 준비해요'],
+['arrive', '도착', '예) 다 왔어요, 내려요']
+];
+var clips = this.props.voiceClips || {}, recKey = st.recKey || '';
+out.voiceRows = VOICE_KEYS.map(function (v) {
+var has = !!clips[v[0]], rec = recKey === v[0];
+return { title: v[1], hint: v[2], status: rec ? '녹음 중… 다시 누르면 끝나요 (최대 8초)' : (has ? '녹음됨 · 이 목소리로 알려줘요' : '아직 없어요 · 기본 음성으로 알려줘요'),
+recLabel: rec ? '멈추기' : (has ? '다시 녹음' : '녹음'), recBg: rec ? '#E8453C' : 'var(--tile)', recFg: rec ? '#FFFFFF' : 'var(--ink)',
+playShow: has && !rec ? 'flex' : 'none', delShow: has && !rec ? 'flex' : 'none',
+onRec: function () { if (self.props.onRecToggle) self.props.onRecToggle(v[0]); },
+onPlay: function () { if (self.props.onPlayClip) self.props.onPlayClip(v[0]); },
+onDel: function () { if (self.props.onDelClip) self.props.onDelClip(v[0]); } };
+});
+out.voiceErr = st.voiceErr || '';
+out.voiceErrShow = st.voiceErr ? 'block' : 'none';
+out.onVoice = function () { self.setState({ mode: 'voice', from: mode }); };
+out.onVoiceBack = function () { if (self.props.onRecToggle && st.recKey) self.props.onRecToggle(st.recKey); self.setState({ mode: st.from && st.from !== 'voice' ? st.from : 'confirm', from: null, recKey: '' }); };
 out.isRide = isRide;
 out.showMap = showMap;
 out.casing = casing; out.dots = dots; out.marks = marks;

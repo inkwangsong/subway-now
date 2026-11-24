@@ -488,6 +488,8 @@ input::placeholder{color:var(--sub)}
 <div style="display: flex; justify-content: center; align-items: center; gap: 4px">
 <sc-if value="{{ isLive }}" hint-placeholder-val="{{ false }}">
 <button onClick="{{ onDemo }}" style="height: 40px; border: 0; background: transparent; color: var(--ink); font-size: 13px; font-weight: 600; padding: 0 10px">데모 보기</button>
+<span style="width: 3px; height: 3px; border-radius: 2px; background: var(--sub)"></span>
+<button onClick="{{ onVoice }}" style="height: 40px; border: 0; background: transparent; color: var(--ink); font-size: 13px; font-weight: 600; padding: 0 10px">안내 목소리</button>
 </sc-if>
 </div>
 </div>
@@ -529,6 +531,7 @@ input::placeholder{color:var(--sub)}
 </button>
 <sc-if value="{{ isLive }}" hint-placeholder-val="{{ false }}">
 <button onClick="{{ onDemo }}" style="height: 44px; border: 0; background: transparent; color: var(--ink); font-size: 13px; font-weight: 600; text-decoration: underline">데모로 미리 보기 (신흥 → 고속터미널)</button>
+<button onClick="{{ onVoice }}" style="height: 40px; border: 0; background: transparent; color: var(--ink); font-size: 13px; font-weight: 600; text-decoration: underline">안내 목소리 녹음하기</button>
 </sc-if>
 <div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--sub); padding: 6px 6px 0">자주 타는 역</div>
 <sc-for list="{{ recents }}" as="p" hint-placeholder-count="2">
@@ -635,6 +638,31 @@ input::placeholder{color:var(--sub)}
 <div style="padding: 32px 20px; font-size: 15px; font-weight: 500; line-height: 1.6; color: var(--sub); text-align: center">그런 역은 못 찾았어요. 이름을 다시 확인해 주세요.</div>
 </sc-if>
 </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isVoice }}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; padding: 56px 16px 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; z-index: 6">
+<div style="background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 22px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px">
+<div style="font-size: 24px; font-weight: 700; letter-spacing: -0.8px; color: var(--title)">안내 목소리</div>
+<div style="font-size: 14px; font-weight: 500; line-height: 1.6; color: var(--ink)">내 목소리나 소중한 사람의 목소리를 녹음해 두면, 알림 때 기계 음성 대신 그 목소리가 나와요. 녹음은 이 폰에만 저장돼요.</div>
+</div>
+<div style="display: {{voiceErrShow}}; font-size: 13px; font-weight: 600; color: #E8453C; padding: 0 8px">{{voiceErr}}</div>
+<div style="flex-grow: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px">
+<sc-for list="{{ voiceRows }}" as="v" hint-placeholder-count="5">
+<div style="flex-shrink: 0; border-radius: 20px; background: var(--row); border: 1px solid var(--card-line); box-shadow: var(--row-shadow); padding: 12px 12px 12px 18px; display: flex; align-items: center; gap: 8px">
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 16px; font-weight: 700">{{v.title}}</span>
+<span style="font-size: 12px; font-weight: 500; color: var(--sub)">{{v.hint}}</span>
+<span style="font-size: 12px; font-weight: 600; color: var(--blue)">{{v.status}}</span>
+</div>
+<button onClick="{{ v.onPlay }}" aria-label="들어보기" style="display: {{v.playShow}}; width: 40px; height: 40px; border-radius: 14px; background: var(--tile); border: 0; color: var(--ink); padding: 0; align-items: center; justify-content: center; flex-shrink: 0"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="7 4 20 12 7 20"></polygon></svg></button>
+<button onClick="{{ v.onDel }}" aria-label="지우기" style="display: {{v.delShow}}; width: 40px; height: 40px; border-radius: 14px; background: var(--tile); border: 0; color: var(--sub); padding: 0; align-items: center; justify-content: center; flex-shrink: 0"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg></button>
+<button onClick="{{ v.onRec }}" style="height: 40px; border-radius: 14px; border: 0; background: {{v.recBg}}; color: {{v.recFg}}; font-size: 13px; font-weight: 700; padding: 0 12px; flex-shrink: 0">{{v.recLabel}}</button>
+</div>
+</sc-for>
+</div>
+<button onClick="{{ onVoiceBack }}" style="flex-shrink: 0; height: 54px; border-radius: 18px; background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: var(--ink); font-size: 15px; font-weight: 600">다 했어요</button>
 </div>
 </sc-if>
 
@@ -1981,6 +2009,29 @@ var ob = origin ? (oLine !== null ? { b1: badge(oLine), b2: NOBADGE, b3: NOBADGE
 out.isConfirm = mode === 'confirm';
 out.isPick = mode === 'pick';
 out.isDir = mode === 'dir';
+/* 안내 목소리 녹음 화면: 내 목소리나 소중한 사람 목소리로 알림을 들려줘요 */
+out.isVoice = mode === 'voice';
+var VOICE_KEYS = [
+['board', '열차에 탔을 때', '예) 잘 다녀와요, 오늘도 화이팅'],
+['xferSoon', '갈아타기 한 정거장 전', '예) 다음 역에서 갈아타요'],
+['xfer', '갈아탈 역에 도착', '예) 지금 내려서 갈아타요'],
+['alightSoon', '내리기 한 정거장 전', '예) 다음 역에서 내려요, 준비해요'],
+['arrive', '도착', '예) 다 왔어요, 내려요']
+];
+var clips = this.props.voiceClips || {}, recKey = st.recKey || '';
+out.voiceRows = VOICE_KEYS.map(function (v) {
+var has = !!clips[v[0]], rec = recKey === v[0];
+return { title: v[1], hint: v[2], status: rec ? '녹음 중… 다시 누르면 끝나요 (최대 8초)' : (has ? '녹음됨 · 이 목소리로 알려줘요' : '아직 없어요 · 기본 음성으로 알려줘요'),
+recLabel: rec ? '멈추기' : (has ? '다시 녹음' : '녹음'), recBg: rec ? '#E8453C' : 'var(--tile)', recFg: rec ? '#FFFFFF' : 'var(--ink)',
+playShow: has && !rec ? 'flex' : 'none', delShow: has && !rec ? 'flex' : 'none',
+onRec: function () { if (self.props.onRecToggle) self.props.onRecToggle(v[0]); },
+onPlay: function () { if (self.props.onPlayClip) self.props.onPlayClip(v[0]); },
+onDel: function () { if (self.props.onDelClip) self.props.onDelClip(v[0]); } };
+});
+out.voiceErr = st.voiceErr || '';
+out.voiceErrShow = st.voiceErr ? 'block' : 'none';
+out.onVoice = function () { self.setState({ mode: 'voice', from: mode }); };
+out.onVoiceBack = function () { if (self.props.onRecToggle && st.recKey) self.props.onRecToggle(st.recKey); self.setState({ mode: st.from && st.from !== 'voice' ? st.from : 'confirm', from: null, recKey: '' }); };
 out.isRide = isRide;
 out.showMap = showMap;
 out.casing = casing; out.dots = dots; out.marks = marks;
@@ -2255,7 +2306,7 @@ return out;
 
 </script>
 <script>
-var BUILD = '5a8b0f619e';
+var BUILD = '84f148c84f';
 /* 화면 그리기: 시안과 같은 템플릿({{값}}, sc-if, sc-for)을 읽어서 화면으로 바꿔요 */
 (function () {
 'use strict';
@@ -2369,21 +2420,28 @@ schedule();
 var audio = null;
 var unlockAudio = function () { try { if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === 'suspended') audio.resume(); } catch (e) {} };
 document.addEventListener('pointerdown', unlockAudio, { passive: true });
+/* 알림음: 삐 소리 대신 지하철 안내처럼 부드러운 '띵-동' 차임 (배음 섞고 천천히 사라지게) */
+var chimeNote = function (f, t0, dur, vol) {
+[[1, 1], [2, 0.28], [3, 0.12], [4.2, 0.05]].forEach(function (h) {
+var o = audio.createOscillator(), g = audio.createGain();
+o.type = 'sine'; o.frequency.value = f * h[0];
+g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol * h[1], t0 + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur / (h[0] > 1 ? h[0] * 0.8 : 1));
+o.connect(g); g.connect(audio.destination); o.start(t0); o.stop(t0 + dur + 0.05);
+});
+};
 var beep = function (times) {
 if (!audio) return;
 try {
-for (var k = 0; k < times; k++) {
-var o = audio.createOscillator(), g = audio.createGain(), t0 = audio.currentTime + k * 0.32;
-o.type = 'sine'; o.frequency.value = k % 2 ? 1175 : 880;
-g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.35, t0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.26);
-o.connect(g); g.connect(audio.destination); o.start(t0); o.stop(t0 + 0.28);
-}
+var t = audio.currentTime + 0.02, reps = times >= 3 ? 2 : 1;
+for (var k = 0; k < reps; k++) { chimeNote(659.3, t, 1.1, 0.22); chimeNote(523.3, t + 0.42, 1.5, 0.22); t += 1.25; }
 } catch (e) {}
 };
 /* 음성 안내: 음악을 듣고 있어도 알 수 있게 소리 내어 말해줘요 (이어폰이면 이어폰으로)
    아이폰은 화면을 한 번 누른 뒤에만 말할 수 있어서, 첫 터치 때 미리 열어 둬요 */
 var TTS = window.speechSynthesis, ttsUntil = 0, ttsReady = false, koVoice = null;
-var pickVoice = function () { try { var vs = TTS.getVoices() || []; koVoice = vs.filter(function (v) { return /^ko/i.test(v.lang); })[0] || null; } catch (e) {} };
+/* 한국어 목소리 중 가장 자연스러운 것: 프리미엄 > 향상됨(고음질) > 그 외. 폰에 받아 둔 고음질 목소리가 있으면 그걸 써요 */
+var voiceScore = function (v) { var n = (v.name || '') + ' ' + (v.voiceURI || ''); return (/premium|프리미엄/i.test(n) ? 40 : 0) + (/enhanced|향상|고급|neural|natural/i.test(n) ? 30 : 0) + (/siri/i.test(n) ? 20 : 0) + (/google/i.test(n) ? 10 : 0) + (v.localService ? 1 : 0); };
+var pickVoice = function () { try { var vs = (TTS.getVoices() || []).filter(function (v) { return /^ko/i.test(v.lang); }); vs.sort(function (a, b) { return voiceScore(b) - voiceScore(a); }); koVoice = vs[0] || null; app.props.voiceName = koVoice ? koVoice.name : ''; } catch (e) {} };
 if (TTS) { pickVoice(); try { TTS.onvoiceschanged = pickVoice; } catch (e) {} }
 var unlockTTS = function () {
 if (!TTS || ttsReady) return;
@@ -2395,17 +2453,65 @@ var say = function (text) {
 if (!TTS || !text) return;
 try {
 TTS.cancel();
-var u = new SpeechSynthesisUtterance(text); u.lang = 'ko-KR'; u.rate = 1.0; u.volume = 1; if (koVoice) u.voice = koVoice;
-ttsUntil = Date.now() + 1500 + text.length * 180;
-TTS.speak(u);
+/* 문장마다 따로 말해서 사이에 숨 쉬는 틈을 줘요. 속도는 살짝 느리게, 높이는 살짝 높게 */
+var parts = String(text).split(/(?<=[.!?。])\s+/);
+parts.forEach(function (ptxt, pi) { var u = new SpeechSynthesisUtterance(ptxt); u.lang = 'ko-KR'; u.rate = 0.96; u.pitch = 1.08; u.volume = 1; if (koVoice) u.voice = koVoice; TTS.speak(u); });
+ttsUntil = Date.now() + 1500 + text.length * 200;
 } catch (e) {}
 };
+/* ===== 녹음한 안내 목소리 =====
+   마이크로 짧게(최대 8초) 녹음해서 이 폰 안(IndexedDB)에만 저장해요. 서버로 보내지 않아요 */
+var VDB = null, clipUrl = {};
+app.props.voiceClips = {};
+var vdb = function (cb) {
+if (VDB) return cb(VDB);
+try { var rq = indexedDB.open('subway-now-voice', 1); rq.onupgradeneeded = function () { rq.result.createObjectStore('clips'); }; rq.onsuccess = function () { VDB = rq.result; cb(VDB); }; rq.onerror = function () {}; } catch (e) {}
+};
+var loadClips = function () {
+vdb(function (db) {
+try { var tx = db.transaction('clips', 'readonly'), os = tx.objectStore('clips'), rq = os.openCursor(), m = {};
+rq.onsuccess = function () { var c = rq.result; if (c) { m[c.key] = true; if (clipUrl[c.key]) URL.revokeObjectURL(clipUrl[c.key]); clipUrl[c.key] = URL.createObjectURL(c.value); c.continue(); } else { app.props.voiceClips = m; schedule(); } };
+} catch (e) {}
+});
+};
+loadClips();
+var playClip = function (key) {
+var u = clipUrl[key]; if (!u) return false;
+try { if (TTS) TTS.cancel(); var a = new Audio(u); a.volume = 1; ttsUntil = Date.now() + 9000; a.play().catch(function () {}); return true; } catch (e) { return false; }
+};
+var VREC = null;
+app.props.onPlayClip = function (key) { unlockAudio(); playClip(key); };
+app.props.onDelClip = function (key) {
+vdb(function (db) { try { var tx = db.transaction('clips', 'readwrite'); tx.objectStore('clips').delete(key); tx.oncomplete = function () { if (clipUrl[key]) { URL.revokeObjectURL(clipUrl[key]); delete clipUrl[key]; } loadClips(); }; } catch (e) {} });
+};
+app.props.onRecToggle = function (key) {
+var st = app.state || {};
+if (VREC && VREC.mr && VREC.mr.state === 'recording') { var same = VREC.key === key; try { VREC.mr.stop(); } catch (e) {} if (same) return; }
+if (st.recKey === key) { app.setState({ recKey: '' }); return; }
+if (!navigator.mediaDevices || !window.MediaRecorder) { app.setState({ voiceErr: '이 브라우저는 녹음을 못 해요. 사파리에서 열어 주세요' }); return; }
+navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+var chunks = [], mr = new MediaRecorder(stream);
+VREC = { key: key, mr: mr };
+mr.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+mr.onstop = function () {
+stream.getTracks().forEach(function (t) { t.stop(); });
+var blob = new Blob(chunks, { type: mr.mimeType || 'audio/mp4' });
+VREC = null; app.setState({ recKey: '' });
+if (blob.size < 2000) return;
+vdb(function (db) { try { var tx = db.transaction('clips', 'readwrite'); tx.objectStore('clips').put(blob, key); tx.oncomplete = function () { loadClips(); setTimeout(function () { playClip(key); }, 300); }; } catch (e) {} });
+};
+mr.start(); app.setState({ recKey: key, voiceErr: '' });
+setTimeout(function () { if (VREC && VREC.mr === mr && mr.state === 'recording') mr.stop(); }, 8000);
+}).catch(function () { app.setState({ voiceErr: '마이크를 쓸 수 없어요. 마이크 권한을 허용해 주세요', recKey: '' }); });
+};
+var CLIP_FOR = { '곧 환승': 'xferSoon', '환승': 'xfer', '내릴 준비': 'alightSoon', '도착': 'arrive' };
 var SAY = function (label, vals, st) {
 var dest = st.dest || '';
-if (label === '내릴 준비') return '다음 역에서 내려요. ' + dest + '역이에요. 내릴 준비하세요.';
-if (label === '도착') return dest + '역에 도착했어요. 지금 내리세요.';
-if (label === '곧 환승' || label === '환승') return vals.banner;
-if (label === '곧 도착') return '두 정거장 남았어요.';
+if (label === '내릴 준비') return '다음은 ' + dest + '역이에요. 이번에 내리시면 돼요. 천천히 준비하세요.';
+if (label === '도착') return dest + '역이에요. 지금 내리세요. 두고 내리는 물건 없는지 확인하세요.';
+if (label === '곧 환승') return String(vals.banner || '').replace('다음 역 ', '다음 역, ').replace('갈아타요', '갈아타시면 돼요.');
+if (label === '환승') return String(vals.banner || '').replace('지금 내려서', '여기서 내려서').replace('갈아타요', '갈아타세요.');
+if (label === '곧 도착') return '이제 두 정거장 남았어요.';
 return '';
 };
 var ALERT = { '곧 환승': 2, '환승': 4, '곧 도착': 2, '내릴 준비': 4, '도착': 4 };
@@ -2422,14 +2528,14 @@ var st = app.state || {}, riding = st.mode === 'ride';
 saveRide();
 /* 탑승이 (버튼 없이) 잡히는 순간 진동 + 소리로 알려요 */
 var onNow = riding && !!st.boarded && !st.demo;
-if (onNow && !wasOn && !manualBoard) { beep(1); try { if (navigator.vibrate) navigator.vibrate([150, 80, 150]); } catch (e) {} }
+if (onNow && !wasOn && !manualBoard) { beep(1); setTimeout(function () { playClip('board'); }, 1300); try { if (navigator.vibrate) navigator.vibrate([150, 80, 150]); } catch (e) {} }
 wasOn = onNow; manualBoard = false;
 keepAwake(riding || st.mode === 'confirm' || !st.mode);
 var key = riding ? vals.bannerLabel + '|' + vals.banner : '';
 if (key !== lastAlert) {
 lastAlert = key;
 var n = riding && vals.banner ? ALERT[vals.bannerLabel] : 0;
-if (n) { beep(n); try { if (navigator.vibrate) navigator.vibrate(n > 2 ? [300, 120, 300, 120, 300] : [200, 100, 200]); } catch (e) {} setTimeout(function () { say(SAY(vals.bannerLabel, vals, st)); }, n * 320 + 150); }
+if (n) { beep(n); try { if (navigator.vibrate) navigator.vibrate(n > 2 ? [300, 120, 300, 120, 300] : [200, 100, 200]); } catch (e) {} setTimeout(function () { if (!playClip(CLIP_FOR[vals.bannerLabel])) say(SAY(vals.bannerLabel, vals, st)); }, n >= 3 ? 2600 : 1300); }
 }
 if (vals.isArrived && !wasArrived && !st.demo && st.route && st.dest) {
 var hist = readHist(), hk = st.route[0].n + '>' + st.dest;

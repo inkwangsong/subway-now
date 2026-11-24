@@ -111,21 +111,28 @@ schedule();
 var audio = null;
 var unlockAudio = function () { try { if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === 'suspended') audio.resume(); } catch (e) {} };
 document.addEventListener('pointerdown', unlockAudio, { passive: true });
+/* 알림음: 삐 소리 대신 지하철 안내처럼 부드러운 '띵-동' 차임 (배음 섞고 천천히 사라지게) */
+var chimeNote = function (f, t0, dur, vol) {
+[[1, 1], [2, 0.28], [3, 0.12], [4.2, 0.05]].forEach(function (h) {
+var o = audio.createOscillator(), g = audio.createGain();
+o.type = 'sine'; o.frequency.value = f * h[0];
+g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol * h[1], t0 + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur / (h[0] > 1 ? h[0] * 0.8 : 1));
+o.connect(g); g.connect(audio.destination); o.start(t0); o.stop(t0 + dur + 0.05);
+});
+};
 var beep = function (times) {
 if (!audio) return;
 try {
-for (var k = 0; k < times; k++) {
-var o = audio.createOscillator(), g = audio.createGain(), t0 = audio.currentTime + k * 0.32;
-o.type = 'sine'; o.frequency.value = k % 2 ? 1175 : 880;
-g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.35, t0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.26);
-o.connect(g); g.connect(audio.destination); o.start(t0); o.stop(t0 + 0.28);
-}
+var t = audio.currentTime + 0.02, reps = times >= 3 ? 2 : 1;
+for (var k = 0; k < reps; k++) { chimeNote(659.3, t, 1.1, 0.22); chimeNote(523.3, t + 0.42, 1.5, 0.22); t += 1.25; }
 } catch (e) {}
 };
 /* 음성 안내: 음악을 듣고 있어도 알 수 있게 소리 내어 말해줘요 (이어폰이면 이어폰으로)
    아이폰은 화면을 한 번 누른 뒤에만 말할 수 있어서, 첫 터치 때 미리 열어 둬요 */
 var TTS = window.speechSynthesis, ttsUntil = 0, ttsReady = false, koVoice = null;
-var pickVoice = function () { try { var vs = TTS.getVoices() || []; koVoice = vs.filter(function (v) { return /^ko/i.test(v.lang); })[0] || null; } catch (e) {} };
+/* 한국어 목소리 중 가장 자연스러운 것: 프리미엄 > 향상됨(고음질) > 그 외. 폰에 받아 둔 고음질 목소리가 있으면 그걸 써요 */
+var voiceScore = function (v) { var n = (v.name || '') + ' ' + (v.voiceURI || ''); return (/premium|프리미엄/i.test(n) ? 40 : 0) + (/enhanced|향상|고급|neural|natural/i.test(n) ? 30 : 0) + (/siri/i.test(n) ? 20 : 0) + (/google/i.test(n) ? 10 : 0) + (v.localService ? 1 : 0); };
+var pickVoice = function () { try { var vs = (TTS.getVoices() || []).filter(function (v) { return /^ko/i.test(v.lang); }); vs.sort(function (a, b) { return voiceScore(b) - voiceScore(a); }); koVoice = vs[0] || null; app.props.voiceName = koVoice ? koVoice.name : ''; } catch (e) {} };
 if (TTS) { pickVoice(); try { TTS.onvoiceschanged = pickVoice; } catch (e) {} }
 var unlockTTS = function () {
 if (!TTS || ttsReady) return;
@@ -137,17 +144,65 @@ var say = function (text) {
 if (!TTS || !text) return;
 try {
 TTS.cancel();
-var u = new SpeechSynthesisUtterance(text); u.lang = 'ko-KR'; u.rate = 1.0; u.volume = 1; if (koVoice) u.voice = koVoice;
-ttsUntil = Date.now() + 1500 + text.length * 180;
-TTS.speak(u);
+/* 문장마다 따로 말해서 사이에 숨 쉬는 틈을 줘요. 속도는 살짝 느리게, 높이는 살짝 높게 */
+var parts = String(text).split(/(?<=[.!?。])\s+/);
+parts.forEach(function (ptxt, pi) { var u = new SpeechSynthesisUtterance(ptxt); u.lang = 'ko-KR'; u.rate = 0.96; u.pitch = 1.08; u.volume = 1; if (koVoice) u.voice = koVoice; TTS.speak(u); });
+ttsUntil = Date.now() + 1500 + text.length * 200;
 } catch (e) {}
 };
+/* ===== 녹음한 안내 목소리 =====
+   마이크로 짧게(최대 8초) 녹음해서 이 폰 안(IndexedDB)에만 저장해요. 서버로 보내지 않아요 */
+var VDB = null, clipUrl = {};
+app.props.voiceClips = {};
+var vdb = function (cb) {
+if (VDB) return cb(VDB);
+try { var rq = indexedDB.open('subway-now-voice', 1); rq.onupgradeneeded = function () { rq.result.createObjectStore('clips'); }; rq.onsuccess = function () { VDB = rq.result; cb(VDB); }; rq.onerror = function () {}; } catch (e) {}
+};
+var loadClips = function () {
+vdb(function (db) {
+try { var tx = db.transaction('clips', 'readonly'), os = tx.objectStore('clips'), rq = os.openCursor(), m = {};
+rq.onsuccess = function () { var c = rq.result; if (c) { m[c.key] = true; if (clipUrl[c.key]) URL.revokeObjectURL(clipUrl[c.key]); clipUrl[c.key] = URL.createObjectURL(c.value); c.continue(); } else { app.props.voiceClips = m; schedule(); } };
+} catch (e) {}
+});
+};
+loadClips();
+var playClip = function (key) {
+var u = clipUrl[key]; if (!u) return false;
+try { if (TTS) TTS.cancel(); var a = new Audio(u); a.volume = 1; ttsUntil = Date.now() + 9000; a.play().catch(function () {}); return true; } catch (e) { return false; }
+};
+var VREC = null;
+app.props.onPlayClip = function (key) { unlockAudio(); playClip(key); };
+app.props.onDelClip = function (key) {
+vdb(function (db) { try { var tx = db.transaction('clips', 'readwrite'); tx.objectStore('clips').delete(key); tx.oncomplete = function () { if (clipUrl[key]) { URL.revokeObjectURL(clipUrl[key]); delete clipUrl[key]; } loadClips(); }; } catch (e) {} });
+};
+app.props.onRecToggle = function (key) {
+var st = app.state || {};
+if (VREC && VREC.mr && VREC.mr.state === 'recording') { var same = VREC.key === key; try { VREC.mr.stop(); } catch (e) {} if (same) return; }
+if (st.recKey === key) { app.setState({ recKey: '' }); return; }
+if (!navigator.mediaDevices || !window.MediaRecorder) { app.setState({ voiceErr: '이 브라우저는 녹음을 못 해요. 사파리에서 열어 주세요' }); return; }
+navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+var chunks = [], mr = new MediaRecorder(stream);
+VREC = { key: key, mr: mr };
+mr.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+mr.onstop = function () {
+stream.getTracks().forEach(function (t) { t.stop(); });
+var blob = new Blob(chunks, { type: mr.mimeType || 'audio/mp4' });
+VREC = null; app.setState({ recKey: '' });
+if (blob.size < 2000) return;
+vdb(function (db) { try { var tx = db.transaction('clips', 'readwrite'); tx.objectStore('clips').put(blob, key); tx.oncomplete = function () { loadClips(); setTimeout(function () { playClip(key); }, 300); }; } catch (e) {} });
+};
+mr.start(); app.setState({ recKey: key, voiceErr: '' });
+setTimeout(function () { if (VREC && VREC.mr === mr && mr.state === 'recording') mr.stop(); }, 8000);
+}).catch(function () { app.setState({ voiceErr: '마이크를 쓸 수 없어요. 마이크 권한을 허용해 주세요', recKey: '' }); });
+};
+var CLIP_FOR = { '곧 환승': 'xferSoon', '환승': 'xfer', '내릴 준비': 'alightSoon', '도착': 'arrive' };
 var SAY = function (label, vals, st) {
 var dest = st.dest || '';
-if (label === '내릴 준비') return '다음 역에서 내려요. ' + dest + '역이에요. 내릴 준비하세요.';
-if (label === '도착') return dest + '역에 도착했어요. 지금 내리세요.';
-if (label === '곧 환승' || label === '환승') return vals.banner;
-if (label === '곧 도착') return '두 정거장 남았어요.';
+if (label === '내릴 준비') return '다음은 ' + dest + '역이에요. 이번에 내리시면 돼요. 천천히 준비하세요.';
+if (label === '도착') return dest + '역이에요. 지금 내리세요. 두고 내리는 물건 없는지 확인하세요.';
+if (label === '곧 환승') return String(vals.banner || '').replace('다음 역 ', '다음 역, ').replace('갈아타요', '갈아타시면 돼요.');
+if (label === '환승') return String(vals.banner || '').replace('지금 내려서', '여기서 내려서').replace('갈아타요', '갈아타세요.');
+if (label === '곧 도착') return '이제 두 정거장 남았어요.';
 return '';
 };
 var ALERT = { '곧 환승': 2, '환승': 4, '곧 도착': 2, '내릴 준비': 4, '도착': 4 };
@@ -164,14 +219,14 @@ var st = app.state || {}, riding = st.mode === 'ride';
 saveRide();
 /* 탑승이 (버튼 없이) 잡히는 순간 진동 + 소리로 알려요 */
 var onNow = riding && !!st.boarded && !st.demo;
-if (onNow && !wasOn && !manualBoard) { beep(1); try { if (navigator.vibrate) navigator.vibrate([150, 80, 150]); } catch (e) {} }
+if (onNow && !wasOn && !manualBoard) { beep(1); setTimeout(function () { playClip('board'); }, 1300); try { if (navigator.vibrate) navigator.vibrate([150, 80, 150]); } catch (e) {} }
 wasOn = onNow; manualBoard = false;
 keepAwake(riding || st.mode === 'confirm' || !st.mode);
 var key = riding ? vals.bannerLabel + '|' + vals.banner : '';
 if (key !== lastAlert) {
 lastAlert = key;
 var n = riding && vals.banner ? ALERT[vals.bannerLabel] : 0;
-if (n) { beep(n); try { if (navigator.vibrate) navigator.vibrate(n > 2 ? [300, 120, 300, 120, 300] : [200, 100, 200]); } catch (e) {} setTimeout(function () { say(SAY(vals.bannerLabel, vals, st)); }, n * 320 + 150); }
+if (n) { beep(n); try { if (navigator.vibrate) navigator.vibrate(n > 2 ? [300, 120, 300, 120, 300] : [200, 100, 200]); } catch (e) {} setTimeout(function () { if (!playClip(CLIP_FOR[vals.bannerLabel])) say(SAY(vals.bannerLabel, vals, st)); }, n >= 3 ? 2600 : 1300); }
 }
 if (vals.isArrived && !wasArrived && !st.demo && st.route && st.dest) {
 var hist = readHist(), hk = st.route[0].n + '>' + st.dest;
