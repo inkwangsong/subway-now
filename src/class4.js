@@ -1132,6 +1132,22 @@ out.diag = live ? ['마이크 ' + (this.props.srOk ? (st.listening ? '듣는 중
 '위치 ' + (geo ? '오차 ' + Math.round(geo.acc) + 'm ' + ago(geo.t) : (st.geoErr ? '오류:' + st.geoErr : '없음')),
 '센서 ' + (st.motionErr ? '오류:' + st.motionErr : (st.mdbg || '꺼짐')),
 '실시간 ' + (this.props.rtUrl ? (st.rtErr ? '오류:' + String(st.rtErr).slice(0, 20) : '응답 ' + ago(st.rtOkT)) : '연결 안 됨')].join(' · ') : '';
+/* 다음 열차: 출발역을 고르면(또는 탑승 대기 중이면) 노선·방향별 도착까지 남은 시간과 시각 */
+var arrStn = live && mode === 'confirm' && origin ? origin.n : (live && isRide && !st.boarded && i < last ? c.n : null);
+out.arrStn = arrStn || '';
+var arrOk = !!(arrStn && st.arr && st.arr.stn === arrStn && Date.now() - st.arr.at < 120000);
+var nowA = Date.now(), groups = arrOk ? arrivalGroups(arrStn, st.arr.rows, st.arr.at) : [];
+var since = arrOk ? (nowA - st.arr.at) / 1000 : 0;
+if (arrOk && isRide && !st.boarded && i < last) { var NX = stnNorm(route[i + 1].n), LX = route[i + 1].l; groups = groups.filter(function (g) { return g.li === LX && stnNorm(g.toward) === NX; }); }
+var arrRows = groups.slice(0, 4).map(function (g) {
+var tr = g.trains.map(function (t) { return Math.max(0, t.eta - since); }), L = NET[g.li];
+return { short: L.short, bg: L.color, fg: fgFor(L.color), dir: g.dest + '행', toward: g.toward ? g.toward + ' 방면' : '', first: fmtEta(tr[0]), clock: tr[0] >= 30 ? fmtClock(nowA + tr[0] * 1000) + ' 도착' : '', second: tr[1] !== undefined ? '다음 ' + Math.max(1, Math.round(tr[1] / 60)) + '분 후' : '' };
+});
+out.arrRows = arrRows; out.hasArr = live && mode === 'confirm' && arrRows.length > 0;
+out.arrTitle = arrStn ? arrStn + '역 다음 열차' : '';
+out.arrNote = arrOk ? '서울시 실시간 도착 정보 기준 · 8호선 등은 열차 위치로 추정' : '';
+if (live && isRide && !st.boarded && i < last && arrRows.length && bannerLabel !== '경로 다시 찾음') banner = banner + ' · 다음 열차 ' + arrRows[0].first + (arrRows[0].clock ? ' (' + arrRows[0].clock + ')' : '');
+out.banner = banner;
 out.hasAmbig = !!(live && (st.mode || 'confirm') === 'confirm' && st.ambig && st.ambigT && Date.now() - st.ambigT < 180000);
 out.ambig = out.hasAmbig ? st.ambig : [];
 out.hasDiag = !!out.diag && !!this.props.debug;

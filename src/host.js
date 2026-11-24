@@ -404,6 +404,21 @@ fetch(RT_URL + (RT_URL.indexOf('?') < 0 ? '?' : '&') + 'line=' + encodeURICompon
 });
 };
 setInterval(pollHome, 30000);
+/* 다음 열차: 화면에 출발역이 있을 때 20초마다 그 역 도착 정보를 받아요. 남은 시간은 1초마다 다시 그려요 */
+var arrBusy = false;
+var pollArr = function () {
+var vals = lastVals, stn = vals && vals.arrStn;
+if (!RT_URL || arrBusy || document.hidden || !stn) return;
+var st = app.state || {};
+if (st.arr && st.arr.stn === stn && Date.now() - st.arr.at < 18000) return;
+arrBusy = true;
+fetch(RT_URL.replace(/\/api\/trains.*$/, '/api/arrivals') + '?stn=' + encodeURIComponent(stnNorm(stn)), { cache: 'no-store' })
+.then(function (r) { return r.json(); })
+.then(function (j) { arrBusy = false; if (j && j.rows) app.setState({ arr: { stn: stn, rows: j.rows, at: Date.now() } }); })
+.catch(function () { arrBusy = false; });
+};
+setInterval(pollArr, 5000);
+setInterval(function () { if (lastVals && lastVals.arrStn) schedule(); }, 1000);
 app.props.rtUrl = RT_URL;
 setTimeout(pollHome, 4000);
 

@@ -416,6 +416,22 @@ input::placeholder{color:var(--sub)}
 <span style="font-size: 12px; font-weight: 500; color: var(--sub); display: flex; align-items: center; gap: 4px"><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>역 이름으로 검색</span>
 </button>
 </div>
+<sc-if value="{{ hasArr }}" hint-placeholder-val="{{ false }}">
+<div style="background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 22px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--sub)">{{arrTitle}}</div>
+<sc-for list="{{ arrRows }}" as="r" hint-placeholder-count="2">
+<div style="display: flex; align-items: center; gap: 8px; min-width: 0">
+<span style="flex-shrink: 0; min-width: 22px; height: 22px; box-sizing: border-box; padding: 0 7px; border-radius: 11px; background: {{r.bg}}; color: {{r.fg}}; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{r.short}}</span>
+<span style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column">
+<span style="font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.dir}}<span style="font-size: 12px; font-weight: 500; color: var(--sub); margin-left: 6px">{{r.toward}}</span></span>
+<span style="font-size: 12px; font-weight: 500; color: var(--sub)">{{r.clock}} {{r.second}}</span>
+</span>
+<span style="flex-shrink: 0; font-size: 18px; font-weight: 700; color: var(--blue); font-variant-numeric: tabular-nums">{{r.first}}</span>
+</div>
+</sc-for>
+<div style="font-size: 10.5px; font-weight: 500; color: var(--sub)">{{arrNote}}</div>
+</div>
+</sc-if>
 <sc-if value="{{ hasFavs }}" hint-placeholder-val="{{ true }}">
 <div style="display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 4px; margin: -2px -2px -4px; scrollbar-width: none">
 <sc-for list="{{ favChips }}" as="p" hint-placeholder-count="2">
@@ -799,6 +815,50 @@ if (r.ud === undefined || r.ud === null || r.ud === '') return true;
 var n = c.s.length, fwd = b - a === 1 || (a === n - 1 && b === 0);
 return String(r.ud) === (fwd ? '1' : '0');
 }
+/* ===== 역별 다음 열차 =====
+   서울시 실시간 도착 정보(역 기준)를 노선·방향별로 묶고, 도착까지 남은 시간을 계산해요.
+   2호선 등은 남은 초를 주지만 8호선·수인분당선은 0이라, 열차가 지금 있는 역에서 여기까지의 구간 시간으로 추정해요 */
+var SUBWAY_ID = { '1001': '1호선', '1002': '2호선', '1003': '3호선', '1004': '4호선', '1005': '5호선', '1006': '6호선', '1007': '7호선', '1008': '8호선', '1009': '9호선', '1063': '경의중앙선', '1065': '공항철도', '1067': '경춘선', '1075': '수인분당선', '1077': '신분당선', '1092': '우이신설선', '1093': '서해선', '1081': '경강선', '1032': 'GTX-A', '1094': '신림선' };
+function lineIdxByName(nm) { for (var li = 0; li < NET.length; li++) if (NET[li].name === nm) return li; return -1; }
+function runSecBetween(li, from, to) {
+var cs = NET[li].chains, A = stnNorm(from), B = stnNorm(to);
+for (var c = 0; c < cs.length; c++) {
+var s = cs[c].s, a = -1, b = -1;
+for (var q = 0; q < s.length; q++) { var n = stnNorm(s[q]); if (n === A) a = q; if (n === B) b = q; }
+if (a < 0 || b < 0) continue;
+var lo = Math.min(a, b), hi = Math.max(a, b), sec = 0;
+if (cs[c].loop && hi - lo > s.length / 2) { for (var k = hi; k !== lo; k = (k + 1) % s.length) sec += hopMin(li, s[k], s[(k + 1) % s.length]) * 60; }
+else for (var k2 = lo; k2 < hi; k2++) sec += hopMin(li, s[k2], s[k2 + 1]) * 60;
+return sec;
+}
+return null;
+}
+function arrivalGroups(stn, rows, now) {
+var groups = {}, S = stnNorm(stn);
+(rows || []).forEach(function (r) {
+var lname = SUBWAY_ID[String(r.line)]; if (!lname) return;
+var li = lineIdxByName(lname); if (li < 0) return;
+var head = String(r.head || ''), m = head.match(/^(.*?)행\s*-\s*(.*?)방면/), dest = m ? m[1].trim() : (r.term || ''), toward = m ? m[2].trim() : '';
+var code = String(r.code), at = r.at || '', msg = String(r.msg || '');
+var recT = r.t ? new Date(String(r.t).replace(' ', 'T') + '+09:00').getTime() : now, age = Math.max(0, (now - recT) / 1000);
+var eta = null;
+if (stnNorm(at) === S) { if (code === '2') return; eta = code === '1' ? 0 : 20; }
+else if (+r.sec > 0) eta = +r.sec - age;
+else {
+var run = runSecBetween(li, at, stn);
+if (run === null) { var mm = msg.match(/(\d+)분/), ss = msg.match(/(\d+)초/); if (mm || ss) eta = (mm ? +mm[1] * 60 : 0) + (ss ? +ss[1] : 0) - age; }
+else eta = run + (code === '0' || code === '4' ? 30 : code === '1' || code === '5' ? 20 : code === '2' || code === '3' ? -10 : 0) - age;
+}
+if (eta === null) return;
+eta = Math.max(0, eta);
+var key = li + '|' + toward;
+var g = groups[key] || (groups[key] = { li: li, dest: dest, toward: toward, trains: [] });
+g.trains.push({ eta: eta, no: r.no, at: at });
+});
+return Object.keys(groups).map(function (k) { var g = groups[k]; g.trains.sort(function (a, b) { return a.eta - b.eta; }); return g; }).sort(function (a, b) { return (a.li - b.li) || (a.trains[0].eta - b.trains[0].eta); });
+}
+function fmtEta(sec) { sec = Math.round(sec); if (sec < 30) return '곧 도착'; var m = Math.floor(sec / 60), s2 = sec % 60; return m ? m + '분 ' + (s2 < 10 ? '0' : '') + s2 + '초' : s2 + '초'; }
+function fmtClock(ms) { var d = new Date(ms); return (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes(); }
 function xferAfter(route, i) {
 if (!route) return -1;
 for (var k = i + 1; k < route.length - 1; k++) if (route[k + 1].l !== route[k].l) return k;
@@ -1938,6 +1998,22 @@ out.diag = live ? ['마이크 ' + (this.props.srOk ? (st.listening ? '듣는 중
 '위치 ' + (geo ? '오차 ' + Math.round(geo.acc) + 'm ' + ago(geo.t) : (st.geoErr ? '오류:' + st.geoErr : '없음')),
 '센서 ' + (st.motionErr ? '오류:' + st.motionErr : (st.mdbg || '꺼짐')),
 '실시간 ' + (this.props.rtUrl ? (st.rtErr ? '오류:' + String(st.rtErr).slice(0, 20) : '응답 ' + ago(st.rtOkT)) : '연결 안 됨')].join(' · ') : '';
+/* 다음 열차: 출발역을 고르면(또는 탑승 대기 중이면) 노선·방향별 도착까지 남은 시간과 시각 */
+var arrStn = live && mode === 'confirm' && origin ? origin.n : (live && isRide && !st.boarded && i < last ? c.n : null);
+out.arrStn = arrStn || '';
+var arrOk = !!(arrStn && st.arr && st.arr.stn === arrStn && Date.now() - st.arr.at < 120000);
+var nowA = Date.now(), groups = arrOk ? arrivalGroups(arrStn, st.arr.rows, st.arr.at) : [];
+var since = arrOk ? (nowA - st.arr.at) / 1000 : 0;
+if (arrOk && isRide && !st.boarded && i < last) { var NX = stnNorm(route[i + 1].n), LX = route[i + 1].l; groups = groups.filter(function (g) { return g.li === LX && stnNorm(g.toward) === NX; }); }
+var arrRows = groups.slice(0, 4).map(function (g) {
+var tr = g.trains.map(function (t) { return Math.max(0, t.eta - since); }), L = NET[g.li];
+return { short: L.short, bg: L.color, fg: fgFor(L.color), dir: g.dest + '행', toward: g.toward ? g.toward + ' 방면' : '', first: fmtEta(tr[0]), clock: tr[0] >= 30 ? fmtClock(nowA + tr[0] * 1000) + ' 도착' : '', second: tr[1] !== undefined ? '다음 ' + Math.max(1, Math.round(tr[1] / 60)) + '분 후' : '' };
+});
+out.arrRows = arrRows; out.hasArr = live && mode === 'confirm' && arrRows.length > 0;
+out.arrTitle = arrStn ? arrStn + '역 다음 열차' : '';
+out.arrNote = arrOk ? '서울시 실시간 도착 정보 기준 · 8호선 등은 열차 위치로 추정' : '';
+if (live && isRide && !st.boarded && i < last && arrRows.length && bannerLabel !== '경로 다시 찾음') banner = banner + ' · 다음 열차 ' + arrRows[0].first + (arrRows[0].clock ? ' (' + arrRows[0].clock + ')' : '');
+out.banner = banner;
 out.hasAmbig = !!(live && (st.mode || 'confirm') === 'confirm' && st.ambig && st.ambigT && Date.now() - st.ambigT < 180000);
 out.ambig = out.hasAmbig ? st.ambig : [];
 out.hasDiag = !!out.diag && !!this.props.debug;
@@ -2474,6 +2550,21 @@ fetch(RT_URL + (RT_URL.indexOf('?') < 0 ? '?' : '&') + 'line=' + encodeURICompon
 });
 };
 setInterval(pollHome, 30000);
+/* 다음 열차: 화면에 출발역이 있을 때 20초마다 그 역 도착 정보를 받아요. 남은 시간은 1초마다 다시 그려요 */
+var arrBusy = false;
+var pollArr = function () {
+var vals = lastVals, stn = vals && vals.arrStn;
+if (!RT_URL || arrBusy || document.hidden || !stn) return;
+var st = app.state || {};
+if (st.arr && st.arr.stn === stn && Date.now() - st.arr.at < 18000) return;
+arrBusy = true;
+fetch(RT_URL.replace(/\/api\/trains.*$/, '/api/arrivals') + '?stn=' + encodeURIComponent(stnNorm(stn)), { cache: 'no-store' })
+.then(function (r) { return r.json(); })
+.then(function (j) { arrBusy = false; if (j && j.rows) app.setState({ arr: { stn: stn, rows: j.rows, at: Date.now() } }); })
+.catch(function () { arrBusy = false; });
+};
+setInterval(pollArr, 5000);
+setInterval(function () { if (lastVals && lastVals.arrStn) schedule(); }, 1000);
 app.props.rtUrl = RT_URL;
 setTimeout(pollHome, 4000);
 

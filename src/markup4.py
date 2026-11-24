@@ -398,6 +398,22 @@ input::placeholder{{color:{SUB}}}
 <span style="font-size: 12px; font-weight: 500; color: {SUB}; display: flex; align-items: center; gap: 4px"><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>역 이름으로 검색</span>
 </button>
 </div>
+<sc-if value="{{{{ hasArr }}}}" hint-placeholder-val="{{{{ false }}}}">
+<div style="{ACRYL}; border-radius: 22px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 11px; font-weight: 700; letter-spacing: 1px; color: {SUB}">{{{{arrTitle}}}}</div>
+<sc-for list="{{{{ arrRows }}}}" as="r" hint-placeholder-count="2">
+<div style="display: flex; align-items: center; gap: 8px; min-width: 0">
+<span style="flex-shrink: 0; min-width: 22px; height: 22px; box-sizing: border-box; padding: 0 7px; border-radius: 11px; background: {{{{r.bg}}}}; color: {{{{r.fg}}}}; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{{{r.short}}}}</span>
+<span style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column">
+<span style="font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{{{r.dir}}}}<span style="font-size: 12px; font-weight: 500; color: {SUB}; margin-left: 6px">{{{{r.toward}}}}</span></span>
+<span style="font-size: 12px; font-weight: 500; color: {SUB}">{{{{r.clock}}}} {{{{r.second}}}}</span>
+</span>
+<span style="flex-shrink: 0; font-size: 18px; font-weight: 700; color: {BLUE}; font-variant-numeric: tabular-nums">{{{{r.first}}}}</span>
+</div>
+</sc-for>
+<div style="font-size: 10.5px; font-weight: 500; color: {SUB}">{{{{arrNote}}}}</div>
+</div>
+</sc-if>
 <sc-if value="{{{{ hasFavs }}}}" hint-placeholder-val="{{{{ true }}}}">
 <div style="display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 4px; margin: -2px -2px -4px; scrollbar-width: none">
 <sc-for list="{{{{ favChips }}}}" as="p" hint-placeholder-count="2">

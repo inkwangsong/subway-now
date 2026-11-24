@@ -205,6 +205,50 @@ if (r.ud === undefined || r.ud === null || r.ud === '') return true;
 var n = c.s.length, fwd = b - a === 1 || (a === n - 1 && b === 0);
 return String(r.ud) === (fwd ? '1' : '0');
 }
+/* ===== 역별 다음 열차 =====
+   서울시 실시간 도착 정보(역 기준)를 노선·방향별로 묶고, 도착까지 남은 시간을 계산해요.
+   2호선 등은 남은 초를 주지만 8호선·수인분당선은 0이라, 열차가 지금 있는 역에서 여기까지의 구간 시간으로 추정해요 */
+var SUBWAY_ID = { '1001': '1호선', '1002': '2호선', '1003': '3호선', '1004': '4호선', '1005': '5호선', '1006': '6호선', '1007': '7호선', '1008': '8호선', '1009': '9호선', '1063': '경의중앙선', '1065': '공항철도', '1067': '경춘선', '1075': '수인분당선', '1077': '신분당선', '1092': '우이신설선', '1093': '서해선', '1081': '경강선', '1032': 'GTX-A', '1094': '신림선' };
+function lineIdxByName(nm) { for (var li = 0; li < NET.length; li++) if (NET[li].name === nm) return li; return -1; }
+function runSecBetween(li, from, to) {
+var cs = NET[li].chains, A = stnNorm(from), B = stnNorm(to);
+for (var c = 0; c < cs.length; c++) {
+var s = cs[c].s, a = -1, b = -1;
+for (var q = 0; q < s.length; q++) { var n = stnNorm(s[q]); if (n === A) a = q; if (n === B) b = q; }
+if (a < 0 || b < 0) continue;
+var lo = Math.min(a, b), hi = Math.max(a, b), sec = 0;
+if (cs[c].loop && hi - lo > s.length / 2) { for (var k = hi; k !== lo; k = (k + 1) % s.length) sec += hopMin(li, s[k], s[(k + 1) % s.length]) * 60; }
+else for (var k2 = lo; k2 < hi; k2++) sec += hopMin(li, s[k2], s[k2 + 1]) * 60;
+return sec;
+}
+return null;
+}
+function arrivalGroups(stn, rows, now) {
+var groups = {}, S = stnNorm(stn);
+(rows || []).forEach(function (r) {
+var lname = SUBWAY_ID[String(r.line)]; if (!lname) return;
+var li = lineIdxByName(lname); if (li < 0) return;
+var head = String(r.head || ''), m = head.match(/^(.*?)행\s*-\s*(.*?)방면/), dest = m ? m[1].trim() : (r.term || ''), toward = m ? m[2].trim() : '';
+var code = String(r.code), at = r.at || '', msg = String(r.msg || '');
+var recT = r.t ? new Date(String(r.t).replace(' ', 'T') + '+09:00').getTime() : now, age = Math.max(0, (now - recT) / 1000);
+var eta = null;
+if (stnNorm(at) === S) { if (code === '2') return; eta = code === '1' ? 0 : 20; }
+else if (+r.sec > 0) eta = +r.sec - age;
+else {
+var run = runSecBetween(li, at, stn);
+if (run === null) { var mm = msg.match(/(\d+)분/), ss = msg.match(/(\d+)초/); if (mm || ss) eta = (mm ? +mm[1] * 60 : 0) + (ss ? +ss[1] : 0) - age; }
+else eta = run + (code === '0' || code === '4' ? 30 : code === '1' || code === '5' ? 20 : code === '2' || code === '3' ? -10 : 0) - age;
+}
+if (eta === null) return;
+eta = Math.max(0, eta);
+var key = li + '|' + toward;
+var g = groups[key] || (groups[key] = { li: li, dest: dest, toward: toward, trains: [] });
+g.trains.push({ eta: eta, no: r.no, at: at });
+});
+return Object.keys(groups).map(function (k) { var g = groups[k]; g.trains.sort(function (a, b) { return a.eta - b.eta; }); return g; }).sort(function (a, b) { return (a.li - b.li) || (a.trains[0].eta - b.trains[0].eta); });
+}
+function fmtEta(sec) { sec = Math.round(sec); if (sec < 30) return '곧 도착'; var m = Math.floor(sec / 60), s2 = sec % 60; return m ? m + '분 ' + (s2 < 10 ? '0' : '') + s2 + '초' : s2 + '초'; }
+function fmtClock(ms) { var d = new Date(ms); return (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes(); }
 function xferAfter(route, i) {
 if (!route) return -1;
 for (var k = i + 1; k < route.length - 1; k++) if (route[k + 1].l !== route[k].l) return k;
