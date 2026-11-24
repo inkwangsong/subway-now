@@ -404,6 +404,53 @@ fetch(RT_URL + (RT_URL.indexOf('?') < 0 ? '?' : '&') + 'line=' + encodeURICompon
 });
 };
 setInterval(pollHome, 30000);
+/* ===== 지도 손으로 움직이기 =====
+   한 손가락: 끌어서 이동 · 두 손가락: 벌리고 오므려 확대/축소 · 두 번 톡: 원래대로 · 마우스 휠: 확대/축소.
+   카드나 버튼 위가 아니라 지도 위에서만 동작해요. 움직이면 '내 위치로' 버튼이 나와요 */
+var MG = { x: 0, y: 0, s: 1, pts: {}, start: null, lastTap: 0 };
+var mgEl = function () { return document.getElementById('mapgest'); };
+var mgApply = function (smooth) { var el = mgEl(); if (!el) return; el.style.transition = smooth ? 'transform .35s ease' : 'none'; el.style.transform = 'translate(' + MG.x + 'px,' + MG.y + 'px) scale(' + MG.s + ')'; };
+var mgMoved = function () { var m = Math.abs(MG.x) > 2 || Math.abs(MG.y) > 2 || Math.abs(MG.s - 1) > 0.02; if (m !== !!(app.state || {}).mapMoved) app.setState({ mapMoved: m }); };
+app.props.onRecenter = function () { MG.x = 0; MG.y = 0; MG.s = 1; mgApply(true); app.setState({ mapMoved: false }); };
+var toLocal = function (e) { var r = stage.getBoundingClientRect(), k = r.width / 390; return { x: (e.clientX - r.left) / k, y: (e.clientY - r.top) / k }; };
+var zoomAt = function (px, py, ns) { ns = Math.max(0.6, Math.min(4, ns)); MG.x = px - (px - MG.x) * (ns / MG.s); MG.y = py - (py - MG.y) * (ns / MG.s); MG.s = ns; };
+stage.addEventListener('pointerdown', function (e) {
+if (!e.target.closest || !e.target.closest('#mapgest')) return;
+MG.pts[e.pointerId] = toLocal(e);
+try { e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); } catch (er) {}
+var ids = Object.keys(MG.pts);
+if (ids.length === 1) {
+var now = Date.now();
+if (now - MG.lastTap < 300) { app.props.onRecenter(); MG.lastTap = 0; return; }
+MG.lastTap = now;
+}
+MG.start = { x: MG.x, y: MG.y, s: MG.s, pts: JSON.parse(JSON.stringify(MG.pts)) };
+});
+stage.addEventListener('pointermove', function (e) {
+if (!MG.pts[e.pointerId] || !MG.start) return;
+MG.pts[e.pointerId] = toLocal(e);
+var ids = Object.keys(MG.pts), S = MG.start;
+if (ids.length === 1 && S.pts[ids[0]]) {
+var a = MG.pts[ids[0]], a0 = S.pts[ids[0]];
+MG.x = S.x + (a.x - a0.x); MG.y = S.y + (a.y - a0.y); MG.s = S.s;
+} else if (ids.length >= 2 && S.pts[ids[0]] && S.pts[ids[1]]) {
+var p1 = MG.pts[ids[0]], p2 = MG.pts[ids[1]], q1 = S.pts[ids[0]], q2 = S.pts[ids[1]];
+var d0 = Math.hypot(q2.x - q1.x, q2.y - q1.y) || 1, d1 = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+var c0 = { x: (q1.x + q2.x) / 2, y: (q1.y + q2.y) / 2 }, c1 = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+var ns = Math.max(0.6, Math.min(4, S.s * d1 / d0));
+/* 시작할 때 손가락 가운데 있던 지도 점이 지금 손가락 가운데에 오도록 */
+MG.x = c1.x - (c0.x - S.x) * (ns / S.s); MG.y = c1.y - (c0.y - S.y) * (ns / S.s); MG.s = ns;
+}
+mgApply(false); e.preventDefault();
+}, { passive: false });
+var mgEnd = function (e) { if (!MG.pts[e.pointerId]) return; delete MG.pts[e.pointerId]; MG.start = Object.keys(MG.pts).length ? { x: MG.x, y: MG.y, s: MG.s, pts: JSON.parse(JSON.stringify(MG.pts)) } : null; mgMoved(); };
+stage.addEventListener('pointerup', mgEnd); stage.addEventListener('pointercancel', mgEnd);
+stage.addEventListener('wheel', function (e) {
+if (!e.target.closest || !e.target.closest('#mapgest')) return;
+var p = toLocal(e); zoomAt(p.x, p.y, MG.s * Math.exp(-e.deltaY / 400)); mgApply(false); mgMoved(); e.preventDefault();
+}, { passive: false });
+/* 화면을 다시 그려도 지도 위치를 그대로 유지해요 */
+var _mgKeep = setInterval(function () { var el = mgEl(); if (el && (MG.x || MG.y || MG.s !== 1) && el.style.transform.indexOf('scale(' + MG.s + ')') < 0) mgApply(false); }, 300);
 /* 다음 열차: 화면에 출발역이 있을 때 20초마다 그 역 도착 정보를 받아요. 남은 시간은 1초마다 다시 그려요 */
 var arrBusy = false;
 var pollArr = function () {

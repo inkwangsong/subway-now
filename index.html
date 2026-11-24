@@ -41,6 +41,7 @@ input::placeholder{color:var(--sub)}
 
 <sc-if value="{{ showMap }}" hint-placeholder-val="{{ true }}">
 <div style="position: absolute; left: 0; top: 0; width: 390px; height: {{H}}; overflow: hidden">
+<div id="mapgest" style="position: absolute; left: 0; top: 0; width: 390px; height: {{H}}; transform-origin: 0 0; touch-action: none">
 <sc-for list="{{ patches }}" as="g" hint-placeholder-count="3">
 <div style="position: absolute; left: {{g.x}}; top: {{g.y}}; width: {{g.w}}; height: {{g.h}}; transform: translate(-50%, -50%); border-radius: 50%; background: {{g.c}}"></div>
 </sc-for>
@@ -326,6 +327,14 @@ input::placeholder{color:var(--sub)}
 <div style="position: absolute; left: {{l.x}}; top: {{l.y}}; width: {{l.s}}; height: {{l.s}}; transform: translate(-50%, -50%); border-radius: 50%; background: #FFE08A; box-shadow: 0 0 9px 4px rgba(255,214,120,0.8)"></div>
 </sc-for>
 </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ mapMoved }}" hint-placeholder-val="{{ false }}">
+<button onClick="{{ onRecenter }}" aria-label="지도 원래대로" style="position: absolute; right: 16px; top: {{recenterTop}}; z-index: 4; height: 40px; border-radius: 20px; background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: var(--ink); font-size: 13px; font-weight: 700; padding: 0 14px 0 10px; display: flex; align-items: center; gap: 6px">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"></circle><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line></svg>
+<span>내 위치로</span>
+</button>
 </sc-if>
 
 <sc-if value="{{ isRide }}" hint-placeholder-val="{{ true }}">
@@ -2019,6 +2028,8 @@ out.arrTitle = arrStn ? arrStn + '역 다음 열차' : '';
 out.arrNote = arrOk ? '서울시 실시간 도착 정보 기준 · 8호선 등은 열차 위치로 추정' : '';
 if (live && isRide && !st.boarded && i < last && arrRows.length && bannerLabel !== '경로 다시 찾음') banner = banner + ' · 다음 열차 ' + arrRows[0].first + (arrRows[0].clock ? ' (' + arrRows[0].clock + ')' : '');
 out.banner = banner;
+out.mapMoved = !!st.mapMoved; out.recenterTop = isRide ? '160px' : '150px';
+out.onRecenter = function () { if (self.props.onRecenter) self.props.onRecenter(); };
 out.hasAmbig = !!(live && (st.mode || 'confirm') === 'confirm' && st.ambig && st.ambigT && Date.now() - st.ambigT < 180000);
 out.ambig = out.hasAmbig ? st.ambig : [];
 out.hasDiag = !!out.diag && !!this.props.debug;
@@ -2555,6 +2566,53 @@ fetch(RT_URL + (RT_URL.indexOf('?') < 0 ? '?' : '&') + 'line=' + encodeURICompon
 });
 };
 setInterval(pollHome, 30000);
+/* ===== 지도 손으로 움직이기 =====
+   한 손가락: 끌어서 이동 · 두 손가락: 벌리고 오므려 확대/축소 · 두 번 톡: 원래대로 · 마우스 휠: 확대/축소.
+   카드나 버튼 위가 아니라 지도 위에서만 동작해요. 움직이면 '내 위치로' 버튼이 나와요 */
+var MG = { x: 0, y: 0, s: 1, pts: {}, start: null, lastTap: 0 };
+var mgEl = function () { return document.getElementById('mapgest'); };
+var mgApply = function (smooth) { var el = mgEl(); if (!el) return; el.style.transition = smooth ? 'transform .35s ease' : 'none'; el.style.transform = 'translate(' + MG.x + 'px,' + MG.y + 'px) scale(' + MG.s + ')'; };
+var mgMoved = function () { var m = Math.abs(MG.x) > 2 || Math.abs(MG.y) > 2 || Math.abs(MG.s - 1) > 0.02; if (m !== !!(app.state || {}).mapMoved) app.setState({ mapMoved: m }); };
+app.props.onRecenter = function () { MG.x = 0; MG.y = 0; MG.s = 1; mgApply(true); app.setState({ mapMoved: false }); };
+var toLocal = function (e) { var r = stage.getBoundingClientRect(), k = r.width / 390; return { x: (e.clientX - r.left) / k, y: (e.clientY - r.top) / k }; };
+var zoomAt = function (px, py, ns) { ns = Math.max(0.6, Math.min(4, ns)); MG.x = px - (px - MG.x) * (ns / MG.s); MG.y = py - (py - MG.y) * (ns / MG.s); MG.s = ns; };
+stage.addEventListener('pointerdown', function (e) {
+if (!e.target.closest || !e.target.closest('#mapgest')) return;
+MG.pts[e.pointerId] = toLocal(e);
+try { e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); } catch (er) {}
+var ids = Object.keys(MG.pts);
+if (ids.length === 1) {
+var now = Date.now();
+if (now - MG.lastTap < 300) { app.props.onRecenter(); MG.lastTap = 0; return; }
+MG.lastTap = now;
+}
+MG.start = { x: MG.x, y: MG.y, s: MG.s, pts: JSON.parse(JSON.stringify(MG.pts)) };
+});
+stage.addEventListener('pointermove', function (e) {
+if (!MG.pts[e.pointerId] || !MG.start) return;
+MG.pts[e.pointerId] = toLocal(e);
+var ids = Object.keys(MG.pts), S = MG.start;
+if (ids.length === 1 && S.pts[ids[0]]) {
+var a = MG.pts[ids[0]], a0 = S.pts[ids[0]];
+MG.x = S.x + (a.x - a0.x); MG.y = S.y + (a.y - a0.y); MG.s = S.s;
+} else if (ids.length >= 2 && S.pts[ids[0]] && S.pts[ids[1]]) {
+var p1 = MG.pts[ids[0]], p2 = MG.pts[ids[1]], q1 = S.pts[ids[0]], q2 = S.pts[ids[1]];
+var d0 = Math.hypot(q2.x - q1.x, q2.y - q1.y) || 1, d1 = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+var c0 = { x: (q1.x + q2.x) / 2, y: (q1.y + q2.y) / 2 }, c1 = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+var ns = Math.max(0.6, Math.min(4, S.s * d1 / d0));
+/* 시작할 때 손가락 가운데 있던 지도 점이 지금 손가락 가운데에 오도록 */
+MG.x = c1.x - (c0.x - S.x) * (ns / S.s); MG.y = c1.y - (c0.y - S.y) * (ns / S.s); MG.s = ns;
+}
+mgApply(false); e.preventDefault();
+}, { passive: false });
+var mgEnd = function (e) { if (!MG.pts[e.pointerId]) return; delete MG.pts[e.pointerId]; MG.start = Object.keys(MG.pts).length ? { x: MG.x, y: MG.y, s: MG.s, pts: JSON.parse(JSON.stringify(MG.pts)) } : null; mgMoved(); };
+stage.addEventListener('pointerup', mgEnd); stage.addEventListener('pointercancel', mgEnd);
+stage.addEventListener('wheel', function (e) {
+if (!e.target.closest || !e.target.closest('#mapgest')) return;
+var p = toLocal(e); zoomAt(p.x, p.y, MG.s * Math.exp(-e.deltaY / 400)); mgApply(false); mgMoved(); e.preventDefault();
+}, { passive: false });
+/* 화면을 다시 그려도 지도 위치를 그대로 유지해요 */
+var _mgKeep = setInterval(function () { var el = mgEl(); if (el && (MG.x || MG.y || MG.s !== 1) && el.style.transform.indexOf('scale(' + MG.s + ')') < 0) mgApply(false); }, 300);
 /* 다음 열차: 화면에 출발역이 있을 때 20초마다 그 역 도착 정보를 받아요. 남은 시간은 1초마다 다시 그려요 */
 var arrBusy = false;
 var pollArr = function () {

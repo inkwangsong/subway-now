@@ -1153,6 +1153,8 @@ out.arrTitle = arrStn ? arrStn + '역 다음 열차' : '';
 out.arrNote = arrOk ? '서울시 실시간 도착 정보 기준 · 8호선 등은 열차 위치로 추정' : '';
 if (live && isRide && !st.boarded && i < last && arrRows.length && bannerLabel !== '경로 다시 찾음') banner = banner + ' · 다음 열차 ' + arrRows[0].first + (arrRows[0].clock ? ' (' + arrRows[0].clock + ')' : '');
 out.banner = banner;
+out.mapMoved = !!st.mapMoved; out.recenterTop = isRide ? '160px' : '150px';
+out.onRecenter = function () { if (self.props.onRecenter) self.props.onRecenter(); };
 out.hasAmbig = !!(live && (st.mode || 'confirm') === 'confirm' && st.ambig && st.ambigT && Date.now() - st.ambigT < 180000);
 out.ambig = out.hasAmbig ? st.ambig : [];
 out.hasDiag = !!out.diag && !!this.props.debug;

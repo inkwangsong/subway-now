@@ -56,6 +56,7 @@ input::placeholder{{color:{SUB}}}
 
 <sc-if value="{{{{ showMap }}}}" hint-placeholder-val="{{{{ true }}}}">
 <div style="position: absolute; left: 0; top: 0; width: 390px; height: {{{{H}}}}; overflow: hidden">
+<div id="mapgest" style="position: absolute; left: 0; top: 0; width: 390px; height: {{{{H}}}}; transform-origin: 0 0; touch-action: none">
 <sc-for list="{{{{ patches }}}}" as="g" hint-placeholder-count="3">
 <div style="position: absolute; left: {{{{g.x}}}}; top: {{{{g.y}}}}; width: {{{{g.w}}}}; height: {{{{g.h}}}}; transform: translate(-50%, -50%); border-radius: 50%; background: {{{{g.c}}}}"></div>
 </sc-for>
@@ -310,6 +311,14 @@ input::placeholder{{color:{SUB}}}
 <div style="position: absolute; left: {{{{l.x}}}}; top: {{{{l.y}}}}; width: {{{{l.s}}}}; height: {{{{l.s}}}}; transform: translate(-50%, -50%); border-radius: 50%; background: #FFE08A; box-shadow: 0 0 9px 4px rgba(255,214,120,0.8)"></div>
 </sc-for>
 </div>
+</div>
+</sc-if>
+
+<sc-if value="{{{{ mapMoved }}}}" hint-placeholder-val="{{{{ false }}}}">
+<button onClick="{{{{ onRecenter }}}}" aria-label="지도 원래대로" style="position: absolute; right: 16px; top: {{{{recenterTop}}}}; z-index: 4; height: 40px; border-radius: 20px; {ACRYL}; color: {INK}; font-size: 13px; font-weight: 700; padding: 0 14px 0 10px; display: flex; align-items: center; gap: 6px">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"></circle><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line></svg>
+<span>내 위치로</span>
+</button>
 </sc-if>
 
 <sc-if value="{{{{ isRide }}}}" hint-placeholder-val="{{{{ true }}}}">
