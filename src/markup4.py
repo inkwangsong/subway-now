@@ -56,7 +56,7 @@ input::placeholder{{color:{SUB}}}
 
 <sc-if value="{{{{ showMap }}}}" hint-placeholder-val="{{{{ true }}}}">
 <div style="position: absolute; left: 0; top: 0; width: 390px; height: {{{{H}}}}; overflow: hidden">
-<div id="mapgest" style="position: absolute; left: 0; top: 0; width: 390px; height: {{{{H}}}}; transform-origin: 0 0; touch-action: none">
+<div id="mapgest" style="position: absolute; left: 0; top: 0; width: 390px; height: {{{{H}}}}; touch-action: none">
 <sc-for list="{{{{ patches }}}}" as="g" hint-placeholder-count="3">
 <div style="position: absolute; left: {{{{g.x}}}}; top: {{{{g.y}}}}; width: {{{{g.w}}}}; height: {{{{g.h}}}}; transform: translate(-50%, -50%); border-radius: 50%; background: {{{{g.c}}}}"></div>
 </sc-for>

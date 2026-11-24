@@ -747,6 +747,10 @@ var bx = c0.u[0] + (c1.u[0] - c0.u[0]) * e, by = c0.u[1] + (c1.u[1] - c0.u[1]) *
 ux = bx / bl; uy = by / bl; kk = c0.k + (c1.k - c0.k) * e;
 } else { anchor = pA; ux = c0.u[0]; uy = c0.u[1]; kk = c0.k; }
 } else kk = camAt(0, anchor).k;
+/* 손으로 옮기고 키운 지도: 배율은 지면 축척에, 이동은 지면 좌표에 더해서 다시 그려요 (가장자리까지 새로 그려져요) */
+var VW = st.view || { x: 0, y: 0, z: 1 };
+kk *= VW.z;
+var PX = VW.x, PY = -VW.y / COSV;
 var deg = function (pt) { var dx = (pt[0] - anchor[0]) * COS, dy = pt[1] - anchor[1]; return [dx * uy - dy * ux, dx * ux + dy * uy]; };
 var r1 = function (v) { return Math.round(v * 10) / 10; };
 var S = function (X, Y, h) {
@@ -755,7 +759,7 @@ if (depth < 200) return null;
 var s = CAM / depth;
 return [r1(195 + X * s), r1(cy - Y * COSV * s - (h || 0) * SIN * s), s];
 };
-var GR = function (pt) { var g = deg(pt); return [g[0] * kk, g[1] * kk]; };
+var GR = function (pt) { var g = deg(pt); return [g[0] * kk + PX, g[1] * kk + PY]; };
 var P = function (pt, h) { var g = GR(pt); return S(g[0], g[1], h); };
 var inSlab = function (g, m) {
 if (g[1] > YFAR || g[1] < -520) return false;
@@ -768,7 +772,7 @@ var grid = '';
 if (showMap) {
 /* 지도 접힌 자국처럼 보이는 눈금: 지도와 함께 움직이도록 세계 좌표에 고정 */
 var step = 160, north = ux === 0, w0 = deg([127, 37.5]);
-var ox = north ? ((-(w0[0] * kk) % step) + step) % step : 0, oy = north ? ((-(w0[1] * kk) % step) + step) % step : 0;
+var ox = (((north ? -(w0[0] * kk) : 0) + PX) % step + step) % step, oy = (((north ? -(w0[1] * kk) : 0) + PY) % step + step) % step;
 for (var gx = -960 + ox; gx <= 960; gx += step) { var g1 = S(gx, -320, 0), g2 = S(gx, 2240, 0); grid += 'M' + g1[0] + ' ' + g1[1] + 'L' + g2[0] + ' ' + g2[1]; }
 for (var gy = -320 + oy; gy <= 2240; gy += step) { var g3 = S(-1400, gy, 0), g4 = S(1400, gy, 0); grid += 'M' + g3[0] + ' ' + g3[1] + 'L' + g4[0] + ' ' + g4[1]; }
 }
@@ -820,7 +824,7 @@ routeG.push([GR(ll(mRoute[k])), GR(ll(mRoute[k + 1]))]);
 var sd = seg(mRoute[k], mRoute[k + 1], LIFT);
 if (k === mI && mF > 0 && sd) {
 /* 달리는 중인 구간: 열차가 지나온 부분은 바로 흐리게, 앞부분만 진하게 */
-var tA = S(GR(G.pos[mRoute[k].n + '|' + mRoute[k + 1].l] || ll(mRoute[k]))[0], GR(G.pos[mRoute[k].n + '|' + mRoute[k + 1].l] || ll(mRoute[k]))[1], LIFT), tM = S(0, 0, LIFT), tB = S(GR(ll(mRoute[k + 1]))[0], GR(ll(mRoute[k + 1]))[1], LIFT);
+var tA = S(GR(G.pos[mRoute[k].n + '|' + mRoute[k + 1].l] || ll(mRoute[k]))[0], GR(G.pos[mRoute[k].n + '|' + mRoute[k + 1].l] || ll(mRoute[k]))[1], LIFT), tM = S(PX, PY, LIFT), tB = S(GR(ll(mRoute[k + 1]))[0], GR(ll(mRoute[k + 1]))[1], LIFT);
 if (tA && tM && tB) {
 var behind = 'M' + tA[0] + ' ' + tA[1] + 'L' + tM[0] + ' ' + tM[1], pcM = NET[mRoute[k + 1].l].color;
 if (passedLegs.length && passedLegs[passedLegs.length - 1].c === pcM) passedLegs[passedLegs.length - 1].d += behind; else if (passedLegs.length < 3) passedLegs.push({ d: behind, c: pcM }); else passedLegs[2].d += behind;
@@ -1038,7 +1042,7 @@ stopTags.push({ x: sq[0] + 'px', y: (sq[1] + 8) + 'px', name: mRoute[sk].n, op: 
 }
 }
 out.stopTags = stopTags; out.dotsP = dotsP;
-var hereGr = mRoute.length ? S(0, 0, 0) : null, hereO = mRoute.length ? S(0, 0, LIFT) : null;
+var hereGr = mRoute.length ? S(PX, PY, 0) : null, hereO = mRoute.length ? S(PX, PY, LIFT) : null;
 
 var cs = dest ? stats(route, i) : null;
 var ob = origin ? (oLine !== null ? { b1: badge(oLine), b2: NOBADGE, b3: NOBADGE } : badges(G, origin.n)) : { b1: NOBADGE, b2: NOBADGE, b3: NOBADGE };
@@ -1064,7 +1068,7 @@ if (fl > 1e-6) { fx = (gb2[0] - ga2[0]) / fl; fy = (gb2[1] - ga2[1]) / fl; }
 }
 var rx = fy, ry = -fx, TL = 74, TW = 24, THh = 26, Z0 = 3;
 var pt3 = function (a, b, z) { return [rx * a * TW / 2 + fx * b * TL / 2, ry * a * TW / 2 + fy * b * TL / 2, z]; };
-var pj = function (q) { var w = S(q[0], q[1], q[2]); return w ? w[0] + ',' + w[1] : ''; };
+var pj = function (q) { var w = S(q[0] + PX, q[1] + PY, q[2]); return w ? w[0] + ',' + w[1] : ''; };
 var quad = function (o, e1, e2, u0, u1, v0, v1) {
 var at = function (u, v) { return [o[0] + e1[0] * u + e2[0] * v, o[1] + e1[1] * u + e2[1] * v, o[2] + e1[2] * u + e2[2] * v]; };
 return [at(u0, v0), at(u1, v0), at(u1, v1), at(u0, v1)].map(pj).join(' ');
@@ -1153,7 +1157,7 @@ out.arrTitle = arrStn ? arrStn + '역 다음 열차' : '';
 out.arrNote = arrOk ? '서울시 실시간 도착 정보 기준 · 8호선 등은 열차 위치로 추정' : '';
 if (live && isRide && !st.boarded && i < last && arrRows.length && bannerLabel !== '경로 다시 찾음') banner = banner + ' · 다음 열차 ' + arrRows[0].first + (arrRows[0].clock ? ' (' + arrRows[0].clock + ')' : '');
 out.banner = banner;
-out.mapMoved = !!st.mapMoved; out.recenterTop = isRide ? '160px' : '150px';
+out.mapMoved = !!st.mapMoved; out.mapCy = cy; out.recenterTop = isRide ? '160px' : '150px';
 out.onRecenter = function () { if (self.props.onRecenter) self.props.onRecenter(); };
 out.hasAmbig = !!(live && (st.mode || 'confirm') === 'confirm' && st.ambig && st.ambigT && Date.now() - st.ambigT < 180000);
 out.ambig = out.hasAmbig ? st.ambig : [];

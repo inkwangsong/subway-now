@@ -406,22 +406,28 @@ fetch(RT_URL + (RT_URL.indexOf('?') < 0 ? '?' : '&') + 'line=' + encodeURICompon
 setInterval(pollHome, 30000);
 /* ===== 지도 손으로 움직이기 =====
    한 손가락: 끌어서 이동 · 두 손가락: 벌리고 오므려 확대/축소 · 두 번 톡: 원래대로 · 마우스 휠: 확대/축소.
-   카드나 버튼 위가 아니라 지도 위에서만 동작해요. 움직이면 '내 위치로' 버튼이 나와요 */
-var MG = { x: 0, y: 0, s: 1, pts: {}, start: null, lastTap: 0 };
-var mgEl = function () { return document.getElementById('mapgest'); };
-var mgApply = function (smooth) { var el = mgEl(); if (!el) return; el.style.transition = smooth ? 'transform .35s ease' : 'none'; el.style.transform = 'translate(' + MG.x + 'px,' + MG.y + 'px) scale(' + MG.s + ')'; };
-var mgMoved = function () { var m = Math.abs(MG.x) > 2 || Math.abs(MG.y) > 2 || Math.abs(MG.s - 1) > 0.02; if (m !== !!(app.state || {}).mapMoved) app.setState({ mapMoved: m }); };
-app.props.onRecenter = function () { MG.x = 0; MG.y = 0; MG.s = 1; mgApply(true); app.setState({ mapMoved: false }); };
+   화면을 늘리는 게 아니라 지도 자체를 그 위치·배율로 다시 그려서, 옮긴 곳까지 건물·노선이 채워져요 */
+var MG = { x: 0, y: 0, s: 1, pts: {}, start: null, lastTap: 0, raf: 0 };
+var mgApply = function () { if (MG.raf) return; MG.raf = (window.requestAnimationFrame || setTimeout)(function () { MG.raf = 0; var m = Math.abs(MG.x) > 2 || Math.abs(MG.y) > 2 || Math.abs(MG.s - 1) > 0.02; app.setState({ view: { x: MG.x, y: MG.y, z: MG.s }, mapMoved: m }); }); };
+app.props.onRecenter = function () {
+var x0 = MG.x, y0 = MG.y, s0 = MG.s, t0 = Date.now();
+var step = function () { var u = Math.min(1, (Date.now() - t0) / 350), e = u * (2 - u); MG.x = x0 * (1 - e); MG.y = y0 * (1 - e); MG.s = s0 + (1 - s0) * e; app.setState({ view: { x: MG.x, y: MG.y, z: MG.s }, mapMoved: u < 1 }); if (u < 1) (window.requestAnimationFrame || setTimeout)(step); };
+step();
+};
 var toLocal = function (e) { var r = stage.getBoundingClientRect(), k = r.width / 390; return { x: (e.clientX - r.left) / k, y: (e.clientY - r.top) / k }; };
-var zoomAt = function (px, py, ns) { ns = Math.max(0.6, Math.min(4, ns)); MG.x = px - (px - MG.x) * (ns / MG.s); MG.y = py - (py - MG.y) * (ns / MG.s); MG.s = ns; };
+var mgCy = function () { return lastVals && lastVals.mapCy ? lastVals.mapCy : 420; };
+/* 손가락 가운데 있던 지도 점이 계속 손가락 가운데 오도록 배율과 이동을 같이 바꿔요 */
+var zoomAbout = function (c0, c1, S, ns) {
+ns = Math.max(0.5, Math.min(4, ns)); var r = ns / S.s, cy = mgCy();
+MG.x = (c1.x - 195) - ((c0.x - 195) - S.x) * r; MG.y = (c1.y - cy) - ((c0.y - cy) - S.y) * r; MG.s = ns;
+};
 stage.addEventListener('pointerdown', function (e) {
 if (!e.target.closest || !e.target.closest('#mapgest')) return;
 MG.pts[e.pointerId] = toLocal(e);
 try { e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); } catch (er) {}
-var ids = Object.keys(MG.pts);
-if (ids.length === 1) {
+if (Object.keys(MG.pts).length === 1) {
 var now = Date.now();
-if (now - MG.lastTap < 300) { app.props.onRecenter(); MG.lastTap = 0; return; }
+if (now - MG.lastTap < 300) { MG.pts = {}; MG.start = null; MG.lastTap = 0; app.props.onRecenter(); return; }
 MG.lastTap = now;
 }
 MG.start = { x: MG.x, y: MG.y, s: MG.s, pts: JSON.parse(JSON.stringify(MG.pts)) };
@@ -432,25 +438,20 @@ MG.pts[e.pointerId] = toLocal(e);
 var ids = Object.keys(MG.pts), S = MG.start;
 if (ids.length === 1 && S.pts[ids[0]]) {
 var a = MG.pts[ids[0]], a0 = S.pts[ids[0]];
-MG.x = S.x + (a.x - a0.x); MG.y = S.y + (a.y - a0.y); MG.s = S.s;
+MG.x = S.x + (a.x - a0.x); MG.y = S.y + (a.y - a0.y);
 } else if (ids.length >= 2 && S.pts[ids[0]] && S.pts[ids[1]]) {
 var p1 = MG.pts[ids[0]], p2 = MG.pts[ids[1]], q1 = S.pts[ids[0]], q2 = S.pts[ids[1]];
 var d0 = Math.hypot(q2.x - q1.x, q2.y - q1.y) || 1, d1 = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-var c0 = { x: (q1.x + q2.x) / 2, y: (q1.y + q2.y) / 2 }, c1 = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
-var ns = Math.max(0.6, Math.min(4, S.s * d1 / d0));
-/* 시작할 때 손가락 가운데 있던 지도 점이 지금 손가락 가운데에 오도록 */
-MG.x = c1.x - (c0.x - S.x) * (ns / S.s); MG.y = c1.y - (c0.y - S.y) * (ns / S.s); MG.s = ns;
+zoomAbout({ x: (q1.x + q2.x) / 2, y: (q1.y + q2.y) / 2 }, { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 }, S, S.s * d1 / d0);
 }
-mgApply(false); e.preventDefault();
+mgApply(); e.preventDefault();
 }, { passive: false });
-var mgEnd = function (e) { if (!MG.pts[e.pointerId]) return; delete MG.pts[e.pointerId]; MG.start = Object.keys(MG.pts).length ? { x: MG.x, y: MG.y, s: MG.s, pts: JSON.parse(JSON.stringify(MG.pts)) } : null; mgMoved(); };
+var mgEnd = function (e) { if (!MG.pts[e.pointerId]) return; delete MG.pts[e.pointerId]; MG.start = Object.keys(MG.pts).length ? { x: MG.x, y: MG.y, s: MG.s, pts: JSON.parse(JSON.stringify(MG.pts)) } : null; };
 stage.addEventListener('pointerup', mgEnd); stage.addEventListener('pointercancel', mgEnd);
 stage.addEventListener('wheel', function (e) {
 if (!e.target.closest || !e.target.closest('#mapgest')) return;
-var p = toLocal(e); zoomAt(p.x, p.y, MG.s * Math.exp(-e.deltaY / 400)); mgApply(false); mgMoved(); e.preventDefault();
+var p = toLocal(e); zoomAbout(p, p, { x: MG.x, y: MG.y, s: MG.s }, MG.s * Math.exp(-e.deltaY / 400)); mgApply(); e.preventDefault();
 }, { passive: false });
-/* 화면을 다시 그려도 지도 위치를 그대로 유지해요 */
-var _mgKeep = setInterval(function () { var el = mgEl(); if (el && (MG.x || MG.y || MG.s !== 1) && el.style.transform.indexOf('scale(' + MG.s + ')') < 0) mgApply(false); }, 300);
 /* 다음 열차: 화면에 출발역이 있을 때 20초마다 그 역 도착 정보를 받아요. 남은 시간은 1초마다 다시 그려요 */
 var arrBusy = false;
 var pollArr = function () {
