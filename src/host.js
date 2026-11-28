@@ -419,7 +419,8 @@ if (!M.on && st.mode !== 'ride') return;
 var i = r ? Math.min(st.i || 0, r.length - 1) : -1;
 var nm = app._near;
 REC.buf.push([Math.round((Date.now() - REC.t0) / 1000), +(M.lastMag || 0).toFixed(2), +M.vib.toFixed(2), M.phase.charAt(0), (st.mode || 'confirm').charAt(0), i, r && i >= 0 ? r[i].n : '', +(st.f || 0).toFixed(2), st.boarded ? 1 : 0, st.trainNo || '', g ? Math.round(g.acc) : -1, g ? Math.round((Date.now() - g.t) / 1000) : -1, nm ? nm.name : '', nm ? Math.round(nm.m) : -1]);
-if (st.mode === 'ride' || M.phase === 'moving') REC.dirty = true;
+/* 역 근처(400m 안)에서 켜 둔 기록도 남겨요: 탑승으로 안 잡힌 날은 기록이 하나도 없어서 원인을 볼 수 없었어요 */
+if (st.mode === 'ride' || M.phase === 'moving' || (nm && nm.m < 400)) REC.dirty = true;
 }, 1000);
 var recFlush = function (beacon) {
 var url = recUrl();

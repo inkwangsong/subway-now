@@ -19,6 +19,8 @@ if (this._acc < 1) return;
 var total = i + (st.f || 0) + this._acc / 110; this._acc = 0;
 /* 탄 열차를 실시간으로 따라가는 중이면, 다음 도착 소식이 올 때까지 역 직전에서 기다려요 */
 if (st.trainNo && st.trainT && now - st.trainT < 60000) total = Math.min(total, i + 0.92);
+/* 정확한 위치가 지금 이 역 안이라고 하면(8초 안), 아직 출발 전이니 시간으로 앞서가지 않아요 */
+var an = this._anc; if (an && an.c >= 2 && now - an.t < 8000 && this._route && this._route[i] && stnNorm(this._route[i].n) === stnNorm(an.n)) total = Math.min(total, i + 0.12);
 /* 움직임 센서가 살아 있으면 역을 넘는 건 '정차 감지'나 실시간 열차로만 해요 */
 if (st.motionLive && st.motionT && now - st.motionT < 360000) {
 total = Math.min(total, i + 0.9);
@@ -43,9 +45,50 @@ if (f >= 1) { this._dwell = this._xferNext ? 34 : 18; this.setState({ i: i + 1, 
 else this.setState({ f: f });
 }
 /* 위치 반영: 경로 위에서 지금 역부터 세 정거장 앞까지만 보고 가장 가까운 지점으로 옮겨요 (뒤로는 안 가요) */
+/* 위치 닻: 오차 50m 안의 정확한 위치가 어떤 역 130m 안에 두 번 연속 잡히면, 그 역에 있는 게 확실해요.
+   이때는 시간 추정·열차 맞추기보다 위치를 먼저 믿어요 (탑승 기록에서 남위례에 있는데 수진으로, 서현에 있는데 신흥으로 나온 문제) */
+anchorOf(geo) {
+var G = this._G;
+if (!G || !geo || !(geo.acc <= 50)) { this._anc = null; return null; }
+var b1 = 1e9, n1 = null, b2 = 1e9;
+for (var pk in G.pos) { var q = G.pos[pk], nm = pk.split('|')[0], d = Math.sqrt(Math.pow((q[0] - geo.lon) * COS, 2) + Math.pow(q[1] - geo.lat, 2)) * 111000;
+if (nm === n1) { if (d < b1) b1 = d; } else if (d < b1) { b2 = b1; b1 = d; n1 = nm; } else if (d < b2) b2 = d; }
+if (!n1 || b1 > 130 || b2 < b1 * 1.6) { this._anc = null; return null; }
+var c = this._anc && this._anc.n === n1 ? this._anc.c + 1 : 1;
+this._anc = { n: n1, c: c, t: Date.now() };
+return c >= 2 ? this._anc : null;
+}
+/* 방금(20초 안) 위치 닻이 잡힌 역에서 1.2km 넘게 떨어진 역으로 옮기려는 판단은 틀린 거예요 */
+farFromAnchor(name) {
+var a = this._anc, G = this._G;
+if (!a || a.c < 2 || Date.now() - a.t > 20000 || !G || !name || stnNorm(name) === stnNorm(a.n)) return false;
+var pa = null, pb = null;
+for (var pk in G.pos) { var nm = pk.split('|')[0]; if (!pa && nm === a.n) pa = G.pos[pk]; if (!pb && stnNorm(nm) === stnNorm(name)) pb = G.pos[pk]; }
+if (!pa || !pb) return false;
+return Math.sqrt(Math.pow((pa[0] - pb[0]) * COS, 2) + Math.pow(pa[1] - pb[1], 2)) * 111000 > 1200;
+}
 applyGeo(geo) {
 var st = this.state || {};
 var patch = { geo: geo };
+var anc = this.props.live && !st.demo ? this.anchorOf(geo) : null;
+if (anc && st.mode === 'ride' && this._route) {
+var rt0 = this._route, last0 = rt0.length - 1, i0 = Math.min(st.i || 0, last0), cur0 = i0 + (st.f || 0), k0 = -1;
+for (var z0 = 0; z0 <= last0; z0++) if (stnNorm(rt0[z0].n) === stnNorm(anc.n) && (k0 < 0 || Math.abs(z0 - cur0) < Math.abs(k0 - cur0))) k0 = z0;
+if (k0 >= 0) {
+/* 경로 위의 역: 반 정거장 넘게 어긋나 있으면 그 역으로 맞춰요 (뒤로도 가요. 두 정거장 넘게 뒤로는 세 번 확인하고) */
+if (Math.abs(k0 - cur0) > 0.6 && (k0 > cur0 - 2 || anc.c >= 3)) {
+this._acc = 0; this._lastT = 0; this._off = 0;
+patch.i = k0; patch.f = 0; patch.fixT = Date.now(); patch.resyncT = null;
+if (k0 < cur0 || Math.abs(k0 - cur0) > 1.5) { patch.trainNo = null; patch.trainOk = false; }
+if (st.trainNo && patch.trainNo === null) { patch.badTrain = st.trainNo; patch.badT = Date.now(); }
+this.setState(patch); return;
+}
+} else if (anc.c >= 3) {
+/* 경로 밖의 역: 목적지가 있으면 거기서 길을 다시 찾고, 없으면(자동 감지) 잘못 잡은 탑승이라 처음으로 돌아가요 */
+if (st.dest && this.reroute(anc.n, null, { geo: geo, boarded: !!st.boarded && !!(geo.speed && geo.speed > 5) })) return;
+if (!st.dest) { this._trail = []; this._cand = {}; this.setState(Object.assign(patch, { mode: 'confirm', origin: null, route: null, i: 0, f: 0, boarded: false, playing: false, trainNo: null, auto: false })); return; }
+}
+}
 if ((st.mode || 'confirm') === 'confirm' && this.props.live && !st.demo && geo) {
 var auto = this.detectRide(geo);
 if (auto) { this.setState(Object.assign(patch, auto)); return; }
@@ -237,12 +280,13 @@ if (mode === 'ride' && route) {
 var last = route.length - 1, i = Math.min(st.i || 0, last), k = -1;
 for (var q = Math.max(0, i - 2); q <= Math.min(last, i + 3); q++) if (route[q].l === x.li || (q < last && route[q + 1].l === x.li)) { if (stnNorm(route[q].n) === S) { k = q; break; } }
 if (k >= 0) {
+if (this.farFromAnchor(route[k].n)) return false;
 if (st.trainNo === x.no && Math.abs(k - i) < 1) return false;
 this._acc = 0; this._lastT = 0;
 this.setState({ trainNo: x.no, trainT: now, trainMiss: 0, trainOk: true, lockP: k, boarded: true, playing: true, i: k, f: dep ? 0.08 : 0, matchedT: now, resyncT: null });
 return true;
 }
-if (st.dest && (x._m || 0) >= 3) return this.reroute(x.lastStn, x.li, { boarded: true, playing: true, trainNo: x.no, trainT: now, f: dep ? 0.08 : 0, matchedT: now });
+if (st.dest && (x._m || 0) >= 3 && !this.farFromAnchor(x.lastStn)) return this.reroute(x.lastStn, x.li, { boarded: true, playing: true, trainNo: x.no, trainT: now, f: dep ? 0.08 : 0, matchedT: now });
 return false;
 }
 if (mode === 'confirm') {
@@ -256,6 +300,7 @@ if (cs[ci].loop) toFirst = String(x.ud) === '0';
 else { if (tq < 0 || tq === a) continue; toFirst = tq < a; }
 var o = { n: s[a], l: x.li, ci: ci, toFirst: toFirst }, r = freeRoute(o);
 if (r.length < 2) continue;
+if (this.farFromAnchor(o.n)) return false;
 this._cand = {}; this._left = [];
 this.setState({ mode: 'ride', origin: o, dest: null, route: r, i: 0, f: dep ? 0.08 : 0, boarded: true, playing: true, auto: true, trainNo: x.no, trainT: now, trainMiss: 0, matchedT: now, ckDone: {}, q: '', from: null, pickFor: null });
 return true;
@@ -363,6 +408,7 @@ var w = ok[0], ch = NET[w.c.li].chains[w.c.ci], sNow = w.last.s, k0 = w.c.dir > 
 k0 = Math.max(0, Math.min(ch.s.length - 1, k0));
 var o = { n: ch.s[k0], l: w.c.li, ci: w.c.ci, toFirst: w.c.dir < 0 }, route = freeRoute(o);
 if (route.length < 2) return;
+if (this.farFromAnchor(o.n)) return;
 this._cand = {};
 this.setState({ mode: 'ride', origin: o, dest: null, route: route, i: 0, f: Math.max(0, Math.min(0.95, Math.abs(sNow - k0))), boarded: true, playing: true, auto: true, trainNo: w.c.no, trainT: now, trainMiss: 0, fixT: now, ckDone: {}, q: '', from: null, pickFor: null });
 }
